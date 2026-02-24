@@ -1,0 +1,14 @@
+# Environment variables
+.env
+
+# Application files
+app/
+lifecycle.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -21,14 +21,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
-# LOCATION="australiaeast"
-# PREFIX="az104"
-# LAB="m05-alerts"
-# RG_NAME="${PREFIX}-${LAB}-rg"
+cat > .env << 'EOF'
+LOCATION="australiaeast"
+PREFIX="az104"
+LAB="m05-alerts"
+RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Monitor → Alerts → Action groups → Create (email receiver).
@@ -39,7 +43,9 @@ flowchart LR
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -57,7 +63,8 @@ VM_ID="$(az vm create \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM_ID=$VM_ID"
 
 # Define action group name and email recipient
@@ -72,7 +79,8 @@ AG_ID="$(az monitor action-group create \
   --name "$AG_NAME" \
   --short-name "az104" \
   --action email admin "$EMAIL" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "AG_ID=$AG_ID"
 
 # Define the metric alert name
@@ -89,7 +97,8 @@ ALERT_ID="$(az monitor metrics alert create \
   --evaluation-frequency 1m \
   --action "$AG_ID" \
   --severity 2 \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "ALERT_ID=$ALERT_ID"
 ```
 
@@ -97,7 +106,10 @@ echo "ALERT_ID=$ALERT_ID"
 ### 3) Validate
 ```bash
 # Display the metric alert configuration details
-az monitor metrics alert show --resource-group "$RG_NAME" --name "$ALERT_NAME" -o jsonc
+az monitor metrics alert show \
+  --resource-group "$RG_NAME" \
+  --name "$ALERT_NAME" \
+  -o jsonc
 echo "Validated metric alert and action group association."
 ```
 
@@ -108,8 +120,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

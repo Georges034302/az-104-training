@@ -24,14 +24,20 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+# Create .env file with lab parameters
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m01-mi-storage"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+# Load environment variables
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → **Managed Identities** → Create **User assigned** MI.
@@ -44,7 +50,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -63,7 +71,10 @@ UAMI_ID="$(az identity create \
 echo "UAMI_ID=$UAMI_ID"
 
 # Retrieve the principal ID (object ID) of the managed identity for RBAC
-UAMI_PRINCIPAL_ID="$(az identity show --ids "$UAMI_ID" --query principalId -o tsv)"
+UAMI_PRINCIPAL_ID="$(az identity show \
+  --ids "$UAMI_ID" \
+  --query principalId \
+  -o tsv)"
 echo "UAMI_PRINCIPAL_ID=$UAMI_PRINCIPAL_ID"
 
 # Generate random suffix for globally unique storage account name
@@ -83,7 +94,11 @@ az storage account create \
   --kind StorageV2
 
 # Get the storage account's full Azure resource ID
-STG_ID="$(az storage account show --name "$STG_NAME" --resource-group "$RG_NAME" --query id -o tsv)"
+STG_ID="$(az storage account show \
+  --name "$STG_NAME" \
+  --resource-group "$RG_NAME" \
+  --query id \
+  -o tsv)"
 echo "STG_ID=$STG_ID"
 
 # Define the data-plane RBAC role for blob access
@@ -104,7 +119,10 @@ echo "ROLE_ASSIGNMENT_ID=$ROLE_ASSIGNMENT_ID"
 ### 3) Validate
 ```bash
 # List role assignments at storage scope filtered by the role name
-az role assignment list --scope "$STG_ID" --query "[?roleDefinitionName=='$DATA_ROLE']" -o table
+az role assignment list \
+  --scope "$STG_ID" \
+  --query "[?roleDefinitionName=='$DATA_ROLE']" \
+  -o table
 echo "Validated data role on storage scope."
 ```
 
@@ -115,8 +133,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the .env file
+rm -f .env
+echo "Cleaned up .env file"
 ```
 
 ## Notes

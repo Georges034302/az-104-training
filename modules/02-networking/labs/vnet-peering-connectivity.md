@@ -22,14 +22,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-peering"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Create VNet A and VNet B with non-overlapping CIDRs.
@@ -41,7 +45,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -70,10 +76,18 @@ az network vnet create \
   --subnet-prefixes "10.31.1.0/24"
 
 # Retrieve the resource ID for VNet A (required for peering)
-VNET_A_ID="$(az network vnet show --resource-group "$RG_NAME" --name "$VNET_A" --query id -o tsv)"
+VNET_A_ID="$(az network vnet show \
+  --resource-group "$RG_NAME" \
+  --name "$VNET_A" \
+  --query id \
+  -o tsv)"
 
 # Retrieve the resource ID for VNet B (required for peering)
-VNET_B_ID="$(az network vnet show --resource-group "$RG_NAME" --name "$VNET_B" --query id -o tsv)"
+VNET_B_ID="$(az network vnet show \
+  --resource-group "$RG_NAME" \
+  --name "$VNET_B" \
+  --query id \
+  -o tsv)"
 echo "VNET_A_ID=$VNET_A_ID"
 echo "VNET_B_ID=$VNET_B_ID"
 
@@ -102,10 +116,16 @@ echo "PEER_B_TO_A_ID=$PEER_B_TO_A_ID"
 ### 3) Validate
 ```bash
 # List peering connections for VNet A and verify status is "Connected"
-az network vnet peering list --resource-group "$RG_NAME" --vnet-name "$VNET_A" -o table
+az network vnet peering list \
+  --resource-group "$RG_NAME" \
+  --vnet-name "$VNET_A" \
+  -o table
 
 # List peering connections for VNet B and verify status is "Connected"
-az network vnet peering list --resource-group "$RG_NAME" --vnet-name "$VNET_B" -o table
+az network vnet peering list \
+  --resource-group "$RG_NAME" \
+  --vnet-name "$VNET_B" \
+  -o table
 echo "Validated peering state for both VNets."
 ```
 
@@ -116,8 +136,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

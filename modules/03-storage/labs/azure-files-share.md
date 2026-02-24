@@ -22,14 +22,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m03-files"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Storage account → File shares → Create file share.
@@ -40,7 +44,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -71,14 +77,16 @@ az storage account create \
 STG_KEY="$(az storage account keys list \
   --account-name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --query "[0].value" -o tsv)"
+  --query "[0].value" \
+  -o tsv)"
 echo "STG_KEY=<hidden>"
 
 # Get the file service endpoint URL
 FILE_ENDPOINT="$(az storage account show \
   --name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --query primaryEndpoints.file -o tsv)"
+  --query primaryEndpoints.file \
+  -o tsv)"
 echo "FILE_ENDPOINT=$FILE_ENDPOINT"
 
 # Create an Azure Files share with the specified quota
@@ -90,14 +98,21 @@ az storage share-rm create \
 echo "Created file share: $SHARE_NAME"
 
 # List all file shares in the storage account
-az storage share-rm list --resource-group "$RG_NAME" --storage-account "$STG_NAME" -o table
+az storage share-rm list \
+  --resource-group "$RG_NAME" \
+  --storage-account "$STG_NAME" \
+  -o table
 ```
 
 
 ### 3) Validate
 ```bash
 # Display the file share details including quota
-az storage share-rm show --resource-group "$RG_NAME" --storage-account "$STG_NAME" --name "$SHARE_NAME" -o table
+az storage share-rm show \
+  --resource-group "$RG_NAME" \
+  --storage-account "$STG_NAME" \
+  --name "$SHARE_NAME" \
+  -o table
 echo "Validated file share and quota."
 ```
 
@@ -108,8 +123,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

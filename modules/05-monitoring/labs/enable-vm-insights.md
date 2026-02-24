@@ -22,14 +22,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m05-vminsights"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Create Log Analytics workspace.
@@ -41,7 +45,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -56,7 +62,8 @@ LAW_ID="$(az monitor log-analytics workspace create \
   --resource-group "$RG_NAME" \
   --workspace-name "$LAW_NAME" \
   --location "$LOCATION" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "LAW_ID=$LAW_ID"
 
 # Define VM name and admin username
@@ -72,7 +79,8 @@ VM_ID="$(az vm create \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM_ID=$VM_ID"
 
 # NOTE: Enabling VM insights and monitoring agents varies by region and Azure Monitor Agent updates
@@ -95,8 +103,15 @@ Optional: AMA/DCR deployments are often IaC-managed, but kept out of this minima
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

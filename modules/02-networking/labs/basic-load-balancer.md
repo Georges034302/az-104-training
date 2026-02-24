@@ -23,14 +23,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-lb"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Public IP addresses → Create.
@@ -43,7 +47,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -63,11 +69,16 @@ PIP_ID="$(az network public-ip create \
   --name "$PIP_NAME" \
   --sku Standard \
   --allocation-method static \
-  --query publicIp.id -o tsv)"
+  --query publicIp.id \
+  -o tsv)"
 echo "PIP_ID=$PIP_ID"
 
 # Retrieve the public IP address value for reference
-PIP_ADDR="$(az network public-ip show --resource-group "$RG_NAME" --name "$PIP_NAME" --query ipAddress -o tsv)"
+PIP_ADDR="$(az network public-ip show \
+  --resource-group "$RG_NAME" \
+  --name "$PIP_NAME" \
+  --query ipAddress \
+  -o tsv)"
 echo "PIP_ADDR=$PIP_ADDR"
 
 # Create the load balancer with frontend and backend pool
@@ -78,7 +89,8 @@ LB_ID="$(az network lb create \
   --frontend-ip-name "$FRONTEND_NAME" \
   --backend-pool-name "$BACKEND_POOL" \
   --public-ip-address "$PIP_NAME" \
-  --query loadBalancer.id -o tsv)"
+  --query loadBalancer.id \
+  -o tsv)"
 echo "LB_ID=$LB_ID"
 
 # Create a health probe to monitor backend health on TCP port 80
@@ -88,7 +100,8 @@ PROBE_ID="$(az network lb probe create \
   --name "$PROBE_NAME" \
   --protocol tcp \
   --port 80 \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "PROBE_ID=$PROBE_ID"
 ```
 
@@ -96,7 +109,10 @@ echo "PROBE_ID=$PROBE_ID"
 ### 3) Validate
 ```bash
 # Display load balancer configuration details
-az network lb show --resource-group "$RG_NAME" --name "$LB_NAME" -o jsonc
+az network lb show \
+  --resource-group "$RG_NAME" \
+  --name "$LB_NAME" \
+  -o jsonc
 echo "Validate: frontend IP, backend pool, and probe exist."
 ```
 
@@ -107,8 +123,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

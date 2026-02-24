@@ -22,14 +22,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m04-vmss"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Virtual machine scale sets → Create (Ubuntu, small SKU).
@@ -40,7 +44,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -61,7 +67,8 @@ VMSS_ID="$(az vmss create \
   --generate-ssh-keys \
   --upgrade-policy-mode automatic \
   --vm-sku Standard_B1s \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VMSS_ID=$VMSS_ID"
 
 # Define autoscale setting name
@@ -76,7 +83,8 @@ AUTOSCALE_ID="$(az monitor autoscale create \
   --min-count 1 \
   --max-count 3 \
   --count 1 \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "AUTOSCALE_ID=$AUTOSCALE_ID"
 
 # Add scale out rule when CPU exceeds 70% for 5 minutes
@@ -100,7 +108,10 @@ echo "Configured autoscale rules for VMSS."
 ### 3) Validate
 ```bash
 # Display autoscale configuration details
-az monitor autoscale show --resource-group "$RG_NAME" --name "$AUTOSCALE_NAME" -o jsonc
+az monitor autoscale show \
+  --resource-group "$RG_NAME" \
+  --name "$AUTOSCALE_NAME" \
+  -o jsonc
 echo "Validated autoscale configuration."
 ```
 
@@ -111,8 +122,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

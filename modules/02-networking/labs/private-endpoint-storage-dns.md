@@ -23,14 +23,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-pe-dns"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Create VNet + subnet for private endpoint.
@@ -43,7 +47,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -63,7 +69,12 @@ az network vnet create \
   --subnet-prefixes "10.50.3.0/24"
 
 # Retrieve the subnet ID for private endpoint deployment
-SUBNET_ID="$(az network vnet subnet show --resource-group "$RG_NAME" --vnet-name "$VNET_NAME" --name "$PE_SUBNET" --query id -o tsv)"
+SUBNET_ID="$(az network vnet subnet show \
+  --resource-group "$RG_NAME" \
+  --vnet-name "$VNET_NAME" \
+  --name "$PE_SUBNET" \
+  --query id \
+  -o tsv)"
 echo "SUBNET_ID=$SUBNET_ID"
 
 # Generate random suffix for globally unique storage account name
@@ -82,7 +93,11 @@ az storage account create \
   --kind StorageV2
 
 # Get the storage account's full Azure resource ID
-STG_ID="$(az storage account show --name "$STG_NAME" --resource-group "$RG_NAME" --query id -o tsv)"
+STG_ID="$(az storage account show \
+  --name "$STG_NAME" \
+  --resource-group "$RG_NAME" \
+  --query id \
+  -o tsv)"
 echo "STG_ID=$STG_ID"
 
 # Define the private DNS zone name for blob storage
@@ -93,7 +108,8 @@ echo "PDNS_ZONE=$PDNS_ZONE"
 PDNS_ZONE_ID="$(az network private-dns zone create \
   --resource-group "$RG_NAME" \
   --name "$PDNS_ZONE" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "PDNS_ZONE_ID=$PDNS_ZONE_ID"
 
 # Create a virtual network link to the private DNS zone
@@ -103,7 +119,8 @@ VNET_LINK_ID="$(az network private-dns link vnet create \
   --name "${PREFIX}-${LAB}-link" \
   --virtual-network "$VNET_NAME" \
   --registration-enabled false \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VNET_LINK_ID=$VNET_LINK_ID"
 
 # Define the private endpoint name
@@ -119,7 +136,8 @@ PE_ID="$(az network private-endpoint create \
   --private-connection-resource-id "$STG_ID" \
   --group-id blob \
   --connection-name "${PE_NAME}-conn" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "PE_ID=$PE_ID"
 
 # Create DNS zone group to link private endpoint with private DNS zone
@@ -129,7 +147,8 @@ DNS_ZONE_GROUP_ID="$(az network private-endpoint dns-zone-group create \
   --name "default" \
   --private-dns-zone "$PDNS_ZONE_ID" \
   --zone-name "$PDNS_ZONE" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "DNS_ZONE_GROUP_ID=$DNS_ZONE_GROUP_ID"
 ```
 
@@ -137,10 +156,16 @@ echo "DNS_ZONE_GROUP_ID=$DNS_ZONE_GROUP_ID"
 ### 3) Validate
 ```bash
 # Display private endpoint details in JSON format
-az network private-endpoint show --resource-group "$RG_NAME" --name "$PE_NAME" -o jsonc
+az network private-endpoint show \
+  --resource-group "$RG_NAME" \
+  --name "$PE_NAME" \
+  -o jsonc
 
 # List DNS A records in the private DNS zone to verify storage account registration
-az network private-dns record-set a list --resource-group "$RG_NAME" --zone-name "$PDNS_ZONE" -o table
+az network private-dns record-set a list \
+  --resource-group "$RG_NAME" \
+  --zone-name "$PDNS_ZONE" \
+  -o table
 echo "Validate: record set exists for the storage account in privatelink zone."
 ```
 
@@ -151,8 +176,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

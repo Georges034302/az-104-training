@@ -23,14 +23,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m03-lifecycle"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Storage account → Data management → Lifecycle management.
@@ -41,7 +45,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -95,7 +101,8 @@ az storage account management-policy create \
 POLICY_ID="$(az storage account management-policy show \
   --account-name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "POLICY_ID=$POLICY_ID"
 ```
 
@@ -103,7 +110,10 @@ echo "POLICY_ID=$POLICY_ID"
 ### 3) Validate
 ```bash
 # Display the lifecycle management policy in JSON format
-az storage account management-policy show --account-name "$STG_NAME" --resource-group "$RG_NAME" -o jsonc
+az storage account management-policy show \
+  --account-name "$STG_NAME" \
+  --resource-group "$RG_NAME" \
+  -o jsonc
 echo "Validated lifecycle policy exists."
 ```
 
@@ -114,8 +124,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove lifecycle policy file and environment file
+rm -f lifecycle.json .env
+echo "Cleaned up lifecycle.json and environment file"
 ```
 
 ## Notes

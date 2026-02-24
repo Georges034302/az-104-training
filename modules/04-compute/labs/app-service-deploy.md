@@ -23,14 +23,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
-# LOCATION="australiaeast"
-# PREFIX="az104"
-# LAB="m04-appsvc"
-# RG_NAME="${PREFIX}-${LAB}-rg"
+cat > .env << 'EOF'
+LOCATION="australiaeast"
+PREFIX="az104"
+LAB="m04-appsvc"
+RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → App Services → Create Web App.
@@ -42,7 +46,9 @@ flowchart LR
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -72,7 +78,8 @@ WEBAPP_ID="$(az webapp create \
   --plan "$PLAN_NAME" \
   --name "$WEBAPP_NAME" \
   --runtime "$RUNTIME" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "WEBAPP_ID=$WEBAPP_ID"
 
 # Configure application settings for the web app
@@ -86,7 +93,8 @@ echo "Set DEMO_SETTING=az104"
 WEBAPP_URL="$(az webapp show \
   --resource-group "$RG_NAME" \
   --name "$WEBAPP_NAME" \
-  --query defaultHostName -o tsv)"
+  --query defaultHostName \
+  -o tsv)"
 echo "WEBAPP_URL=https://$WEBAPP_URL"
 ```
 
@@ -94,7 +102,10 @@ echo "WEBAPP_URL=https://$WEBAPP_URL"
 ### 3) Validate
 ```bash
 # List all application settings for the web app
-az webapp config appsettings list --resource-group "$RG_NAME" --name "$WEBAPP_NAME" -o table
+az webapp config appsettings list \
+  --resource-group "$RG_NAME" \
+  --name "$WEBAPP_NAME" \
+  -o table
 echo "Validated web app and app settings."
 ```
 
@@ -105,8 +116,15 @@ Optional: ARM/Bicep is commonly used for App Service, but this lab keeps it simp
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

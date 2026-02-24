@@ -24,14 +24,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m04-availability"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Create an Availability Set (choose fault/update domain count).
@@ -43,7 +47,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -62,7 +68,8 @@ AS_ID="$(az vm availability-set create \
   --name "$AS_NAME" \
   --platform-fault-domain-count 2 \
   --platform-update-domain-count 5 \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "AS_ID=$AS_ID"
 
 # Create the first VM in the availability set
@@ -74,7 +81,8 @@ VM1_ID="$(az vm create \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
   --availability-set "$AS_NAME" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM1_ID=$VM1_ID"
 
 # Create the second VM in the same availability set
@@ -86,7 +94,8 @@ VM2_ID="$(az vm create \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
   --availability-set "$AS_NAME" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM2_ID=$VM2_ID"
 ```
 
@@ -94,7 +103,10 @@ echo "VM2_ID=$VM2_ID"
 ### 3) Validate
 ```bash
 # Display availability set details including VM members
-az vm availability-set show --resource-group "$RG_NAME" --name "$AS_NAME" -o jsonc
+az vm availability-set show \
+  --resource-group "$RG_NAME" \
+  --name "$AS_NAME" \
+  -o jsonc
 echo "Validated availability set and VM membership."
 ```
 
@@ -105,8 +117,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

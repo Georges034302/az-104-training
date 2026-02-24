@@ -24,14 +24,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-vnet"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Virtual networks → Create (address space + subnets).
@@ -43,7 +47,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -116,10 +122,16 @@ echo "Associated NSG to subnet: $SUBNET_VM"
 ### 3) Validate
 ```bash
 # Display the VNet details in table format
-az network vnet show --resource-group "$RG_NAME" --name "$VNET_NAME" -o table
+az network vnet show \
+  --resource-group "$RG_NAME" \
+  --name "$VNET_NAME" \
+  -o table
 
 # List all NSG rules to verify the SSH rule was created
-az network nsg rule list --resource-group "$RG_NAME" --nsg-name "$NSG_NAME" -o table
+az network nsg rule list \
+  --resource-group "$RG_NAME" \
+  --nsg-name "$NSG_NAME" \
+  -o table
 echo "Validated VNet, subnets, and NSG rules."
 ```
 
@@ -130,8 +142,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

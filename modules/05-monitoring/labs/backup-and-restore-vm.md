@@ -24,14 +24,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
-# LOCATION="australiaeast"
-# PREFIX="az104"
-# LAB="m05-backup"
-# RG_NAME="${PREFIX}-${LAB}-rg"
+cat > .env << 'EOF'
+LOCATION="australiaeast"
+PREFIX="az104"
+LAB="m05-backup"
+RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Create a small VM.
@@ -44,7 +48,9 @@ flowchart LR
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -62,7 +68,8 @@ VM_ID="$(az vm create \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM_ID=$VM_ID"
 
 # Define Recovery Services Vault name
@@ -74,11 +81,15 @@ VAULT_ID="$(az backup vault create \
   --resource-group "$RG_NAME" \
   --name "$VAULT_NAME" \
   --location "$LOCATION" \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VAULT_ID=$VAULT_ID"
 
 # Configure vault backup storage redundancy for cost-effective lab usage
-az backup vault backup-properties set --resource-group "$RG_NAME" --vault-name "$VAULT_NAME" --backup-storage-redundancy LocallyRedundant
+az backup vault backup-properties set \
+  --resource-group "$RG_NAME" \
+  --vault-name "$VAULT_NAME" \
+  --backup-storage-redundancy LocallyRedundant
 echo "Configured vault redundancy (lab)."
 
 # NOTE: Enabling VM backup via CLI can require additional steps and policy identifiers.
@@ -94,7 +105,10 @@ echo "RECOMMENDED: Enable backup via Portal (Vault -> Backup) for this lab."
 ### 3) Validate
 ```bash
 # Display Recovery Services Vault details
-az backup vault show --resource-group "$RG_NAME" --name "$VAULT_NAME" -o table
+az backup vault show \
+  --resource-group "$RG_NAME" \
+  --name "$VAULT_NAME" \
+  -o table
 echo "Validate: vault exists. After Portal enablement, validate backup item appears in the vault."
 ```
 
@@ -140,8 +154,15 @@ az deployment group create \
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes

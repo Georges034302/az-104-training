@@ -23,14 +23,18 @@ flowchart LR
 - Azure CLI installed and authenticated (`az login`)
 - (Optional) Azure Portal access
 
-## Parameters (edit these first)
+## Setup: Create environment file
 ```bash
+cat > .env << 'EOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m04-vm"
 RG_NAME="${PREFIX}-${LAB}-rg"
+EOF
+
+source .env
+echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
-> **Tip:** Commands below are intentionally **commented out**. Copy to a shell script, review, then **uncomment** to run.
 
 ## Portal solution (high-level)
 - Portal → Virtual machines → Create.
@@ -43,7 +47,9 @@ RG_NAME="${PREFIX}-${LAB}-rg"
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
-az group create --name "$RG_NAME" --location "$LOCATION"
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
 echo "RG_NAME=$RG_NAME"
 ```
 
@@ -66,7 +72,11 @@ az network vnet create \
   --subnet-prefixes "10.60.2.0/24"
 
 # Create Network Security Group
-NSG_ID="$(az network nsg create --resource-group "$RG_NAME" --name "$NSG_NAME" --query NewNSG.id -o tsv)"
+NSG_ID="$(az network nsg create \
+  --resource-group "$RG_NAME" \
+  --name "$NSG_NAME" \
+  --query NewNSG.id \
+  -o tsv)"
 echo "NSG_ID=$NSG_ID"
 
 # Add inbound rule to allow SSH traffic
@@ -99,11 +109,17 @@ VM_ID="$(az vm create \
   --subnet "$SUBNET_NAME" \
   --nsg "" \
   --generate-ssh-keys \
-  --query id -o tsv)"
+  --query id \
+  -o tsv)"
 echo "VM_ID=$VM_ID"
 
 # Retrieve the VM's public IP address for SSH access
-VM_PUBLIC_IP="$(az vm show --resource-group "$RG_NAME" --name "$VM_NAME" -d --query publicIps -o tsv)"
+VM_PUBLIC_IP="$(az vm show \
+  --resource-group "$RG_NAME" \
+  --name "$VM_NAME" \
+  -d \
+  --query publicIps \
+  -o tsv)"
 echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"
 
 # Optional: Test SSH connectivity (uncomment to use)
@@ -114,7 +130,10 @@ echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"
 ### 3) Validate
 ```bash
 # Display VM details in table format
-az vm show --resource-group "$RG_NAME" --name "$VM_NAME" -o table
+az vm show \
+  --resource-group "$RG_NAME" \
+  --name "$VM_NAME" \
+  -o table
 echo "Validated VM deployment and captured public IP."
 ```
 
@@ -125,8 +144,15 @@ Not required for this lab.
 ## Cleanup (required)
 ```bash
 # Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
+az group delete \
+  --name "$RG_NAME" \
+  --yes \
+  --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+
+# Remove the environment file
+rm -f .env
+echo "Cleaned up environment file"
 ```
 
 ## Notes
