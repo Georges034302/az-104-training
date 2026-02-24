@@ -6,19 +6,19 @@ This module covers Azure compute services, including virtual machines, high avai
 
 ## 📖 Lessons
 
-- **[Virtual Machines](lessons/virtual-machines.md)** - VM sizes, SKUs, images, and deployment options
-- **[Availability Sets & Zones](lessons/availability-sets-zones.md)** - High availability with fault and update domains
-- **[Scaling](lessons/scaling.md)** - VM Scale Sets (VMSS) and autoscaling strategies
-- **[App Service](lessons/app-service.md)** - Web apps, deployment slots, and app service plans
-- **[Containers: ACR, ACI & ACA](lessons/containers-acr-aci-aca.md)** - Azure Container Registry, Container Instances, and Container Apps
+1. **[Virtual Machines](lessons/01-virtual-machines.md)** - VM sizes, SKUs, images, and deployment options
+2. **[Availability Sets & Zones](lessons/02-availability-sets-zones.md)** - High availability with fault and update domains
+3. **[Scaling](lessons/03-scaling.md)** - VM Scale Sets (VMSS) and autoscaling strategies
+4. **[App Service](lessons/04-app-service.md)** - Web apps, deployment slots, and app service plans
+5. **[Containers: ACR, ACI & ACA](lessons/05-containers-acr-aci-aca.md)** - Azure Container Registry, Container Instances, and Container Apps
 
 ## 🧪 Labs
 
-- **[Deploy a Virtual Machine](labs/deploy-vm.md)** - Create Linux VM with VNet, NSG, and SSH access
-- **[VM Availability](labs/vm-availability.md)** - Deploy VMs in an availability set for fault tolerance
-- **[VMSS Autoscale](labs/vmss-autoscale.md)** - Configure VM Scale Set with CPU-based autoscaling rules
-- **[App Service Deploy](labs/app-service-deploy.md)** - Create web app with Node.js runtime and application settings
-- **[ACR & ACI Container](labs/acr-aci-container.md)** - Build container image in ACR and deploy to Azure Container Instances
+1. **[Deploy a Virtual Machine](labs/01-deploy-vm.md)** - Create Linux VM with VNet, NSG, and SSH access
+2. **[VM Availability](labs/02-vm-availability.md)** - Deploy VMs in an availability set for fault tolerance
+3. **[VMSS Autoscale](labs/03-vmss-autoscale.md)** - Configure VM Scale Set with CPU-based autoscaling rules
+4. **[App Service Deploy](labs/04-app-service-deploy.md)** - Create web app with Node.js runtime and application settings
+5. **[ACR & ACI Container](labs/05-acr-aci-container.md)** - Build container image in ACR and deploy to Azure Container Instances
 
 ## Learning Outcomes
 

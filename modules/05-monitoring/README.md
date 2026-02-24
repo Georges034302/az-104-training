@@ -6,18 +6,18 @@ This module covers Azure monitoring, diagnostics, alerting, backup strategies, a
 
 ## 📖 Lessons
 
-- **[Azure Monitor](lessons/azure-monitor.md)** - Metrics, logs, and Application Insights fundamentals
-- **[Log Analytics & KQL](lessons/log-analytics-kql.md)** - Kusto Query Language for log analysis and insights
-- **[Alerts & Action Groups](lessons/alerts-action-groups.md)** - Metric and log-based alerts with notification workflows
-- **[Azure Backup](lessons/azure-backup.md)** - Recovery Services Vault, backup policies, and retention strategies
-- **[Azure Site Recovery](lessons/azure-site-recovery.md)** - Disaster recovery and business continuity planning
-- **[Availability & Resilience](lessons/availability-resilience.md)** - SLA calculations and resilience strategies
+1. **[Azure Monitor](lessons/01-azure-monitor.md)** - Metrics, logs, and Application Insights fundamentals
+2. **[Log Analytics & KQL](lessons/02-log-analytics-kql.md)** - Kusto Query Language for log analysis and insights
+3. **[Alerts & Action Groups](lessons/03-alerts-action-groups.md)** - Metric and log-based alerts with notification workflows
+4. **[Azure Backup](lessons/04-azure-backup.md)** - Recovery Services Vault, backup policies, and retention strategies
+5. **[Azure Site Recovery](lessons/05-azure-site-recovery.md)** - Disaster recovery and business continuity planning
+6. **[Availability & Resilience](lessons/06-availability-resilience.md)** - SLA calculations and resilience strategies
 
 ## 🧪 Labs
 
-- **[Enable VM Insights](labs/enable-vm-insights.md)** - Deploy Log Analytics workspace and configure VM monitoring
-- **[Create Alert & Action Group](labs/create-alert-action-group.md)** - Set up CPU alert with email notification
-- **[Backup & Restore VM](labs/backup-and-restore-vm.md)** - Configure Recovery Services Vault and VM backup policy
+1. **[Enable VM Insights](labs/01-enable-vm-insights.md)** - Deploy Log Analytics workspace and configure VM monitoring
+2. **[Create Alert & Action Group](labs/02-create-alert-action-group.md)** - Set up CPU alert with email notification
+3. **[Backup & Restore VM](labs/03-backup-and-restore-vm.md)** - Configure Recovery Services Vault and VM backup policy
 
 ## Learning Outcomes
 

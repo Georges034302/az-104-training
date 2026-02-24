@@ -6,16 +6,16 @@ This module covers the fundamentals of identity and access management in Azure, 
 
 ## 📖 Lessons
 
-- **[Entra ID Basics](lessons/entra-id-basics.md)** - Azure Active Directory fundamentals, users, groups, and authentication methods
-- **[Role-Based Access Control (RBAC)](lessons/rbac.md)** - Permission management with built-in and custom roles at different scopes
-- **[Managed Identities](lessons/managed-identities.md)** - System and user-assigned identities for secure service-to-service authentication
-- **[Governance: Policy, Locks & Tags](lessons/governance-policy-locks-tags.md)** - Resource organization, compliance enforcement, and cost management
+1. **[Entra ID Basics](lessons/01-entra-id-basics.md)** - Azure Active Directory fundamentals, users, groups, and authentication methods
+2. **[Role-Based Access Control (RBAC)](lessons/02-rbac.md)** - Permission management with built-in and custom roles at different scopes
+3. **[Managed Identities](lessons/03-managed-identities.md)** - System and user-assigned identities for secure service-to-service authentication
+4. **[Governance: Policy, Locks & Tags](lessons/04-governance-policy-locks-tags.md)** - Resource organization, compliance enforcement, and cost management
 
 ## 🧪 Labs
 
-- **[RBAC Role Assignment](labs/rbac-role-assignment.md)** - Assign Azure roles to users and service principals with different permission levels
-- **[Managed Identity Storage Access](labs/managed-identity-storage-access.md)** - Configure managed identity to access Azure Storage without credentials
-- **[Tags, Locks & Policy](labs/tags-lock-policy.md)** - Apply resource tags, deletion locks, and Azure Policy for governance
+1. **[RBAC Role Assignment](labs/01-rbac-role-assignment.md)** - Assign Azure roles to users and service principals with different permission levels
+2. **[Managed Identity Storage Access](labs/02-managed-identity-storage-access.md)** - Configure managed identity to access Azure Storage without credentials
+3. **[Tags, Locks & Policy](labs/03-tags-lock-policy.md)** - Apply resource tags, deletion locks, and Azure Policy for governance
 
 ## Learning Outcomes
 

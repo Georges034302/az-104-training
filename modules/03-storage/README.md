@@ -6,17 +6,17 @@ This module covers Azure storage services, including blob storage, file shares, 
 
 ## 📖 Lessons
 
-- **[Storage Accounts & Redundancy](lessons/storage-accounts-redundancy.md)** - Account types, performance tiers, and replication options (LRS, GRS, ZRS, RA-GRS)
-- **[Blob Storage & Lifecycle Management](lessons/blob-lifecycle.md)** - Container management and automated tier transitions (Hot, Cool, Archive)
-- **[Azure Files](lessons/azure-files.md)** - SMB file shares for cloud and hybrid scenarios
-- **[Storage Security: SAS vs RBAC](lessons/storage-security-sas-rbac.md)** - Shared Access Signatures and role-based access comparison
+1. **[Storage Accounts & Redundancy](lessons/01-storage-accounts-redundancy.md)** - Account types, performance tiers, and replication options (LRS, GRS, ZRS, RA-GRS)
+2. **[Blob Storage & Lifecycle Management](lessons/02-blob-lifecycle.md)** - Container management and automated tier transitions (Hot, Cool, Archive)
+3. **[Azure Files](lessons/03-azure-files.md)** - SMB file shares for cloud and hybrid scenarios
+4. **[Storage Security: SAS vs RBAC](lessons/04-storage-security-sas-rbac.md)** - Shared Access Signatures and role-based access comparison
 
 ## 🧪 Labs
 
-- **[Storage Account & Blob Container](labs/storage-account-blob-container.md)** - Create storage account, upload and download blobs
-- **[Lifecycle Policy](labs/lifecycle-policy.md)** - Automate blob tier transitions based on age for cost optimization
-- **[Azure Files Share](labs/azure-files-share.md)** - Create and configure SMB file share with quota management
-- **[SAS vs RBAC](labs/sas-vs-rbac.md)** - Compare delegation methods with SAS tokens and Azure RBAC roles
+1. **[Storage Account & Blob Container](labs/01-storage-account-blob-container.md)** - Create storage account, upload and download blobs
+2. **[Lifecycle Policy](labs/02-lifecycle-policy.md)** - Automate blob tier transitions based on age for cost optimization
+3. **[Azure Files Share](labs/03-azure-files-share.md)** - Create and configure SMB file share with quota management
+4. **[SAS vs RBAC](labs/04-sas-vs-rbac.md)** - Compare delegation methods with SAS tokens and Azure RBAC roles
 
 ## Learning Outcomes
 
