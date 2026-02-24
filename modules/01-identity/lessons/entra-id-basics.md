@@ -496,8 +496,3 @@ Invite guest user (B2B)
 
 ---
 
-## Next Steps
-
-- **Lesson**: Role-Based Access Control (RBAC) — scopes, assignments, built-in roles  
-- **Lesson**: Managed Identities — system vs user-assigned + real workload patterns  
-- **Lab**: Assign RBAC to a group at RG scope and validate access
