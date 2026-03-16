@@ -1,135 +1,198 @@
-# Lab: UDR Routing Simulation (Simple Route Table)
+# Lab: UDR Routing Simulation (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create a route table, add a route, associate it to a subnet, and validate effective association. This lab keeps the next hop simple.
+Create a route table, add custom routes, associate it with a subnet, and validate route behavior at subnet scope.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Subnet[Subnet] --> RT[Route Table]
-  RT --> Route[Route: 0.0.0.0/0 -> Internet]
-  Route --> NextHop[Next Hop]
-```
+
+ [VNet + subnet]
+      |
+      v
+ [Route table]
+    |       \
+    v        v
+ [Route 1] [Route 2]
+      |
+      v
+ [Subnet association]
 
 ## Estimated time
-25–35 minutes
+25-35 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- All resources are created in one lab resource group.
+- No compute resources are required.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure CLI authenticated (`az login`)
+- Permission to create networking resources
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-udr"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
-
-source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
-```
-
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
-```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
-
-### 2) Deploy resources
-```bash
-# Define VNet, subnet, and route table names
 VNET_NAME="${PREFIX}-${LAB}-vnet"
 SUBNET_NAME="workload"
+VNET_CIDR="10.40.0.0/16"
+SUBNET_CIDR="10.40.1.0/24"
 RT_NAME="${PREFIX}-${LAB}-rt"
-echo "VNET_NAME=$VNET_NAME"
-echo "RT_NAME=$RT_NAME"
+ENVEOF
 
-# Create VNet with a workload subnet
+source .env
+echo "Loaded: $RG_NAME, $VNET_NAME, $RT_NAME"
+```
+
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and network
+```bash
+az group create --name "$RG_NAME" --location "$LOCATION"
+
 az network vnet create \
   --resource-group "$RG_NAME" \
   --name "$VNET_NAME" \
-  --address-prefixes "10.40.0.0/16" \
+  --address-prefixes "$VNET_CIDR" \
   --subnet-name "$SUBNET_NAME" \
-  --subnet-prefixes "10.40.1.0/24"
+  --subnet-prefixes "$SUBNET_CIDR"
+```
 
-# Create a route table (UDR) for custom routing
+### 2) Create route table and routes
+```bash
 RT_ID="$(az network route-table create \
   --resource-group "$RG_NAME" \
   --name "$RT_NAME" \
   --location "$LOCATION" \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
 echo "RT_ID=$RT_ID"
 
-# Add a default route to send all traffic to Internet (demonstration)
-ROUTE_ID="$(az network route-table route create \
+az network route-table route create \
   --resource-group "$RG_NAME" \
   --route-table-name "$RT_NAME" \
   --name "default-to-internet" \
   --address-prefix "0.0.0.0/0" \
-  --next-hop-type Internet \
-  --query id \
-  -o tsv)"
-echo "ROUTE_ID=$ROUTE_ID"
+  --next-hop-type Internet
 
-# Associate the route table with the workload subnet
+az network route-table route create \
+  --resource-group "$RG_NAME" \
+  --route-table-name "$RT_NAME" \
+  --name "blackhole-example" \
+  --address-prefix "10.99.0.0/16" \
+  --next-hop-type None
+```
+
+### 3) Associate route table to subnet
+```bash
 az network vnet subnet update \
   --resource-group "$RG_NAME" \
   --vnet-name "$VNET_NAME" \
   --name "$SUBNET_NAME" \
   --route-table "$RT_ID"
-echo "Associated route table to subnet: $SUBNET_NAME"
 ```
 
-
-### 3) Validate
+### 4) Validate
 ```bash
-# Display route table details
-az network route-table show \
+az network route-table route list \
   --resource-group "$RG_NAME" \
-  --name "$RT_NAME" \
+  --route-table-name "$RT_NAME" \
   -o table
 
-# Display subnet details including associated route table
 az network vnet subnet show \
   --resource-group "$RG_NAME" \
   --vnet-name "$VNET_NAME" \
   --name "$SUBNET_NAME" \
+  --query "{subnet:name,routeTable:routeTable.id}" \
   -o table
-echo "Validated route table and subnet association."
 ```
 
+## ARM template solution (optional)
+```bash
+cat > main.json << 'ARMEOF'
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "type": "string" },
+    "vnetName": { "type": "string" },
+    "subnetName": { "type": "string" },
+    "vnetCidr": { "type": "string" },
+    "subnetCidr": { "type": "string" },
+    "routeTableName": { "type": "string" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/routeTables",
+      "apiVersion": "2023-09-01",
+      "name": "[parameters('routeTableName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "routes": [
+          {
+            "name": "default-to-internet",
+            "properties": {
+              "addressPrefix": "0.0.0.0/0",
+              "nextHopType": "Internet"
+            }
+          },
+          {
+            "name": "blackhole-example",
+            "properties": {
+              "addressPrefix": "10.99.0.0/16",
+              "nextHopType": "None"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-09-01",
+      "name": "[parameters('vnetName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
+      ],
+      "properties": {
+        "addressSpace": { "addressPrefixes": [ "[parameters('vnetCidr')]" ] },
+        "subnets": [
+          {
+            "name": "[parameters('subnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnetCidr')]",
+              "routeTable": {
+                "id": "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+ARMEOF
 
-## ARM template solution (when needed)
-Not required for this lab.
+az deployment group create \
+  --resource-group "$RG_NAME" \
+  --template-file main.json \
+  --parameters \
+    location="$LOCATION" \
+    vnetName="$VNET_NAME" \
+    subnetName="$SUBNET_NAME" \
+    vnetCidr="$VNET_CIDR" \
+    subnetCidr="$SUBNET_CIDR" \
+    routeTableName="$RT_NAME"
+```
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
-rm -f .env
-echo "Cleaned up environment file"
+az group delete --name "$RG_NAME" --yes --no-wait
+rm -f .env main.json
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- Route selection uses longest prefix match.
+- For equal prefixes, UDR has higher precedence than BGP and system routes.

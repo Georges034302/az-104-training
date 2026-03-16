@@ -22,6 +22,13 @@ This module covers Azure networking fundamentals, including virtual networks, se
 4. **[Private Endpoint for Storage with DNS (CLI + ARM)](labs/cli-arm/04-private-endpoint-storage-dns.md)** | **[Portal](labs/portal/04-private-endpoint-storage-dns.md)** - Secure blob storage with private endpoint and DNS integration
 5. **[Basic Load Balancer (CLI + ARM)](labs/cli-arm/05-basic-load-balancer.md)** | **[Portal](labs/portal/05-basic-load-balancer.md)** - Deploy a public load balancer with backend pool and health probes
 
+## Lab Standards
+
+- **CLI + ARM track**: Fully parameterized with `.env`, explicit validation, and cleanup.
+- **Portal track**: Detailed step-by-step procedures (not high-level summaries).
+- **Architecture diagrams**: Text-only boxes/arrows (no Mermaid).
+- **Safety**: Every lab uses dedicated resource groups and includes cleanup commands.
+
 ## Learning Outcomes
 
 After completing this module, you will be able to:

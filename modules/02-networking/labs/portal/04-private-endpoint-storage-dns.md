@@ -1,65 +1,99 @@
-# Lab: Private Endpoint to Storage + Private DNS (Minimal)
+# Lab: Private Endpoint for Storage + Private DNS (Portal)
 > Variant: Portal lab track (CLI/ARM walkthrough omitted).
 
 ## Objective
-Create a VNet, storage account, private endpoint to blob, and private DNS zone link. Validate storage name resolves to private IP (conceptual).
+Create a storage account private endpoint and private DNS integration so blob endpoint name resolves to a private IP from linked VNets.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Client[VM/App in VNet] --> DNS[Private DNS Zone Link]
-  DNS --> PE[Private Endpoint IP]
-  PE --> Storage[Storage Account Blob]
-```
+
+ [VNet + PE subnet] ---> [Private Endpoint NIC] ---> [Storage Account (Blob)]
+           |
+           v
+ [Private DNS zone: privatelink.blob.core.windows.net]
 
 ## Estimated time
-45–60 minutes
+45-60 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- Storage + private endpoint incur small cost while active.
+- Use dedicated resource group and cleanup after validation.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure Portal access
+- Permission to create storage and private networking resources
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
 LAB="m02-pe-dns"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+VNET_NAME="${PREFIX}-${LAB}-vnet"
+STG_NAME_HINT="${PREFIX}${LAB//-/}"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: $RG_NAME, $VNET_NAME"
 ```
 
-## Portal solution (high-level)
-- Portal → Create VNet + subnet for private endpoint.
-- Portal → Create Storage account.
-- Storage → Networking → Private endpoint connections → Add.
-- Create/choose Private DNS zone `privatelink.blob.core.windows.net` and link to VNet.
-- Validate private endpoint connection state.
+## Portal solution (step-by-step)
+### 1) Create resource group
+1. Open **Resource groups** > **Create**.
+2. Set name `${RG_NAME}`, region `${LOCATION}`, then create.
 
+### 2) Create VNet and private endpoint subnet
+1. Open **Virtual networks** > **Create**.
+2. In **Basics**:
+   - Name: `${VNET_NAME}`
+   - Region: `${LOCATION}`
+   - Resource group: `${RG_NAME}`
+3. In **IP addresses**:
+   - Address space: `10.50.0.0/16`
+   - Add subnet:
+     - Name: `private-endpoints`
+     - Range: `10.50.3.0/24`
+4. Complete create.
 
+### 3) Create storage account
+1. Open **Storage accounts** > **Create**.
+2. In **Basics**:
+   - Resource group: `${RG_NAME}`
+   - Name: choose globally unique lowercase name (3-24 chars)
+   - Region: `${LOCATION}`
+   - Performance: **Standard**
+   - Redundancy: **LRS**
+3. Select **Review + create** > **Create**.
+
+### 4) Create private endpoint for blob service
+1. Open the storage account > **Networking** > **Private endpoint connections**.
+2. Select **+ Private endpoint**.
+3. In **Basics**:
+   - Name: `${PREFIX}-${LAB}-pe`
+   - Region: `${LOCATION}`
+4. In **Resource**:
+   - Target sub-resource: **blob**
+5. In **Virtual Network**:
+   - Virtual network: `${VNET_NAME}`
+   - Subnet: `private-endpoints`
+6. In **DNS**:
+   - Integrate with private DNS zone: **Yes**
+   - Private DNS zone: `privatelink.blob.core.windows.net` (create new if prompted)
+7. Select **Review + create** > **Create**.
+
+### 5) Validate
+1. In storage account > **Private endpoint connections**, confirm state **Approved**.
+2. Open **Private DNS zones** > `privatelink.blob.core.windows.net` > **Record sets**.
+3. Confirm an `A` record exists for the storage account endpoint.
+4. Open private endpoint resource and note private IP address for verification.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- Private endpoint controls network path; storage RBAC/SAS still control data access.
+- DNS integration is required for private endpoint name resolution to private IP.

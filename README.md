@@ -57,11 +57,16 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Load Balancing](modules/02-networking/lessons/07-load-balancing.md) - Azure Load Balancer, Application Gateway, and Traffic Manager
 
 #### 🧪 Labs
-- [Create VNet, Subnets & NSG (CLI + ARM)](modules/02-networking/labs/cli-arm/01-create-vnet-subnets-nsg.md) | [Portal](modules/02-networking/labs/portal/01-create-vnet-subnets-nsg.md) - Build a virtual network with security groups
-- [VNet Peering Connectivity (CLI + ARM)](modules/02-networking/labs/cli-arm/02-vnet-peering-connectivity.md) | [Portal](modules/02-networking/labs/portal/02-vnet-peering-connectivity.md) - Connect two VNets and verify cross-network communication
-- [UDR Routing Simulation (CLI + ARM)](modules/02-networking/labs/cli-arm/03-udr-routing-simulation.md) | [Portal](modules/02-networking/labs/portal/03-udr-routing-simulation.md) - Implement custom routes with route tables
-- [Private Endpoint for Storage with DNS (CLI + ARM)](modules/02-networking/labs/cli-arm/04-private-endpoint-storage-dns.md) | [Portal](modules/02-networking/labs/portal/04-private-endpoint-storage-dns.md) - Secure blob storage with private endpoint and DNS integration
-- [Basic Load Balancer (CLI + ARM)](modules/02-networking/labs/cli-arm/05-basic-load-balancer.md) | [Portal](modules/02-networking/labs/portal/05-basic-load-balancer.md) - Deploy a public load balancer with health probes
+- [Create VNet, Subnets & NSG (CLI + ARM)](modules/02-networking/labs/cli-arm/01-create-vnet-subnets-nsg.md) | [Portal](modules/02-networking/labs/portal/01-create-vnet-subnets-nsg.md) - Build segmented VNet networking with NSG association and rule validation
+- [VNet Peering Connectivity (CLI + ARM)](modules/02-networking/labs/cli-arm/02-vnet-peering-connectivity.md) | [Portal](modules/02-networking/labs/portal/02-vnet-peering-connectivity.md) - Configure bidirectional peering and validate connected state
+- [UDR Routing Simulation (CLI + ARM)](modules/02-networking/labs/cli-arm/03-udr-routing-simulation.md) | [Portal](modules/02-networking/labs/portal/03-udr-routing-simulation.md) - Create route tables, custom routes, and subnet associations
+- [Private Endpoint for Storage with DNS (CLI + ARM)](modules/02-networking/labs/cli-arm/04-private-endpoint-storage-dns.md) | [Portal](modules/02-networking/labs/portal/04-private-endpoint-storage-dns.md) - Deploy private endpoint + private DNS integration for blob access
+- [Basic Load Balancer (CLI + ARM)](modules/02-networking/labs/cli-arm/05-basic-load-balancer.md) | [Portal](modules/02-networking/labs/portal/05-basic-load-balancer.md) - Build Standard public load balancer frontend, probe, rule, and backend pool setup
+
+**Module 02 lab quality baseline**:
+- CLI + ARM labs are fully parameterized with `.env` and include validation + cleanup.
+- Portal labs are detailed step-by-step and aligned with equivalent CLI outcomes.
+- Networking diagrams in labs are text-based (no Mermaid).
 
 </details>
 
