@@ -34,15 +34,40 @@ In AZ-104 terms: Managed identities are the **preferred authentication method** 
 
 ## Mental Model: Managed Identity Flow
 
-```mermaid
-flowchart LR
-    App[Azure Resource<br/>VM/App Service/Function] -->|1. Request token| IMDS[IMDS Endpoint<br/>169.254.169.254]
-    IMDS -->|2. Returns token| EntraID[Microsoft Entra ID]
-    EntraID -->|3. Validates identity| Token[Access Token JWT]
-    Token -->|4. Present token| Target[Target Service<br/>Storage/Key Vault/SQL]
-    Target -->|5. Check RBAC| Decision{Authorized?}
-    Decision -->|Yes| Access[Access Granted]
-    Decision -->|No| Deny[Access Denied]
+```text
+Nodes:
++----------------------------------------------------+
+| Azure Resource VM/App Service/Function             |
++----------------------------------------------------+
++----------------------------------------------------+
+| IMDS Endpoint 169.254.169.254                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Microsoft Entra ID                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Token JWT                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Target Service Storage/Key Vault/SQL               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Authorized?                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Granted                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Denied                                      |
++----------------------------------------------------+
+Flow:
+[Azure Resource VM/App...] -- 1. Request token --> [IMDS Endpoint 169.254.169.254]
+[IMDS Endpoint 169.254.169.254] -- 2. Returns token --> [Microsoft Entra ID]
+[Microsoft Entra ID] -- 3. Validates identity --> [Access Token JWT]
+[Access Token JWT] -- 4. Present token --> [Target Service Storage/Key Vault/SQL]
+[Target Service Storage/Key Vault/SQL] -- 5. Check RBAC --> [Authorized?]
+[Authorized?] -- Yes --> [Access Granted]
+[Authorized?] -- No --> [Access Denied]
 ```
 
 **Key insight:** Application **never handles credentials** - Azure manages token acquisition transparently.
@@ -55,13 +80,24 @@ flowchart LR
 
 **Lifecycle:** Tied directly to a single Azure resource
 
-```mermaid
-flowchart TD
-    VM[Virtual Machine] -->|Enable MI| Identity[System-assigned<br/>Managed Identity]
-    Identity -->|Assign role| Storage[Storage Account]
-    VM -->|Delete VM| DeleteIdentity[Identity<br/>automatically deleted]
-    
-    style DeleteIdentity fill:#ffcccc
+```text
+Nodes:
++----------------------------------------------------+
+| Virtual Machine                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| System-assigned Managed Identity                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Account                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Identity automatically deleted                     |
++----------------------------------------------------+
+Flow:
+[Virtual Machine] -- Enable MI --> [System-assigned Managed Identity]
+[System-assigned Managed Identity] -- Assign role --> [Storage Account]
+[Virtual Machine] -- Delete VM --> [Identity automatically deleted]
 ```
 
 **Characteristics:**
@@ -82,17 +118,33 @@ flowchart TD
 
 **Lifecycle:** Independent Azure resource that can be shared
 
-```mermaid
-flowchart TD
-    UAMI[User-assigned<br/>Managed Identity] -->|Assigned to| VM[Virtual Machine]
-    UAMI -->|Assigned to| AppService[App Service]
-    UAMI -->|Assigned to| Function[Function App]
-    UAMI -->|Has role| Storage[Storage Account]
-    
-    VM -->|Delete VM| VMGone[VM deleted]
-    VMGone -.->|Identity persists| UAMI
-    
-    style UAMI fill:#ccffcc
+```text
+Nodes:
++----------------------------------------------------+
+| User-assigned Managed Identity                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Virtual Machine                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| App Service                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Function App                                       |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Account                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| VM deleted                                         |
++----------------------------------------------------+
+Flow:
+[User-assigned Managed Identity] -- Assigned to --> [Virtual Machine]
+[User-assigned Managed Identity] -- Assigned to --> [App Service]
+[User-assigned Managed Identity] -- Assigned to --> [Function App]
+[User-assigned Managed Identity] -- Has role --> [Storage Account]
+[Virtual Machine] -- Delete VM --> [VM deleted]
+[VM deleted] -- Identity persists --> [User-assigned Managed Identity]
 ```
 
 **Characteristics:**
@@ -113,16 +165,38 @@ flowchart TD
 
 ## Decision Tree: System vs User-Assigned
 
-```mermaid
-flowchart TD
-    Start{Need managed<br/>identity?} -->|Yes| Multiple{Multiple resources<br/>need same identity?}
-    Start -->|No| NoMI[Use service principal<br/>with secrets]
-    Multiple -->|Yes| UserAssigned[User-assigned<br/>Managed Identity]
-    Multiple -->|No| Persist{Identity must persist<br/>beyond resource?}
-    Persist -->|Yes| UserAssigned
-    Persist -->|No| Simple{Simple<br/>use case?}
-    Simple -->|Yes| SystemAssigned[System-assigned<br/>Managed Identity]
-    Simple -->|No| UserAssigned
+```text
+Nodes:
++----------------------------------------------------+
+| Need managed identity?                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Multiple resources need same identity?             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Use service principal with secrets                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| User-assigned Managed Identity                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Identity must persist beyond resource?             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Simple use case?                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| System-assigned Managed Identity                   |
++----------------------------------------------------+
+Flow:
+[Need managed identity?] -- Yes --> [Multiple resources need same...]
+[Need managed identity?] -- No --> [Use service principal with secrets]
+[Multiple resources need same...] -- Yes --> [User-assigned Managed Identity]
+[Multiple resources need same...] -- No --> [Identity must persist beyond...]
+[Identity must persist beyond...] -- Yes --> [User-assigned Managed Identity]
+[Identity must persist beyond...] -- No --> [Simple use case?]
+[Simple use case?] -- Yes --> [System-assigned Managed Identity]
+[Simple use case?] -- No --> [User-assigned Managed Identity]
 ```
 
 **Quick guide:**
@@ -145,18 +219,27 @@ flowchart TD
 
 ### IMDS Architecture
 
-```mermaid
-flowchart LR
-    App[Application Code] -->|HTTP GET| IMDS[IMDS Endpoint<br/>169.254.169.254:80]
-    IMDS -->|Returns| Metadata[Instance Metadata]
-    IMDS -->|Returns| Token[Access Token<br/>for requested resource]
-    
-    subgraph "Azure Platform"
-        IMDS
-        EntraID[Entra ID<br/>Token Issuer]
-    end
-    
-    IMDS <-.->|Backend| EntraID
+```text
+Nodes:
++----------------------------------------------------+
+| Application Code                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| IMDS Endpoint 169.254.169.254:80                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Instance Metadata                                  |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Token for requested resource                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Entra ID Token Issuer                              |
++----------------------------------------------------+
+Flow:
+[Application Code] -- HTTP GET --> [IMDS Endpoint 169.254.169.254:80]
+[IMDS Endpoint 169.254.169.254:80] -- Returns --> [Instance Metadata]
+[IMDS Endpoint 169.254.169.254:80] -- Returns --> [Access Token for requested resource]
 ```
 
 ### Token Acquisition Example
@@ -351,14 +434,33 @@ Write-Host $secret.value
 
 ### Pattern: MI → Role → Target Service
 
-```mermaid
-flowchart LR
-    MI[Managed Identity<br/>VM/App Service] -->|Needs| Role[RBAC Role<br/>Storage Blob Data Contributor]
-    Role -->|On| Target[Storage Account]
-    MI -->|Gets token for| EntraID[Entra ID]
-    MI -->|Presents token to| Target
-    Target -->|Validates| RBAC[RBAC Check]
-    RBAC -->|Allow/Deny| Access
+```text
+Nodes:
++----------------------------------------------------+
+| Managed Identity VM/App Service                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| RBAC Role Storage Blob Data Contributor            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Account                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Entra ID                                           |
++----------------------------------------------------+
++----------------------------------------------------+
+| RBAC Check                                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access                                             |
++----------------------------------------------------+
+Flow:
+[Managed Identity VM/App Service] -- Needs --> [RBAC Role Storage Blob Data...]
+[RBAC Role Storage Blob Data...] -- On --> [Storage Account]
+[Managed Identity VM/App Service] -- Gets token for --> [Entra ID]
+[Managed Identity VM/App Service] -- Presents token to --> [Storage Account]
+[Storage Account] -- Validates --> [RBAC Check]
+[RBAC Check] -- Allow/Deny --> [Access]
 ```
 
 ### Common Role Assignments
@@ -398,13 +500,26 @@ ALTER ROLE db_datawriter ADD MEMBER [myVM];
 
 **Scenario:** VM needs to read/write blob data
 
-```mermaid
-flowchart LR
-    VM[Virtual Machine] -->|System MI enabled| Identity[Managed Identity]
-    Identity -->|Assigned role| Storage[Storage Account]
-    Identity -->|Storage Blob Data Contributor| Storage
-    VM -->|Get token from IMDS| IMDS[169.254.169.254]
-    VM -->|Access blob with token| Storage
+```text
+Nodes:
++----------------------------------------------------+
+| Virtual Machine                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Managed Identity                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Account                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| 169.254.169.254                                    |
++----------------------------------------------------+
+Flow:
+[Virtual Machine] -- System MI enabled --> [Managed Identity]
+[Managed Identity] -- Assigned role --> [Storage Account]
+[Managed Identity] -- Storage Blob Data... --> [Storage Account]
+[Virtual Machine] -- Get token from IMDS --> [169.254.169.254]
+[Virtual Machine] -- Access blob with token --> [Storage Account]
 ```
 
 **Implementation:**
@@ -430,13 +545,26 @@ flowchart LR
 
 **Scenario:** App Service needs to retrieve secrets from Key Vault
 
-```mermaid
-flowchart LR
-    App[App Service] -->|System MI enabled| Identity[Managed Identity]
-    Identity -->|Assigned role| KeyVault[Key Vault]
-    Identity -->|Key Vault Secrets User| KeyVault
-    App -->|Get token from IMDS| IMDS[169.254.169.254]
-    App -->|Retrieve secret with token| KeyVault
+```text
+Nodes:
++----------------------------------------------------+
+| App Service                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Managed Identity                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Key Vault                                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| 169.254.169.254                                    |
++----------------------------------------------------+
+Flow:
+[App Service] -- System MI enabled --> [Managed Identity]
+[Managed Identity] -- Assigned role --> [Key Vault]
+[Managed Identity] -- Key Vault Secrets User --> [Key Vault]
+[App Service] -- Get token from IMDS --> [169.254.169.254]
+[App Service] -- Retrieve secret with token --> [Key Vault]
 ```
 
 **Implementation:**
@@ -462,12 +590,25 @@ flowchart LR
 
 **Scenario:** Azure Function needs to query SQL Database
 
-```mermaid
-flowchart LR
-    Function[Azure Function] -->|System MI enabled| Identity[Managed Identity]
-    Identity -->|Database role assigned| SQL[Azure SQL Database]
-    Function -->|Get token for database.windows.net| IMDS[169.254.169.254]
-    Function -->|Connect to SQL with token| SQL
+```text
+Nodes:
++----------------------------------------------------+
+| Azure Function                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Managed Identity                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Azure SQL Database                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| 169.254.169.254                                    |
++----------------------------------------------------+
+Flow:
+[Azure Function] -- System MI enabled --> [Managed Identity]
+[Managed Identity] -- Database role assigned --> [Azure SQL Database]
+[Azure Function] -- Get token for... --> [169.254.169.254]
+[Azure Function] -- Connect to SQL with token --> [Azure SQL Database]
 ```
 
 **Implementation:**
@@ -514,19 +655,56 @@ connection.AccessToken = GetAccessToken("https://database.windows.net/");
 
 ### Common Issues Checklist
 
-```mermaid
-flowchart TD
-    Issue[Access Denied] --> Enabled{MI enabled<br/>on resource?}
-    Enabled -->|No| EnableMI[Enable managed<br/>identity]
-    Enabled -->|Yes| RoleCheck{Role assigned<br/>to MI?}
-    RoleCheck -->|No| AssignRole[Assign appropriate<br/>RBAC role]
-    RoleCheck -->|Yes| ScopeCheck{Correct<br/>scope?}
-    ScopeCheck -->|No| FixScope[Adjust role<br/>assignment scope]
-    ScopeCheck -->|Yes| PropCheck{Propagated?}
-    PropCheck -->|No| Wait[Wait 5-10 minutes]
-    PropCheck -->|Yes| TokenCheck{Getting<br/>token?}
-    TokenCheck -->|No| IMDSIssue[Check IMDS<br/>connectivity]
-    TokenCheck -->|Yes| ResourceCheck{Target service<br/>supports MI?}
+```text
+Nodes:
++----------------------------------------------------+
+| Access Denied                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| MI enabled on resource?                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Enable managed identity                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Role assigned to MI?                               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Assign appropriate RBAC role                       |
++----------------------------------------------------+
++----------------------------------------------------+
+| Correct scope?                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Adjust role assignment scope                       |
++----------------------------------------------------+
++----------------------------------------------------+
+| Propagated?                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Wait 5-10 minutes                                  |
++----------------------------------------------------+
++----------------------------------------------------+
+| Getting token?                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Check IMDS connectivity                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Target service supports MI?                        |
++----------------------------------------------------+
+Flow:
+[Access Denied] --> [MI enabled on resource?]
+[MI enabled on resource?] -- No --> [Enable managed identity]
+[MI enabled on resource?] -- Yes --> [Role assigned to MI?]
+[Role assigned to MI?] -- No --> [Assign appropriate RBAC role]
+[Role assigned to MI?] -- Yes --> [Correct scope?]
+[Correct scope?] -- No --> [Adjust role assignment scope]
+[Correct scope?] -- Yes --> [Propagated?]
+[Propagated?] -- No --> [Wait 5-10 minutes]
+[Propagated?] -- Yes --> [Getting token?]
+[Getting token?] -- No --> [Check IMDS connectivity]
+[Getting token?] -- Yes --> [Target service supports MI?]
 ```
 
 ### Validation Commands

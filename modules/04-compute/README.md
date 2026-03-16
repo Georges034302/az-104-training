@@ -14,11 +14,11 @@ This module covers Azure compute services, including virtual machines, high avai
 
 ## 🧪 Labs
 
-1. **[Deploy a Virtual Machine](labs/01-deploy-vm.md)** - Create Linux VM with VNet, NSG, and SSH access
-2. **[VM Availability](labs/02-vm-availability.md)** - Deploy VMs in an availability set for fault tolerance
-3. **[VMSS Autoscale](labs/03-vmss-autoscale.md)** - Configure VM Scale Set with CPU-based autoscaling rules
-4. **[App Service Deploy](labs/04-app-service-deploy.md)** - Create web app with Node.js runtime and application settings
-5. **[ACR & ACI Container](labs/05-acr-aci-container.md)** - Build container image in ACR and deploy to Azure Container Instances
+1. **[Deploy a Virtual Machine (CLI + ARM)](labs/cli-arm/01-deploy-vm.md)** | **[Portal](labs/portal/01-deploy-vm.md)** - Create Linux VM with VNet, NSG, and SSH access
+2. **[VM Availability (CLI + ARM)](labs/cli-arm/02-vm-availability.md)** | **[Portal](labs/portal/02-vm-availability.md)** - Deploy VMs in an availability set for fault tolerance
+3. **[VMSS Autoscale (CLI + ARM)](labs/cli-arm/03-vmss-autoscale.md)** | **[Portal](labs/portal/03-vmss-autoscale.md)** - Configure VM Scale Set with CPU-based autoscaling rules
+4. **[App Service Deploy (CLI + ARM)](labs/cli-arm/04-app-service-deploy.md)** | **[Portal](labs/portal/04-app-service-deploy.md)** - Create web app with Node.js runtime and application settings
+5. **[ACR & ACI Container (CLI + ARM)](labs/cli-arm/05-acr-aci-container.md)** | **[Portal](labs/portal/05-acr-aci-container.md)** - Build container image in ACR and deploy to Azure Container Instances
 
 ## Learning Outcomes
 

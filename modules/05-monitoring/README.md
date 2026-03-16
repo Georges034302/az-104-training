@@ -15,9 +15,10 @@ This module covers Azure monitoring, diagnostics, alerting, backup strategies, a
 
 ## 🧪 Labs
 
-1. **[Enable VM Insights](labs/01-enable-vm-insights.md)** - Deploy Log Analytics workspace and configure VM monitoring
-2. **[Create Alert & Action Group](labs/02-create-alert-action-group.md)** - Set up CPU alert with email notification
-3. **[Backup & Restore VM](labs/03-backup-and-restore-vm.md)** - Configure Recovery Services Vault and VM backup policy
+1. **[Enable VM Insights (CLI + ARM)](labs/cli-arm/01-enable-vm-insights.md)** | **[Portal](labs/portal/01-enable-vm-insights.md)** - Deploy Log Analytics workspace and configure VM monitoring
+2. **[Create Alert & Action Group (CLI + ARM)](labs/cli-arm/02-create-alert-action-group.md)** | **[Portal](labs/portal/02-create-alert-action-group.md)** - Set up CPU alert with email notification
+3. **[Backup & Restore VM (CLI + ARM)](labs/cli-arm/03-backup-and-restore-vm.md)** | **[Portal](labs/portal/03-backup-and-restore-vm.md)** - Configure Recovery Services Vault and VM backup policy
+4. **[Service Health + Resource Health Alerts (CLI + ARM)](labs/cli-arm/04-service-health-resource-health-alerts.md)** | **[Portal](labs/portal/04-service-health-resource-health-alerts.md)** - Configure activity log alerts for Service Health and Resource Health
 
 ## Learning Outcomes
 

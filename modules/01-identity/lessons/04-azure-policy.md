@@ -42,21 +42,64 @@ In AZ-104 terms: policies **control什么 can be deployed**, complementing RBAC 
 
 ## Mental Model: Policy Evaluation Flow
 
-```mermaid
-flowchart TD
-    Request[Resource Create/Update<br/>Request] --> ARM[Azure Resource Manager]
-    ARM --> PolicyEngine{Policy Engine}
-    PolicyEngine --> Evaluate[Evaluate all assigned<br/>policies at scope]
-    Evaluate --> Match{Resource matches<br/>policy rules?}
-    Match -->|No| Allow[No match - Allow]
-    Match -->|Yes| Effect{Policy Effect}
-    Effect -->|Deny| Blocked[Request Blocked]
-    Effect -->|Audit| LogOnly[Allow + Log Compliance]
-    Effect -->|Append| AddProperties[Add Properties + Allow]
-    Effect -->|Modify| ChangeProperties[Change Properties + Allow]
-    Effect -->|DeployIfNotExists| CheckExists{Resource<br/>exists?}
-    CheckExists -->|No| Deploy[Deploy Resource]
-    CheckExists -->|Yes| SkipDeploy[Skip Deployment]
+```text
+Nodes:
++----------------------------------------------------+
+| Resource Create/Update Request                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Azure Resource Manager                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Policy Engine                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Evaluate all assigned policies at scope            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource matches policy rules?                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| No match - Allow                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Policy Effect                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Request Blocked                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Allow + Log Compliance                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Add Properties + Allow                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Change Properties + Allow                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource exists?                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Deploy Resource                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Skip Deployment                                    |
++----------------------------------------------------+
+Flow:
+[Resource Create/Update Request] --> [Azure Resource Manager]
+[Azure Resource Manager] --> [Policy Engine]
+[Policy Engine] --> [Evaluate all assigned policies at...]
+[Evaluate all assigned policies at...] --> [Resource matches policy rules?]
+[Resource matches policy rules?] -- No --> [No match - Allow]
+[Resource matches policy rules?] -- Yes --> [Policy Effect]
+[Policy Effect] -- Deny --> [Request Blocked]
+[Policy Effect] -- Audit --> [Allow + Log Compliance]
+[Policy Effect] -- Append --> [Add Properties + Allow]
+[Policy Effect] -- Modify --> [Change Properties + Allow]
+[Policy Effect] -- DeployIfNotExists --> [Resource exists?]
+[Resource exists?] -- No --> [Deploy Resource]
+[Resource exists?] -- Yes --> [Skip Deployment]
 ```
 
 **Key insight:** Policies evaluate **before** resource creation/update, enabling preventative governance.
@@ -309,18 +352,40 @@ Benefits:
 
 ## Policy Assignment Scopes
 
-```mermaid
-flowchart TD
-    MG[Management Group<br/>Scope: all child<br/>subscriptions] --> Sub1[Subscription 1]
-    MG --> Sub2[Subscription 2]
-    Sub1 --> RG1[Resource Group A]
-    Sub1 --> RG2[Resource Group B]
-    Sub2 --> RG3[Resource Group C]
-    RG1 --> Resource1[Resource 1]
-    RG1 --> Resource2[Resource 2<br/>EXCLUDED]
-    
-    style MG fill:#e1f5ff
-    style Resource2 fill:#ffe1e1
+```text
+Nodes:
++----------------------------------------------------+
+| Management Group Scope: all child subscriptions    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Subscription 1                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Subscription 2                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group A                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group B                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group C                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource 1                                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource 2 EXCLUDED                                |
++----------------------------------------------------+
+Flow:
+[Management Group Scope: all child...] --> [Subscription 1]
+[Management Group Scope: all child...] --> [Subscription 2]
+[Subscription 1] --> [Resource Group A]
+[Subscription 1] --> [Resource Group B]
+[Subscription 2] --> [Resource Group C]
+[Resource Group A] --> [Resource 1]
+[Resource Group A] --> [Resource 2 EXCLUDED]
 ```
 
 **Scope inheritance:**

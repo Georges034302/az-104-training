@@ -16,11 +16,11 @@ This module covers Azure networking fundamentals, including virtual networks, se
 
 ## 🧪 Labs
 
-1. **[Create VNet, Subnets & NSG](labs/01-create-vnet-subnets-nsg.md)** - Build a virtual network with security groups and traffic rules
-2. **[VNet Peering Connectivity](labs/02-vnet-peering-connectivity.md)** - Connect two VNets and verify cross-network communication
-3. **[UDR Routing Simulation](labs/03-udr-routing-simulation.md)** - Implement custom routes with route tables for traffic control
-4. **[Private Endpoint for Storage with DNS](labs/04-private-endpoint-storage-dns.md)** - Secure blob storage with private endpoint and DNS integration
-5. **[Basic Load Balancer](labs/05-basic-load-balancer.md)** - Deploy a public load balancer with backend pool and health probes
+1. **[Create VNet, Subnets & NSG (CLI + ARM)](labs/cli-arm/01-create-vnet-subnets-nsg.md)** | **[Portal](labs/portal/01-create-vnet-subnets-nsg.md)** - Build a virtual network with security groups and traffic rules
+2. **[VNet Peering Connectivity (CLI + ARM)](labs/cli-arm/02-vnet-peering-connectivity.md)** | **[Portal](labs/portal/02-vnet-peering-connectivity.md)** - Connect two VNets and verify cross-network communication
+3. **[UDR Routing Simulation (CLI + ARM)](labs/cli-arm/03-udr-routing-simulation.md)** | **[Portal](labs/portal/03-udr-routing-simulation.md)** - Implement custom routes with route tables for traffic control
+4. **[Private Endpoint for Storage with DNS (CLI + ARM)](labs/cli-arm/04-private-endpoint-storage-dns.md)** | **[Portal](labs/portal/04-private-endpoint-storage-dns.md)** - Secure blob storage with private endpoint and DNS integration
+5. **[Basic Load Balancer (CLI + ARM)](labs/cli-arm/05-basic-load-balancer.md)** | **[Portal](labs/portal/05-basic-load-balancer.md)** - Deploy a public load balancer with backend pool and health probes
 
 ## Learning Outcomes
 

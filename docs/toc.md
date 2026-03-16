@@ -9,9 +9,10 @@
 5. [Resource Management: Locks & Tags](../modules/01-identity/lessons/05-resource-management-locks-tags.md)
 
 ### Labs
-1. [RBAC Role Assignment](../modules/01-identity/labs/01-rbac-role-assignment.md)
-2. [Managed Identity Access to Storage](../modules/01-identity/labs/02-managed-identity-storage-access.md)
-3. [Apply Tags + Lock + Policy](../modules/01-identity/labs/03-tags-lock-policy.md)
+1. [RBAC Role Assignment (CLI + ARM)](../modules/01-identity/labs/cli-arm/01-rbac-role-assignment.md) | [Portal](../modules/01-identity/labs/portal/01-rbac-role-assignment.md)
+2. [Managed Identity Access to Storage (CLI + ARM)](../modules/01-identity/labs/cli-arm/02-managed-identity-storage-access.md) | [Portal](../modules/01-identity/labs/portal/02-managed-identity-storage-access.md)
+3. [Apply Tags + Lock + Policy (CLI + ARM)](../modules/01-identity/labs/cli-arm/03-tags-lock-policy.md) | [Portal](../modules/01-identity/labs/portal/03-tags-lock-policy.md)
+4. [Entra Users + Groups + Group-Based RBAC (CLI + ARM)](../modules/01-identity/labs/cli-arm/04-entra-users-groups-rbac.md) | [Portal](../modules/01-identity/labs/portal/04-entra-users-groups-rbac.md)
 
 ## Module 2 — Networking
 ### Lessons
@@ -24,11 +25,11 @@
 7. [Load Balancing Overview](../modules/02-networking/lessons/07-load-balancing.md)
 
 ### Labs
-1. [Create VNet + Subnets + NSG](../modules/02-networking/labs/01-create-vnet-subnets-nsg.md)
-2. [VNet Peering and Test Connectivity](../modules/02-networking/labs/02-vnet-peering-connectivity.md)
-3. [UDR Routing Simulation](../modules/02-networking/labs/03-udr-routing-simulation.md)
-4. [Private Endpoint to Storage + Private DNS](../modules/02-networking/labs/04-private-endpoint-storage-dns.md)
-5. [Basic Load Balancer](../modules/02-networking/labs/05-basic-load-balancer.md)
+1. [Create VNet + Subnets + NSG (CLI + ARM)](../modules/02-networking/labs/cli-arm/01-create-vnet-subnets-nsg.md) | [Portal](../modules/02-networking/labs/portal/01-create-vnet-subnets-nsg.md)
+2. [VNet Peering and Test Connectivity (CLI + ARM)](../modules/02-networking/labs/cli-arm/02-vnet-peering-connectivity.md) | [Portal](../modules/02-networking/labs/portal/02-vnet-peering-connectivity.md)
+3. [UDR Routing Simulation (CLI + ARM)](../modules/02-networking/labs/cli-arm/03-udr-routing-simulation.md) | [Portal](../modules/02-networking/labs/portal/03-udr-routing-simulation.md)
+4. [Private Endpoint to Storage + Private DNS (CLI + ARM)](../modules/02-networking/labs/cli-arm/04-private-endpoint-storage-dns.md) | [Portal](../modules/02-networking/labs/portal/04-private-endpoint-storage-dns.md)
+5. [Basic Load Balancer (CLI + ARM)](../modules/02-networking/labs/cli-arm/05-basic-load-balancer.md) | [Portal](../modules/02-networking/labs/portal/05-basic-load-balancer.md)
 
 ## Module 3 — Storage
 ### Lessons
@@ -38,10 +39,10 @@
 4. [Storage Security: SAS vs RBAC](../modules/03-storage/lessons/04-storage-security-sas-rbac.md)
 
 ### Labs
-1. [Storage Account + Blob Container](../modules/03-storage/labs/01-storage-account-blob-container.md)
-2. [Lifecycle Management Policy](../modules/03-storage/labs/02-lifecycle-policy.md)
-3. [Azure Files Share + Mount (Conceptual + Optional VM)](../modules/03-storage/labs/03-azure-files-share.md)
-4. [SAS vs RBAC Access Test](../modules/03-storage/labs/04-sas-vs-rbac.md)
+1. [Storage Account + Blob Container (CLI + ARM)](../modules/03-storage/labs/cli-arm/01-storage-account-blob-container.md) | [Portal](../modules/03-storage/labs/portal/01-storage-account-blob-container.md)
+2. [Lifecycle Management Policy (CLI + ARM)](../modules/03-storage/labs/cli-arm/02-lifecycle-policy.md) | [Portal](../modules/03-storage/labs/portal/02-lifecycle-policy.md)
+3. [Azure Files Share + Mount (Conceptual + Optional VM) (CLI + ARM)](../modules/03-storage/labs/cli-arm/03-azure-files-share.md) | [Portal](../modules/03-storage/labs/portal/03-azure-files-share.md)
+4. [SAS vs RBAC Access Test (CLI + ARM)](../modules/03-storage/labs/cli-arm/04-sas-vs-rbac.md) | [Portal](../modules/03-storage/labs/portal/04-sas-vs-rbac.md)
 
 ## Module 4 — Compute
 ### Lessons
@@ -52,11 +53,11 @@
 5. [Containers: ACR + ACI + ACA Overview](../modules/04-compute/lessons/05-containers-acr-aci-aca.md)
 
 ### Labs
-1. [Deploy a VM (Simple)](../modules/04-compute/labs/01-deploy-vm.md)
-2. [VM Availability (Set vs Zone)](../modules/04-compute/labs/02-vm-availability.md)
-3. [VM Scale Set Autoscale (Basic)](../modules/04-compute/labs/03-vmss-autoscale.md)
-4. [Deploy App Service + Config](../modules/04-compute/labs/04-app-service-deploy.md)
-5. [ACR Build + ACI Run Container](../modules/04-compute/labs/05-acr-aci-container.md)
+1. [Deploy a VM (Simple) (CLI + ARM)](../modules/04-compute/labs/cli-arm/01-deploy-vm.md) | [Portal](../modules/04-compute/labs/portal/01-deploy-vm.md)
+2. [VM Availability (Set vs Zone) (CLI + ARM)](../modules/04-compute/labs/cli-arm/02-vm-availability.md) | [Portal](../modules/04-compute/labs/portal/02-vm-availability.md)
+3. [VM Scale Set Autoscale (Basic) (CLI + ARM)](../modules/04-compute/labs/cli-arm/03-vmss-autoscale.md) | [Portal](../modules/04-compute/labs/portal/03-vmss-autoscale.md)
+4. [Deploy App Service + Config (CLI + ARM)](../modules/04-compute/labs/cli-arm/04-app-service-deploy.md) | [Portal](../modules/04-compute/labs/portal/04-app-service-deploy.md)
+5. [ACR Build + ACI Run Container (CLI + ARM)](../modules/04-compute/labs/cli-arm/05-acr-aci-container.md) | [Portal](../modules/04-compute/labs/portal/05-acr-aci-container.md)
 
 ## Module 5 — Monitoring, Backup & DR
 ### Lessons
@@ -68,6 +69,7 @@
 6. [Availability & Resilience](../modules/05-monitoring/lessons/06-availability-resilience.md)
 
 ### Labs
-1. [Enable VM Insights + Query Logs](../modules/05-monitoring/labs/01-enable-vm-insights.md)
-2. [Create an Alert + Action Group](../modules/05-monitoring/labs/02-create-alert-action-group.md)
-3. [Backup a VM + Restore Test](../modules/05-monitoring/labs/03-backup-and-restore-vm.md)
+1. [Enable VM Insights + Query Logs (CLI + ARM)](../modules/05-monitoring/labs/cli-arm/01-enable-vm-insights.md) | [Portal](../modules/05-monitoring/labs/portal/01-enable-vm-insights.md)
+2. [Create an Alert + Action Group (CLI + ARM)](../modules/05-monitoring/labs/cli-arm/02-create-alert-action-group.md) | [Portal](../modules/05-monitoring/labs/portal/02-create-alert-action-group.md)
+3. [Backup a VM + Restore Test (CLI + ARM)](../modules/05-monitoring/labs/cli-arm/03-backup-and-restore-vm.md) | [Portal](../modules/05-monitoring/labs/portal/03-backup-and-restore-vm.md)
+4. [Service Health + Resource Health Alerts (CLI + ARM)](../modules/05-monitoring/labs/cli-arm/04-service-health-resource-health-alerts.md) | [Portal](../modules/05-monitoring/labs/portal/04-service-health-resource-health-alerts.md)

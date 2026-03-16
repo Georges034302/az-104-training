@@ -42,14 +42,32 @@ In AZ-104 terms: locks protect resources, tags organize them - both are **critic
 
 ### Lock Types
 
-```mermaid
-flowchart TD
-    Lock[Resource Lock] --> Type{Lock Type}
-    Type -->|CanNotDelete| Delete[Can modify properties<br/>Cannot delete]
-    Type -->|ReadOnly| Read[Can view properties<br/>Cannot modify or delete]
-    
-    Delete --> Example1[Example: Production RG<br/>Allow deployments<br/>Prevent accidental deletion]
-    Read --> Example2[Example: Compliance baseline<br/>Prevent any changes<br/>Audit-only access]
+```text
+Nodes:
++----------------------------------------------------+
+| Resource Lock                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Lock Type                                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| Can modify properties Cannot delete                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Can view properties Cannot modify or delete        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Example: Production RG Allow deployments...        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Example: Compliance baseline Prevent any...        |
++----------------------------------------------------+
+Flow:
+[Resource Lock] --> [Lock Type]
+[Lock Type] -- CanNotDelete --> [Can modify properties Cannot delete]
+[Lock Type] -- ReadOnly --> [Can view properties Cannot modify...]
+[Can modify properties Cannot delete] --> [Example: Production RG Allow...]
+[Can view properties Cannot modify...] --> [Example: Compliance baseline...]
 ```
 
 | Lock Type | Read | Create/Update | Delete | Use Case |
@@ -62,23 +80,61 @@ flowchart TD
 ### Lock Behavior 
 
 **CanNotDelete Lock:**
-```mermaid
-flowchart LR
-    User[User with Owner role] -->|Attempt| Delete[Delete Resource]
-    Delete --> Lock{CanNotDelete<br/>Lock?}
-    Lock -->|Yes| Blocked[🚫 Deletion Blocked]
-    User -->|Can| Modify[Modify Resource]
-    Modify --> Success[✅ Modification Allowed]
+```text
+Nodes:
++----------------------------------------------------+
+| User with Owner role                               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Delete Resource                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| CanNotDelete Lock?                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| 🚫 Deletion Blocked                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| Modify Resource                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| ✅ Modification Allowed                             |
++----------------------------------------------------+
+Flow:
+[User with Owner role] -- Attempt --> [Delete Resource]
+[Delete Resource] --> [CanNotDelete Lock?]
+[CanNotDelete Lock?] -- Yes --> [🚫 Deletion Blocked]
+[User with Owner role] -- Can --> [Modify Resource]
+[Modify Resource] --> [✅ Modification Allowed]
 ```
 
 **ReadOnly Lock:**
-```mermaid
-flowchart LR
-    User[User with Contributor role] -->|Attempt| Modify[Modify Resource]
-    Modify --> Lock{ReadOnly<br/>Lock?}
-    Lock -->|Yes| Blocked[🚫 Modification Blocked]
-    User -->|Can| View[View Resource]
-    View --> Success[✅ View Allowed]
+```text
+Nodes:
++----------------------------------------------------+
+| User with Contributor role                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Modify Resource                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| ReadOnly Lock?                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| 🚫 Modification Blocked                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| View Resource                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| ✅ View Allowed                                     |
++----------------------------------------------------+
+Flow:
+[User with Contributor role] -- Attempt --> [Modify Resource]
+[Modify Resource] --> [ReadOnly Lock?]
+[ReadOnly Lock?] -- Yes --> [🚫 Modification Blocked]
+[User with Contributor role] -- Can --> [View Resource]
+[View Resource] --> [✅ View Allowed]
 ```
 
 **Key insight:** Locks override RBAC permissions. Even **Owner** role cannot delete a CanNotDelete-locked resource without first removing the lock.
@@ -87,20 +143,32 @@ flowchart LR
 
 ### Lock Inheritance
 
-```mermaid
-flowchart TD
-    Sub[Subscription<br/>CanNotDelete Lock] --> RG1[Resource Group 1]
-    Sub --> RG2[Resource Group 2]
-    RG1 --> VM[VM]
-    RG1 --> Storage[Storage Account]
-    RG2 --> VNet[VNet]
-    
-    style Sub fill:#ffcccc
-    style RG1 fill:#ffcccc
-    style RG2 fill:#ffcccc
-    style VM fill:#ffcccc
-    style Storage fill:#ffcccc
-    style VNet fill:#ffcccc
+```text
+Nodes:
++----------------------------------------------------+
+| Subscription CanNotDelete Lock                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group 1                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group 2                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| VM                                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Account                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| VNet                                               |
++----------------------------------------------------+
+Flow:
+[Subscription CanNotDelete Lock] --> [Resource Group 1]
+[Subscription CanNotDelete Lock] --> [Resource Group 2]
+[Resource Group 1] --> [VM]
+[Resource Group 1] --> [Storage Account]
+[Resource Group 2] --> [VNet]
 ```
 
 **Inheritance rule:** Locks applied at **parent scope** protect all **child resources**.
@@ -191,17 +259,42 @@ Error: Cannot delete resource 'prodStorage' because it has a lock.
 ```
 
 **Resolution flow:**
-```mermaid
-flowchart TD
-    Start[Cannot delete resource] --> CheckLock{Lock on<br/>resource?}
-    CheckLock -->|Yes| RemoveResource[Remove lock<br/>from resource]
-    CheckLock -->|No| CheckRG{Lock on<br/>resource group?}
-    CheckRG -->|Yes| RemoveRG[Remove lock<br/>from RG]
-    CheckRG -->|No| CheckSub{Lock on<br/>subscription?}
-    CheckSub -->|Yes| RemoveSub[Remove lock<br/>from subscription]
-    RemoveResource --> Retry[Retry deletion]
-    RemoveRG --> Retry
-    RemoveSub --> Retry
+```text
+Nodes:
++----------------------------------------------------+
+| Cannot delete resource                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Lock on resource?                                  |
++----------------------------------------------------+
++----------------------------------------------------+
+| Remove lock from resource                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| Lock on resource group?                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Remove lock from RG                                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Lock on subscription?                              |
++----------------------------------------------------+
++----------------------------------------------------+
+| Remove lock from subscription                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Retry deletion                                     |
++----------------------------------------------------+
+Flow:
+[Cannot delete resource] --> [Lock on resource?]
+[Lock on resource?] -- Yes --> [Remove lock from resource]
+[Lock on resource?] -- No --> [Lock on resource group?]
+[Lock on resource group?] -- Yes --> [Remove lock from RG]
+[Lock on resource group?] -- No --> [Lock on subscription?]
+[Lock on subscription?] -- Yes --> [Remove lock from subscription]
+[Remove lock from resource] --> [Retry deletion]
+[Remove lock from RG] --> [Retry deletion]
+[Remove lock from subscription] --> [Retry deletion]
 ```
 
 **Solution:**
@@ -247,12 +340,28 @@ Error: Resource modification blocked by ReadOnly lock.
 
 **Tags** are key-value pairs that provide metadata about Azure resources.
 
-```mermaid
-flowchart LR
-    Resource[Azure Resource] --> Tag1[Tag: Environment = Production]
-    Resource --> Tag2[Tag: CostCenter = Finance]
-    Resource --> Tag3[Tag: Owner = ops-team]
-    Resource --> Tag4[Tag: Project = migration]
+```text
+Nodes:
++----------------------------------------------------+
+| Azure Resource                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Tag: Environment = Production                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Tag: CostCenter = Finance                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| Tag: Owner = ops-team                              |
++----------------------------------------------------+
++----------------------------------------------------+
+| Tag: Project = migration                           |
++----------------------------------------------------+
+Flow:
+[Azure Resource] --> [Tag: Environment = Production]
+[Azure Resource] --> [Tag: CostCenter = Finance]
+[Azure Resource] --> [Tag: Owner = ops-team]
+[Azure Resource] --> [Tag: Project = migration]
 ```
 
 **Structure:**
@@ -266,12 +375,28 @@ flowchart LR
 
 #### Strategy 1: Cost Allocation
 
-```mermaid
-flowchart TD
-    CostTags[Cost Tracking Tags] --> CC[CostCenter<br/>Finance, IT, HR]
-    CostTags --> Dept[Department<br/>Engineering, Sales]
-    CostTags --> Proj[Project<br/>migration, new-app]
-    CostTags --> Env[Environment<br/>prod, staging, dev]
+```text
+Nodes:
++----------------------------------------------------+
+| Cost Tracking Tags                                 |
++----------------------------------------------------+
++----------------------------------------------------+
+| CostCenter Finance, IT, HR                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Department Engineering, Sales                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Project migration, new-app                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Environment prod, staging, dev                     |
++----------------------------------------------------+
+Flow:
+[Cost Tracking Tags] --> [CostCenter Finance, IT, HR]
+[Cost Tracking Tags] --> [Department Engineering, Sales]
+[Cost Tracking Tags] --> [Project migration, new-app]
+[Cost Tracking Tags] --> [Environment prod, staging, dev]
 ```
 
 **Example:**
@@ -323,14 +448,20 @@ flowchart TD
 
 **Warning:** Tags do **NOT** inherit from parent scopes by default.
 
-```mermaid
-flowchart TD
-    RG[Resource Group<br/>Tag: Environment=prod] -.-> VM[VM<br/>No tags inherited]
-    RG -.-> Storage[Storage<br/>No tags inherited]
-    
-    style RG fill:#ffffcc
-    style VM fill:#ffffff
-    style Storage fill:#ffffff
+```text
+Nodes:
++----------------------------------------------------+
+| Resource Group Tag: Environment=prod               |
++----------------------------------------------------+
++----------------------------------------------------+
+| VM No tags inherited                               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage No tags inherited                          |
++----------------------------------------------------+
+Flow:
+[Resource Group Tag: Environment=prod] --> [VM No tags inherited]
+[Resource Group Tag: Environment=prod] --> [Storage No tags inherited]
 ```
 
 **Solution:** Use Azure Policy to enforce tag inheritance.
@@ -535,21 +666,46 @@ flowchart TD
 
 ### Cannot Delete Resource (Lock)
 
-```mermaid
-flowchart TD
-    Error[Cannot delete resource] --> Portal[Portal: Check Locks]
-    Portal --> Resource[Resource → Locks]
-    Portal --> RG[RG → Locks]
-    Portal --> Sub[Subscription → Locks]
-    
-    Resource --> Found{Lock found?}
-    RG --> Found
-    Sub --> Found
-    
-    Found -->|Yes| Remove[Remove lock]
-    Found -->|No| RBAC[Check RBAC permissions]
-    
-    Remove --> Delete[Delete resource]
+```text
+Nodes:
++----------------------------------------------------+
+| Cannot delete resource                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Portal: Check Locks                                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource → Locks                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| RG → Locks                                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Subscription → Locks                               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Lock found?                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Remove lock                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Check RBAC permissions                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Delete resource                                    |
++----------------------------------------------------+
+Flow:
+[Cannot delete resource] --> [Portal: Check Locks]
+[Portal: Check Locks] --> [Resource → Locks]
+[Portal: Check Locks] --> [RG → Locks]
+[Portal: Check Locks] --> [Subscription → Locks]
+[Resource → Locks] --> [Lock found?]
+[RG → Locks] --> [Lock found?]
+[Subscription → Locks] --> [Lock found?]
+[Lock found?] -- Yes --> [Remove lock]
+[Lock found?] -- No --> [Check RBAC permissions]
+[Remove lock] --> [Delete resource]
 ```
 
 **CLI troubleshooting:**

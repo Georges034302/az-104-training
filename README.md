@@ -6,10 +6,13 @@ This repository provides structured learning paths combining conceptual lessons 
 
 ## 📋 Repository Overview
 
+
 **Structure**: Each module contains conceptual lessons and hands-on labs organized by topic
-- **Lessons**: Theory, architecture diagrams, and best practices
-- **Labs**: Executable Azure CLI and Portal instructions with `.env` file management
-- **Safety-first**: All labs include cleanup sections and use parameterized variables
+- **Lessons**: Theory, text-based architecture diagrams (no Mermaid), and best practices
+- **Labs**: Two tracks per module: `labs/cli-arm/` and `labs/portal/`
+- **Parameterization**: All labs use variables and `.env` files for portable, reusable configuration
+- **Cleanup**: Every lab includes explicit cleanup steps (e.g., `az group delete`, `rm -f .env`)
+- **Portal Labs**: All portal labs are written as detailed, step-by-step instructions (not just high-level)
 
 **Default Configuration**:
 - Region: `australiaeast`
@@ -32,9 +35,10 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Resource Management: Locks & Tags](modules/01-identity/lessons/05-resource-management-locks-tags.md) - Resource protection with locks and organization with tags
 
 #### 🧪 Labs
-- [RBAC Role Assignment](modules/01-identity/labs/01-rbac-role-assignment.md) - Assign Azure roles to users and service principals
-- [Managed Identity Storage Access](modules/01-identity/labs/02-managed-identity-storage-access.md) - Configure managed identity to access Azure Storage without credentials
-- [Tags, Locks & Policy](modules/01-identity/labs/03-tags-lock-policy.md) - Apply resource tags, deletion locks, and Azure Policy
+- [RBAC Role Assignment (CLI + ARM)](modules/01-identity/labs/cli-arm/01-rbac-role-assignment.md) | [Portal](modules/01-identity/labs/portal/01-rbac-role-assignment.md) - Assign Azure roles to users and service principals
+- [Managed Identity Storage Access (CLI + ARM)](modules/01-identity/labs/cli-arm/02-managed-identity-storage-access.md) | [Portal](modules/01-identity/labs/portal/02-managed-identity-storage-access.md) - Configure managed identity to access Azure Storage without credentials
+- [Tags, Locks & Policy (CLI + ARM)](modules/01-identity/labs/cli-arm/03-tags-lock-policy.md) | [Portal](modules/01-identity/labs/portal/03-tags-lock-policy.md) - Apply resource tags, deletion locks, and Azure Policy
+- [Entra Users, Groups & Group-Based RBAC (CLI + ARM)](modules/01-identity/labs/cli-arm/04-entra-users-groups-rbac.md) | [Portal](modules/01-identity/labs/portal/04-entra-users-groups-rbac.md) - Create Entra users/groups and assign RBAC through group membership
 
 </details>
 
@@ -53,11 +57,11 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Load Balancing](modules/02-networking/lessons/07-load-balancing.md) - Azure Load Balancer, Application Gateway, and Traffic Manager
 
 #### 🧪 Labs
-- [Create VNet, Subnets & NSG](modules/02-networking/labs/01-create-vnet-subnets-nsg.md) - Build a virtual network with security groups
-- [VNet Peering Connectivity](modules/02-networking/labs/02-vnet-peering-connectivity.md) - Connect two VNets and verify cross-network communication
-- [UDR Routing Simulation](modules/02-networking/labs/03-udr-routing-simulation.md) - Implement custom routes with route tables
-- [Private Endpoint for Storage with DNS](modules/02-networking/labs/04-private-endpoint-storage-dns.md) - Secure blob storage with private endpoint and DNS integration
-- [Basic Load Balancer](modules/02-networking/labs/05-basic-load-balancer.md) - Deploy a public load balancer with health probes
+- [Create VNet, Subnets & NSG (CLI + ARM)](modules/02-networking/labs/cli-arm/01-create-vnet-subnets-nsg.md) | [Portal](modules/02-networking/labs/portal/01-create-vnet-subnets-nsg.md) - Build a virtual network with security groups
+- [VNet Peering Connectivity (CLI + ARM)](modules/02-networking/labs/cli-arm/02-vnet-peering-connectivity.md) | [Portal](modules/02-networking/labs/portal/02-vnet-peering-connectivity.md) - Connect two VNets and verify cross-network communication
+- [UDR Routing Simulation (CLI + ARM)](modules/02-networking/labs/cli-arm/03-udr-routing-simulation.md) | [Portal](modules/02-networking/labs/portal/03-udr-routing-simulation.md) - Implement custom routes with route tables
+- [Private Endpoint for Storage with DNS (CLI + ARM)](modules/02-networking/labs/cli-arm/04-private-endpoint-storage-dns.md) | [Portal](modules/02-networking/labs/portal/04-private-endpoint-storage-dns.md) - Secure blob storage with private endpoint and DNS integration
+- [Basic Load Balancer (CLI + ARM)](modules/02-networking/labs/cli-arm/05-basic-load-balancer.md) | [Portal](modules/02-networking/labs/portal/05-basic-load-balancer.md) - Deploy a public load balancer with health probes
 
 </details>
 
@@ -73,10 +77,10 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Storage Security: SAS vs RBAC](modules/03-storage/lessons/04-storage-security-sas-rbac.md) - Shared Access Signatures and role-based access comparison
 
 #### 🧪 Labs
-- [Storage Account & Blob Container](modules/03-storage/labs/01-storage-account-blob-container.md) - Create storage account, upload and download blobs
-- [Lifecycle Policy](modules/03-storage/labs/02-lifecycle-policy.md) - Automate blob tier transitions based on age
-- [Azure Files Share](modules/03-storage/labs/03-azure-files-share.md) - Create and configure SMB file share with quota
-- [SAS vs RBAC](modules/03-storage/labs/04-sas-vs-rbac.md) - Compare delegation methods with SAS tokens and Azure RBAC
+- [Storage Account & Blob Container (CLI + ARM)](modules/03-storage/labs/cli-arm/01-storage-account-blob-container.md) | [Portal](modules/03-storage/labs/portal/01-storage-account-blob-container.md) - Create storage account, upload and download blobs
+- [Lifecycle Policy (CLI + ARM)](modules/03-storage/labs/cli-arm/02-lifecycle-policy.md) | [Portal](modules/03-storage/labs/portal/02-lifecycle-policy.md) - Automate blob tier transitions based on age
+- [Azure Files Share (CLI + ARM)](modules/03-storage/labs/cli-arm/03-azure-files-share.md) | [Portal](modules/03-storage/labs/portal/03-azure-files-share.md) - Create and configure SMB file share with quota
+- [SAS vs RBAC (CLI + ARM)](modules/03-storage/labs/cli-arm/04-sas-vs-rbac.md) | [Portal](modules/03-storage/labs/portal/04-sas-vs-rbac.md) - Compare delegation methods with SAS tokens and Azure RBAC
 
 </details>
 
@@ -93,11 +97,11 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Containers: ACR, ACI & ACA](modules/04-compute/lessons/05-containers-acr-aci-aca.md) - Azure Container Registry, Container Instances, and Container Apps
 
 #### 🧪 Labs
-- [Deploy a Virtual Machine](modules/04-compute/labs/01-deploy-vm.md) - Create Linux VM with VNet, NSG, and SSH access
-- [VM Availability](modules/04-compute/labs/02-vm-availability.md) - Deploy VMs in an availability set for fault tolerance
-- [VMSS Autoscale](modules/04-compute/labs/03-vmss-autoscale.md) - Configure VM Scale Set with CPU-based autoscaling rules
-- [App Service Deploy](modules/04-compute/labs/04-app-service-deploy.md) - Create web app with Node.js runtime and app settings
-- [ACR & ACI Container](modules/04-compute/labs/05-acr-aci-container.md) - Build container image in ACR and deploy to ACI
+- [Deploy a Virtual Machine (CLI + ARM)](modules/04-compute/labs/cli-arm/01-deploy-vm.md) | [Portal](modules/04-compute/labs/portal/01-deploy-vm.md) - Create Linux VM with VNet, NSG, and SSH access
+- [VM Availability (CLI + ARM)](modules/04-compute/labs/cli-arm/02-vm-availability.md) | [Portal](modules/04-compute/labs/portal/02-vm-availability.md) - Deploy VMs in an availability set for fault tolerance
+- [VMSS Autoscale (CLI + ARM)](modules/04-compute/labs/cli-arm/03-vmss-autoscale.md) | [Portal](modules/04-compute/labs/portal/03-vmss-autoscale.md) - Configure VM Scale Set with CPU-based autoscaling rules
+- [App Service Deploy (CLI + ARM)](modules/04-compute/labs/cli-arm/04-app-service-deploy.md) | [Portal](modules/04-compute/labs/portal/04-app-service-deploy.md) - Create web app with Node.js runtime and app settings
+- [ACR & ACI Container (CLI + ARM)](modules/04-compute/labs/cli-arm/05-acr-aci-container.md) | [Portal](modules/04-compute/labs/portal/05-acr-aci-container.md) - Build container image in ACR and deploy to ACI
 
 </details>
 
@@ -115,9 +119,10 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Availability & Resilience](modules/05-monitoring/lessons/06-availability-resilience.md) - SLA calculations and resilience strategies
 
 #### 🧪 Labs
-- [Enable VM Insights](modules/05-monitoring/labs/01-enable-vm-insights.md) - Deploy Log Analytics workspace and configure VM monitoring
-- [Create Alert & Action Group](modules/05-monitoring/labs/02-create-alert-action-group.md) - Set up CPU alert with email notification
-- [Backup & Restore VM](modules/05-monitoring/labs/03-backup-and-restore-vm.md) - Configure Recovery Services Vault and VM backup policy
+- [Enable VM Insights (CLI + ARM)](modules/05-monitoring/labs/cli-arm/01-enable-vm-insights.md) | [Portal](modules/05-monitoring/labs/portal/01-enable-vm-insights.md) - Deploy Log Analytics workspace and configure VM monitoring
+- [Create Alert & Action Group (CLI + ARM)](modules/05-monitoring/labs/cli-arm/02-create-alert-action-group.md) | [Portal](modules/05-monitoring/labs/portal/02-create-alert-action-group.md) - Set up CPU alert with email notification
+- [Backup & Restore VM (CLI + ARM)](modules/05-monitoring/labs/cli-arm/03-backup-and-restore-vm.md) | [Portal](modules/05-monitoring/labs/portal/03-backup-and-restore-vm.md) - Configure Recovery Services Vault and VM backup policy
+- [Service Health + Resource Health Alerts (CLI + ARM)](modules/05-monitoring/labs/cli-arm/04-service-health-resource-health-alerts.md) | [Portal](modules/05-monitoring/labs/portal/04-service-health-resource-health-alerts.md) - Configure activity log alerts for Service Health and Resource Health
 
 </details>
 
@@ -159,7 +164,7 @@ Run this script to install all required tools and authenticate with Azure:
 
 ---
 
-## � Repository Structure
+## 📁 Repository Structure
 
 ```
 .
@@ -171,71 +176,111 @@ Run this script to install all required tools and authenticate with Azure:
 │   └── toc.md
 ├── modules/
 │   ├── 01-identity/
+│   │   ├── README.md
 │   │   ├── labs/
-│   │   │   ├── managed-identity-storage-access.md
-│   │   │   ├── rbac-role-assignment.md
-│   │   │   └── tags-lock-policy.md
+│   │   │   ├── cli-arm/
+│   │   │   │   ├── 01-rbac-role-assignment.md
+│   │   │   │   ├── 02-managed-identity-storage-access.md
+│   │   │   │   ├── 03-tags-lock-policy.md
+│   │   │   │   └── 04-entra-users-groups-rbac.md
+│   │   │   └── portal/
+│   │   │       ├── 01-rbac-role-assignment.md
+│   │   │       ├── 02-managed-identity-storage-access.md
+│   │   │       ├── 03-tags-lock-policy.md
+│   │   │       └── 04-entra-users-groups-rbac.md
 │   │   └── lessons/
-│   │       ├── entra-id-basics.md
-│   │       ├── governance-policy-locks-tags.md
-│   │       ├── managed-identities.md
-│   │       └── rbac.md
+│   │       ├── 01-entra-id-basics.md
+│   │       ├── 02-rbac.md
+│   │       ├── 03-managed-identities.md
+│   │       ├── 04-azure-policy.md
+│   │       └── 05-resource-management-locks-tags.md
 │   ├── 02-networking/
+│   │   ├── README.md
 │   │   ├── labs/
-│   │   │   ├── basic-load-balancer.md
-│   │   │   ├── create-vnet-subnets-nsg.md
-│   │   │   ├── private-endpoint-storage-dns.md
-│   │   │   ├── udr-routing-simulation.md
-│   │   │   └── vnet-peering-connectivity.md
+│   │   │   ├── cli-arm/
+│   │   │   │   ├── 01-create-vnet-subnets-nsg.md
+│   │   │   │   ├── 02-vnet-peering-connectivity.md
+│   │   │   │   ├── 03-udr-routing-simulation.md
+│   │   │   │   ├── 04-private-endpoint-storage-dns.md
+│   │   │   │   └── 05-basic-load-balancer.md
+│   │   │   └── portal/
+│   │   │       ├── 01-create-vnet-subnets-nsg.md
+│   │   │       ├── 02-vnet-peering-connectivity.md
+│   │   │       ├── 03-udr-routing-simulation.md
+│   │   │       ├── 04-private-endpoint-storage-dns.md
+│   │   │       └── 05-basic-load-balancer.md
 │   │   └── lessons/
-│   │       ├── azure-dns.md
-│   │       ├── load-balancing.md
-│   │       ├── nsg-asg.md
-│   │       ├── private-endpoints.md
-│   │       ├── routing-udr.md
-│   │       ├── vnet-peering.md
-│   │       └── vnet-subnets.md
+│   │       ├── 01-vnet-subnets.md
+│   │       ├── 02-vnet-peering.md
+│   │       ├── 03-nsg-asg.md
+│   │       ├── 04-routing-udr.md
+│   │       ├── 05-azure-dns.md
+│   │       ├── 06-private-endpoints.md
+│   │       └── 07-load-balancing.md
 │   ├── 03-storage/
+│   │   ├── README.md
 │   │   ├── labs/
-│   │   │   ├── azure-files-share.md
-│   │   │   ├── lifecycle-policy.md
-│   │   │   ├── sas-vs-rbac.md
-│   │   │   └── storage-account-blob-container.md
+│   │   │   ├── cli-arm/
+│   │   │   │   ├── 01-storage-account-blob-container.md
+│   │   │   │   ├── 02-lifecycle-policy.md
+│   │   │   │   ├── 03-azure-files-share.md
+│   │   │   │   └── 04-sas-vs-rbac.md
+│   │   │   └── portal/
+│   │   │       ├── 01-storage-account-blob-container.md
+│   │   │       ├── 02-lifecycle-policy.md
+│   │   │       ├── 03-azure-files-share.md
+│   │   │       └── 04-sas-vs-rbac.md
 │   │   └── lessons/
-│   │       ├── azure-files.md
-│   │       ├── blob-lifecycle.md
-│   │       ├── storage-accounts-redundancy.md
-│   │       └── storage-security-sas-rbac.md
+│   │       ├── 01-storage-accounts-redundancy.md
+│   │       ├── 02-blob-lifecycle.md
+│   │       ├── 03-azure-files.md
+│   │       └── 04-storage-security-sas-rbac.md
 │   ├── 04-compute/
+│   │   ├── README.md
 │   │   ├── labs/
-│   │   │   ├── acr-aci-container.md
-│   │   │   ├── app-service-deploy.md
-│   │   │   ├── deploy-vm.md
-│   │   │   ├── vm-availability.md
-│   │   │   └── vmss-autoscale.md
+│   │   │   ├── cli-arm/
+│   │   │   │   ├── 01-deploy-vm.md
+│   │   │   │   ├── 02-vm-availability.md
+│   │   │   │   ├── 03-vmss-autoscale.md
+│   │   │   │   ├── 04-app-service-deploy.md
+│   │   │   │   └── 05-acr-aci-container.md
+│   │   │   └── portal/
+│   │   │       ├── 01-deploy-vm.md
+│   │   │       ├── 02-vm-availability.md
+│   │   │       ├── 03-vmss-autoscale.md
+│   │   │       ├── 04-app-service-deploy.md
+│   │   │       └── 05-acr-aci-container.md
 │   │   └── lessons/
-│   │       ├── app-service.md
-│   │       ├── availability-sets-zones.md
-│   │       ├── containers-acr-aci-aca.md
-│   │       ├── scaling.md
-│   │       └── virtual-machines.md
+│   │       ├── 01-virtual-machines.md
+│   │       ├── 02-availability-sets-zones.md
+│   │       ├── 03-scaling.md
+│   │       ├── 04-app-service.md
+│   │       └── 05-containers-acr-aci-aca.md
 │   └── 05-monitoring/
+│       ├── README.md
 │       ├── labs/
-│       │   ├── backup-and-restore-vm.md
-│       │   ├── create-alert-action-group.md
-│       │   └── enable-vm-insights.md
+│       │   ├── cli-arm/
+│       │   │   ├── 01-enable-vm-insights.md
+│       │   │   ├── 02-create-alert-action-group.md
+│       │   │   ├── 03-backup-and-restore-vm.md
+│       │   │   └── 04-service-health-resource-health-alerts.md
+│       │   └── portal/
+│       │       ├── 01-enable-vm-insights.md
+│       │       ├── 02-create-alert-action-group.md
+│       │       ├── 03-backup-and-restore-vm.md
+│       │       └── 04-service-health-resource-health-alerts.md
 │       └── lessons/
-│           ├── alerts-action-groups.md
-│           ├── availability-resilience.md
-│           ├── azure-backup.md
-│           ├── azure-monitor.md
-│           ├── azure-site-recovery.md
-│           └── log-analytics-kql.md
+│           ├── 01-azure-monitor.md
+│           ├── 02-log-analytics-kql.md
+│           ├── 03-alerts-action-groups.md
+│           ├── 04-azure-backup.md
+│           ├── 05-azure-site-recovery.md
+│           └── 06-availability-resilience.md
 └── shared/
     └── scripts/
         └── az_login.sh
 
-📊 5 modules • 26 lessons • 20 labs • 57 total files
+📊 5 modules • 27 lessons • 44 labs (22 CLI+ARM + 22 Portal) • 82 total files
 ```
 
 ---
@@ -266,6 +311,6 @@ These materials align with the official AZ-104 exam domains:
 
 ## 🧑‍🏫 Author: **Georges Bou Ghantous**
 
-AZ-104 certification training materials with 26 lessons and 20 hands-on labs covering all five Azure Administrator exam domains.
+AZ-104 certification training materials with 27 lessons and 44 hands-on lab guides (22 CLI+ARM and 22 Portal) covering all five Azure Administrator exam domains.
 
 ---

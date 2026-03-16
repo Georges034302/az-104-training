@@ -13,10 +13,10 @@ This module covers Azure storage services, including blob storage, file shares, 
 
 ## 🧪 Labs
 
-1. **[Storage Account & Blob Container](labs/01-storage-account-blob-container.md)** - Create storage account, upload and download blobs
-2. **[Lifecycle Policy](labs/02-lifecycle-policy.md)** - Automate blob tier transitions based on age for cost optimization
-3. **[Azure Files Share](labs/03-azure-files-share.md)** - Create and configure SMB file share with quota management
-4. **[SAS vs RBAC](labs/04-sas-vs-rbac.md)** - Compare delegation methods with SAS tokens and Azure RBAC roles
+1. **[Storage Account & Blob Container (CLI + ARM)](labs/cli-arm/01-storage-account-blob-container.md)** | **[Portal](labs/portal/01-storage-account-blob-container.md)** - Create storage account, upload and download blobs
+2. **[Lifecycle Policy (CLI + ARM)](labs/cli-arm/02-lifecycle-policy.md)** | **[Portal](labs/portal/02-lifecycle-policy.md)** - Automate blob tier transitions based on age for cost optimization
+3. **[Azure Files Share (CLI + ARM)](labs/cli-arm/03-azure-files-share.md)** | **[Portal](labs/portal/03-azure-files-share.md)** - Create and configure SMB file share with quota management
+4. **[SAS vs RBAC (CLI + ARM)](labs/cli-arm/04-sas-vs-rbac.md)** | **[Portal](labs/portal/04-sas-vs-rbac.md)** - Compare delegation methods with SAS tokens and Azure RBAC roles
 
 ## Learning Outcomes
 

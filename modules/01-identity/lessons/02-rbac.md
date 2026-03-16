@@ -36,14 +36,36 @@ In AZ-104 terms: if you can't reason about **principal + role + scope**, you can
 
 Azure RBAC has four core components that work together:
 
-```mermaid
-flowchart TD
-    Principal[Principal<br/>Who?<br/>User/Group/SP/MI] --> Assignment[Role Assignment]
-    Role[Role Definition<br/>What actions?<br/>Actions + DataActions] --> Assignment
-    Scope[Scope<br/>Where?<br/>MG/Sub/RG/Resource] --> Assignment
-    Assignment --> Decision{RBAC Engine}
-    Decision -->|Allow| Access[Access Granted]
-    Decision -->|Deny| Block[Access Denied]
+```text
+Nodes:
++----------------------------------------------------+
+| Principal Who? User/Group/SP/MI                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Role Assignment                                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Role Definition What actions? Actions +...         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Scope Where? MG/Sub/RG/Resource                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| RBAC Engine                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Granted                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Denied                                      |
++----------------------------------------------------+
+Flow:
+[Principal Who? User/Group/SP/MI] --> [Role Assignment]
+[Role Definition What actions?...] --> [Role Assignment]
+[Scope Where? MG/Sub/RG/Resource] --> [Role Assignment]
+[Role Assignment] --> [RBAC Engine]
+[RBAC Engine] -- Allow --> [Access Granted]
+[RBAC Engine] -- Deny --> [Access Denied]
 ```
 
 **Formula:** *Principal* + *Role* + *Scope* = *Role Assignment*
@@ -52,19 +74,50 @@ flowchart TD
 
 ## RBAC Evaluation Flow
 
-```mermaid
-flowchart TD
-    Request[User/App sends request] --> Token[ARM validates token]
-    Token --> Identity{Identity<br/>authenticated?}
-    Identity -->|No| AuthFail[Authentication failure]
-    Identity -->|Yes| CheckAssignments[Check role assignments<br/>at all scopes]
-    CheckAssignments --> DenyCheck{Deny assignment<br/>exists?}
-    DenyCheck -->|Yes| Denied[Access Denied]
-    DenyCheck -->|No| AllowCheck{Matching allow<br/>assignment exists?}
-    AllowCheck -->|No| Denied
-    AllowCheck -->|Yes| ActionCheck{Action in<br/>role definition?}
-    ActionCheck -->|No| Denied
-    ActionCheck -->|Yes| Allowed[Access Allowed]
+```text
+Nodes:
++----------------------------------------------------+
+| User/App sends request                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| ARM validates token                                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Identity authenticated?                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Authentication failure                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Check role assignments at all scopes               |
++----------------------------------------------------+
++----------------------------------------------------+
+| Deny assignment exists?                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Denied                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Matching allow assignment exists?                  |
++----------------------------------------------------+
++----------------------------------------------------+
+| Action in role definition?                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Allowed                                     |
++----------------------------------------------------+
+Flow:
+[User/App sends request] --> [ARM validates token]
+[ARM validates token] --> [Identity authenticated?]
+[Identity authenticated?] -- No --> [Authentication failure]
+[Identity authenticated?] -- Yes --> [Check role assignments at all scopes]
+[Check role assignments at all scopes] --> [Deny assignment exists?]
+[Deny assignment exists?] -- Yes --> [Access Denied]
+[Deny assignment exists?] -- No --> [Matching allow assignment exists?]
+[Matching allow assignment exists?] -- No --> [Access Denied]
+[Matching allow assignment exists?] -- Yes --> [Action in role definition?]
+[Action in role definition?] -- No --> [Access Denied]
+[Action in role definition?] -- Yes --> [Access Allowed]
 ```
 
 **Key points:**
@@ -78,30 +131,56 @@ flowchart TD
 
 ### Scope Levels
 
-```mermaid
-flowchart TD
-    MG[Management Group<br/>Broadest scope] --> Sub[Subscription]
-    Sub --> RG[Resource Group]
-    RG --> Res[Resource<br/>Narrowest scope]
+```text
+Nodes:
++----------------------------------------------------+
+| Management Group Broadest scope                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Subscription                                       |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Group                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Resource Narrowest scope                           |
++----------------------------------------------------+
+Flow:
+[Management Group Broadest scope] --> [Subscription]
+[Subscription] --> [Resource Group]
+[Resource Group] --> [Resource Narrowest scope]
 ```
 
 **Inheritance rule:** Permissions granted at a parent scope apply to all child scopes.
 
 ### Inheritance Example
 
-```mermaid
-flowchart TD
-    User[Alice] -->|Reader role| Sub[Subscription: Production]
-    Sub --> RG1[RG: app-rg]
-    Sub --> RG2[RG: data-rg]
-    RG1 --> VM[VM: web-server]
-    RG2 --> DB[SQL: customer-db]
-    
-    style Sub fill:#e1f5ff
-    style RG1 fill:#e1f5ff
-    style RG2 fill:#e1f5ff
-    style VM fill:#e1f5ff
-    style DB fill:#e1f5ff
+```text
+Nodes:
++----------------------------------------------------+
+| Alice                                              |
++----------------------------------------------------+
++----------------------------------------------------+
+| Subscription: Production                           |
++----------------------------------------------------+
++----------------------------------------------------+
+| RG: app-rg                                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| RG: data-rg                                        |
++----------------------------------------------------+
++----------------------------------------------------+
+| VM: web-server                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| SQL: customer-db                                   |
++----------------------------------------------------+
+Flow:
+[Alice] -- Reader role --> [Subscription: Production]
+[Subscription: Production] --> [RG: app-rg]
+[Subscription: Production] --> [RG: data-rg]
+[RG: app-rg] --> [VM: web-server]
+[RG: data-rg] --> [SQL: customer-db]
 ```
 
 **Result:** Alice can **read** (but not modify) everything in the subscription, including both resource groups and all their resources.
@@ -197,13 +276,31 @@ flowchart TD
 
 ### Example: Storage Account
 
-```mermaid
-flowchart LR
-    Contributor[Contributor role] -->|Actions| ControlPlane[Control Plane:<br/>Create storage account<br/>Modify firewall rules]
-    DataRole[Storage Blob Data Contributor] -->|DataActions| DataPlane[Data Plane:<br/>Upload blob<br/>Delete blob]
-    
-    ControlPlane -.->|Cannot access| BlobData[Blob data inside]
-    DataPlane -.->|Cannot modify| AccountConfig[Account configuration]
+```text
+Nodes:
++----------------------------------------------------+
+| Contributor role                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Control Plane: Create storage account Modify...    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Storage Blob Data Contributor                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Data Plane: Upload blob Delete blob                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Blob data inside                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Account configuration                              |
++----------------------------------------------------+
+Flow:
+[Contributor role] -- Actions --> [Control Plane: Create storage...]
+[Storage Blob Data Contributor] -- DataActions --> [Data Plane: Upload blob Delete blob]
+[Control Plane: Create storage...] -- Cannot access --> [Blob data inside]
+[Data Plane: Upload blob Delete blob] -- Cannot modify --> [Account configuration]
 ```
 
 **Common roles with data actions:**
@@ -316,13 +413,32 @@ Deny assignments **block users from performing specific actions**, even if a rol
 
 ### Deny Assignment Evaluation
 
-```mermaid
-flowchart TD
-    Request[Resource request] --> CheckDeny{Deny assignment<br/>matches?}
-    CheckDeny -->|Yes| Blocked[Access Denied<br/>Deny wins]
-    CheckDeny -->|No| CheckAllow{Allow assignment<br/>matches?}
-    CheckAllow -->|Yes| Allowed[Access Granted]
-    CheckAllow -->|No| Denied[Access Denied<br/>No permission]
+```text
+Nodes:
++----------------------------------------------------+
+| Resource request                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Deny assignment matches?                           |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Denied Deny wins                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Allow assignment matches?                          |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Granted                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Access Denied No permission                        |
++----------------------------------------------------+
+Flow:
+[Resource request] --> [Deny assignment matches?]
+[Deny assignment matches?] -- Yes --> [Access Denied Deny wins]
+[Deny assignment matches?] -- No --> [Allow assignment matches?]
+[Allow assignment matches?] -- Yes --> [Access Granted]
+[Allow assignment matches?] -- No --> [Access Denied No permission]
 ```
 
 ### CLI: Check Deny Assignments
@@ -359,20 +475,60 @@ flowchart TD
 
 ### Common Troubleshooting Flow
 
-```mermaid
-flowchart TD
-    Denied[Access Denied] --> AuthN{User authenticated?}
-    AuthN -->|No| CheckCreds[Check credentials<br/>Sign-in logs]
-    AuthN -->|Yes| CheckAssignment{Role assignment<br/>exists?}
-    CheckAssignment -->|No| AddRole[Add appropriate<br/>role assignment]
-    CheckAssignment -->|Yes| CheckScope{Correct scope?}
-    CheckScope -->|No| FixScope[Adjust scope<br/>to correct level]
-    CheckScope -->|Yes| CheckAction{Action in<br/>role definition?}
-    CheckAction -->|No| CustomRole[Create custom role<br/>or use different built-in]
-    CheckAction -->|Yes| CheckPropagate{Assignment<br/>propagated?}
-    CheckPropagate -->|No| Wait[Wait 5-10 minutes<br/>Refresh token]
-    CheckPropagate -->|Yes| CheckDeny{Deny assignment?}
-    CheckDeny -->|Yes| RemoveDeny[Review and remove<br/>deny if possible]
+```text
+Nodes:
++----------------------------------------------------+
+| Access Denied                                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| User authenticated?                                |
++----------------------------------------------------+
++----------------------------------------------------+
+| Check credentials Sign-in logs                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Role assignment exists?                            |
++----------------------------------------------------+
++----------------------------------------------------+
+| Add appropriate role assignment                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Correct scope?                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| Adjust scope to correct level                      |
++----------------------------------------------------+
++----------------------------------------------------+
+| Action in role definition?                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| Create custom role or use different built-in       |
++----------------------------------------------------+
++----------------------------------------------------+
+| Assignment propagated?                             |
++----------------------------------------------------+
++----------------------------------------------------+
+| Wait 5-10 minutes Refresh token                    |
++----------------------------------------------------+
++----------------------------------------------------+
+| Deny assignment?                                   |
++----------------------------------------------------+
++----------------------------------------------------+
+| Review and remove deny if possible                 |
++----------------------------------------------------+
+Flow:
+[Access Denied] --> [User authenticated?]
+[User authenticated?] -- No --> [Check credentials Sign-in logs]
+[User authenticated?] -- Yes --> [Role assignment exists?]
+[Role assignment exists?] -- No --> [Add appropriate role assignment]
+[Role assignment exists?] -- Yes --> [Correct scope?]
+[Correct scope?] -- No --> [Adjust scope to correct level]
+[Correct scope?] -- Yes --> [Action in role definition?]
+[Action in role definition?] -- No --> [Create custom role or use...]
+[Action in role definition?] -- Yes --> [Assignment propagated?]
+[Assignment propagated?] -- No --> [Wait 5-10 minutes Refresh token]
+[Assignment propagated?] -- Yes --> [Deny assignment?]
+[Deny assignment?] -- Yes --> [Review and remove deny if possible]
 ```
 
 ### Validation Checklist
@@ -417,10 +573,20 @@ flowchart TD
 
 **Requirement:** Dev team needs full access to `app-dev-rg` but not production.
 
-```mermaid
-flowchart LR
-    Team[Dev Team Group] -->|Contributor| DevRG[app-dev-rg]
-    Team -.->|No access| ProdRG[app-prod-rg]
+```text
+Nodes:
++----------------------------------------------------+
+| Dev Team Group                                     |
++----------------------------------------------------+
++----------------------------------------------------+
+| app-dev-rg                                         |
++----------------------------------------------------+
++----------------------------------------------------+
+| app-prod-rg                                        |
++----------------------------------------------------+
+Flow:
+[Dev Team Group] -- Contributor --> [app-dev-rg]
+[Dev Team Group] -- No access --> [app-prod-rg]
 ```
 
 **Implementation:**

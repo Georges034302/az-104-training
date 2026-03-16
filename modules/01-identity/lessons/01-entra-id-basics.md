@@ -41,28 +41,47 @@ Azure identity is easier when you hold this model:
 
 ---
 
+
 ## High-Level Architecture
 
-```mermaid
-graph TD
-    User["👤 Human / App / Script"] -->|"1️⃣ Authenticate"| EntraID["🔐 Microsoft Entra ID<br/>(Identity Provider)"]
-    
-    EntraID -->|Contains| Users["👥 Users & Groups"]
-    EntraID -->|Contains| Apps["📱 Apps / Service<br/>Principals / Managed<br/>Identities"]
-    EntraID -->|Contains| Policies["⚙️ MFA & Conditional<br/>Access Policies"]
-    
-    EntraID -->|"2️⃣ Issues Token"| Token["🎫 Access Token<br/>(JWT with claims:<br/>who, tenant, groups)"]
-    
-    Token --> ARM["☁️ Azure Resource Manager<br/>(ARM)"]
-    ARM -->|"Validates token"| RBAC["🔒 RBAC Engine<br/>(checks permissions)"]
-    ARM -->|"3️⃣ Authorization<br/>decision"| Providers["⚡ Azure Resource<br/>Providers"]
-    Providers -->|Examples| Services["💾 Compute<br/>📦 Storage<br/>🌐 Network"]
-    
-    style EntraID fill:#e1f5ff
-    style Token fill:#fff4e1
-    style RBAC fill:#ffe1e1
-    style ARM fill:#e1ffe1
+All diagrams in this course use plain text boxes and arrows for clarity and accessibility. **No Mermaid diagrams are used.**
+
+```text
+ [Human/App/Script]
+   |
+   v
+ [Microsoft Entra ID (Identity Provider)]
+   |
+   v
+ [Users/Groups]   [Apps/Service Principals/Managed Identities]   [MFA/Conditional Access]
+   |
+   v
+ [Access Token (JWT: who, tenant, groups)]
+   |
+   v
+ [Azure Resource Manager (ARM)]
+   |
+   v
+ [RBAC Engine]
+   |
+   v
+ [Azure Resource Providers]
+   |
+   v
+ [Compute / Storage / Network]
 ```
+
+**Key takeaway:** Entra ID does **not** grant permissions to Azure resources by itself. It provides identity and tokens. **RBAC** grants permissions.
+
+---
+
+## Lab Standards
+
+All labs in this module (and the course) follow these standards:
+- **Parameterization:** All scripts and instructions use variables and `.env` files for easy reuse.
+- **Explicit Cleanup:** Every lab includes clear cleanup steps (e.g., `az group delete`, `rm -f .env`).
+- **Portal Labs:** Portal-based labs are written as detailed, step-by-step instructions—never just high-level summaries.
+- **Diagrams:** Only text-based diagrams are used (no Mermaid).
 
 **Key takeaway:** Entra ID does **not** grant permissions to Azure resources by itself. It provides identity and tokens. **RBAC** grants permissions.
 
@@ -75,30 +94,52 @@ graph TD
 
 ## Authentication Flow (What actually happens)
 
-```mermaid
-graph LR
-    A["1️⃣ User/App<br/>signs in"]
-    B["Entra ID<br/>verifies<br/>credentials"]
-    C["2️⃣ Entra ID<br/>issues token"]
-    D["3️⃣ Request sent<br/>to ARM"]
-    E["ARM validates<br/>token signature"]
-    F["4️⃣ ARM checks<br/>RBAC at scope"]
-    G{"5️⃣ Has<br/>permission?"}
-    H["✅ Resource<br/>provider<br/>executes"]
-    I["❌ Request<br/>blocked<br/>(403 Forbidden)"]
-    
-    A --> B
-    B -->|"password/MFA/<br/>Conditional Access"| C
-    C -->|"JWT with claims:<br/>user ID, tenant,<br/>groups"| D
-    D --> E
-    E --> F
-    F --> G
-    G -->|"Allow"| H
-    G -->|"Deny"| I
-    
-    style C fill:#e1ffe1
-    style G fill:#fff4e1
-    style I fill:#ffe1e1
+```text
++---------------------------+
+| 1) User/App signs in      |
++---------------------------+
+        |
+        v
++---------------------------+
+| Entra ID verifies         |
+| credentials               |
++---------------------------+
+        |
+        | password / MFA / Conditional Access
+        v
++---------------------------+
+| 2) Entra ID issues token  |
+| (JWT: user ID, tenant,    |
+| groups)                   |
++---------------------------+
+        |
+        v
++---------------------------+
+| 3) Request sent to ARM    |
++---------------------------+
+        |
+        v
++---------------------------+
+| ARM validates token       |
+| signature                 |
++---------------------------+
+        |
+        v
++---------------------------+
+| 4) ARM checks RBAC        |
+| at scope                  |
++---------------------------+
+        |
+        v
++---------------------------+
+| 5) Has permission?        |
++---------------------------+
+     | Allow                      | Deny
+     v                            v
++---------------------------+   +-------------------------------+
+| Resource provider         |   | Request blocked              |
+| executes                  |   | (403 Forbidden)              |
++---------------------------+   +-------------------------------+
 ```
 
 ### Why tokens matter (AZ-104 troubleshooting)
@@ -135,22 +176,27 @@ Admin fix: sign out/in, refresh token, or wait for propagation.
 
 #### Tenant and Subscription Relationship (AZ-104 critical)
 
-```mermaid
-graph TD
-    Tenant["🏢 Entra ID Tenant<br/>(Identity Directory)<br/>contoso.onmicrosoft.com<br/><br/>Contains:<br/>• Users<br/>• Groups<br/>• Service Principals<br/>• Managed Identities"]
-    
-    SubA["📋 Subscription A<br/>(Billing boundary)<br/>Sub ID: xxxx-xxx1"]
-    SubB["📋 Subscription B<br/>(Billing boundary)<br/>Sub ID: xxxx-xxx2"]
-    SubC["📋 Subscription C<br/>(Billing boundary)<br/>Sub ID: xxxx-xxx3"]
-    
-    Tenant -->|"trusts for<br/>authentication"| SubA
-    Tenant -->|"trusts for<br/>authentication"| SubB
-    Tenant -->|"trusts for<br/>authentication"| SubC
-    
-    style Tenant fill:#e1f5ff
-    style SubA fill:#ffe1f5
-    style SubB fill:#ffe1f5
-    style SubC fill:#ffe1f5
+```text
+             +------------------------------------+
+             | Entra ID Tenant                    |
+             | (Identity Directory)               |
+             | contoso.onmicrosoft.com            |
+             |                                    |
+             | Contains:                          |
+             | - Users                            |
+             | - Groups                           |
+             | - Service Principals               |
+             | - Managed Identities               |
+             +------------------------------------+
+                   | trusts for authentication
+       ----------------------|-----------------------------
+      /                      |                            \
+       v                       v                             v
++---------------------------+  +---------------------------+  +---------------------------+
+| Subscription A            |  | Subscription B            |  | Subscription C            |
+| (Billing boundary)        |  | (Billing boundary)        |  | (Billing boundary)        |
+| Sub ID: xxxx-xxx1         |  | Sub ID: xxxx-xxx2         |  | Sub ID: xxxx-xxx3         |
++---------------------------+  +---------------------------+  +---------------------------+
 ```
 
 **Critical concepts:**
@@ -176,21 +222,23 @@ User types you’ll encounter:
 
 User origin patterns:
 
-```mermaid
-graph LR
-    CloudOnly["☁️ Cloud-only users<br/>(created in Azure Portal/CLI)"]
-    OnPrem["🏢 On-premises AD<br/>(Windows Server AD)"]
-    External["🌐 External tenant<br/>(partner organization)"]
-    EntraID["🔐 Entra ID Tenant<br/>(contoso.onmicrosoft.com)"]
-    
-    CloudOnly -->|"Created directly<br/>in Entra ID"| EntraID
-    OnPrem -->|"Sync via<br/>Azure AD Connect<br/>(hybrid identity)"| EntraID
-    External -->|"B2B invitation<br/>(guest user)"| EntraID
-    
-    style EntraID fill:#e1f5ff
-    style CloudOnly fill:#e1ffe1
-    style OnPrem fill:#fff4e1
-    style External fill:#ffe1e1
+```text
++-------------------------------+    Created directly in Entra ID    +-------------------------------+
+| Cloud-only users              | ----------------------------------> | Entra ID Tenant               |
+| (Azure Portal / CLI)          |                                     | contoso.onmicrosoft.com       |
++-------------------------------+                                     +-------------------------------+
+
++-------------------------------+    Sync via Azure AD Connect
+| On-premises AD                | ----------------------------------> +-------------------------------+
+| (Windows Server AD)           |                                     | Entra ID Tenant               |
++-------------------------------+                                     | contoso.onmicrosoft.com       |
+                                     +-------------------------------+
+
++-------------------------------+    B2B invitation (guest user)
+| External tenant               | ----------------------------------> +-------------------------------+
+| (partner organization)        |                                     | Entra ID Tenant               |
++-------------------------------+                                     | contoso.onmicrosoft.com       |
+                                     +-------------------------------+
 ```
 
 Important attributes:
@@ -209,20 +257,34 @@ Why groups matter:
 
 Group-based access pattern:
 
-```mermaid
-graph LR
-    Users["👥 Users<br/>(alice@contoso.com<br/>bob@contoso.com<br/>charlie@contoso.com)"]
-    Group["📁 Security Group<br/>(e.g., 'RG-App-Contributors')"]
-    Role["🔑 RBAC Role<br/>(e.g., 'Contributor')"]
-    Scope["🎯 Scope<br/>(Subscription /<br/>Resource Group /<br/>Resource)"]
-    
-    Users -->|"member of"| Group
-    Group -->|"assigned to"| Role
-    Role -->|"at scope"| Scope
-    
-    style Group fill:#e1f5ff
-    style Role fill:#e1ffe1
-    style Scope fill:#fff4e1
+```text
++------------------------------------------+
+| Users                                    |
+| - alice@contoso.com                      |
+| - bob@contoso.com                        |
+| - charlie@contoso.com                    |
++------------------------------------------+
+          |
+          | member of
+          v
++------------------------------------------+
+| Security Group                           |
+| example: RG-App-Contributors             |
++------------------------------------------+
+          |
+          | assigned to
+          v
++------------------------------------------+
+| RBAC Role                                |
+| example: Contributor                      |
++------------------------------------------+
+          |
+          | at scope
+          v
++------------------------------------------+
+| Scope                                    |
+| Subscription / Resource Group / Resource |
++------------------------------------------+
 ```
 
 **Why this pattern works:**
@@ -250,20 +312,33 @@ Think of this as **design-time vs runtime**:
 
 Application identity flow:
 
-```mermaid
-graph TD
-    AppReg["📱 App Registration<br/>(Design-time definition)<br/><br/>Contains:<br/>• Client ID (app ID)<br/>• Redirect URIs<br/>• API permissions<br/>• Certificates/secrets"]
-    
-    SP["🔑 Service Principal<br/>(Runtime identity)<br/><br/>Instance in tenant<br/>Used for authentication<br/>& token requests"]
-    
-    RBAC["🔒 RBAC Role Assignment<br/>(Azure permissions)<br/><br/>Example:<br/>Contributor on RG-Prod"]
-    
-    AppReg -->|"creates"| SP
-    SP -->|"receives"| RBAC
-    
-    style AppReg fill:#e1f5ff
-    style SP fill:#ffe1e1
-    style RBAC fill:#e1ffe1
+```text
++------------------------------------------+
+| App Registration                         |
+| (Design-time definition)                 |
+|                                          |
+| Contains:                                |
+| - Client ID (app ID)                     |
+| - Redirect URIs                          |
+| - API permissions                        |
+| - Certificates / secrets                 |
++------------------------------------------+
+          |
+          | creates
+          v
++------------------------------------------+
+| Service Principal                        |
+| (Runtime identity in tenant)             |
+| Used for auth and token requests         |
++------------------------------------------+
+          |
+          | receives
+          v
++------------------------------------------+
+| RBAC Role Assignment                     |
+| Azure permissions                        |
+| Example: Contributor on RG-Prod          |
++------------------------------------------+
 ```
 
 **Key distinction:**
@@ -286,27 +361,46 @@ Two types:
 
 Managed identity lifecycle:
 
-```mermaid
-graph TD
-    subgraph SystemAssigned["🔵 System-Assigned MI (1:1 relationship)"]
-        direction TD
-        Resource1["Azure Resource<br/>(VM/App Service/Function)"] -->|"Enable MI"| MI1["Managed Identity<br/>(automatically created)"]
-        Resource1 -->|"Delete resource"| MI1_Del["❌ MI deleted<br/>automatically"]
-        
-        style MI1 fill:#e1ffe1
-        style MI1_Del fill:#ffe1e1
-    end
-    
-    subgraph UserAssigned["🟢 User-Assigned MI (reusable)"]
-        direction TD
-        CreateMI["Create MI<br/>as standalone<br/>resource"] --> AttachVM["Attach to VM"]
-        CreateMI --> AttachApp["Attach to<br/>App Service"]
-        CreateMI --> AttachFunc["Attach to<br/>Function"]
-        AttachVM -->|"Delete VM"| Persist["✅ MI persists<br/>(can be reused)"]
-        
-        style CreateMI fill:#e1f5ff
-        style Persist fill:#e1ffe1
-    end
+```text
+SYSTEM-ASSIGNED MI (1:1)
+
++------------------------------------------+
+| Azure Resource                           |
+| VM / App Service / Function              |
++------------------------------------------+
+      | Enable MI
+      v
++------------------------------------------+
+| Managed Identity                         |
+| Automatically created                    |
++------------------------------------------+
+
+Delete resource -> Managed Identity is deleted automatically
+
+
+USER-ASSIGNED MI (reusable)
+
++------------------------------------------+
+| Create Managed Identity as standalone    |
+| resource                                 |
++------------------------------------------+
+      |\
+      | \ Attach to VM
+      |  +---------------------------+
+      |  | VM                        |
+      |  +---------------------------+
+      |
+      |  Attach to App Service
+      |  +---------------------------+
+      |  | App Service               |
+      |  +---------------------------+
+      |
+      |  Attach to Function
+      |  +---------------------------+
+      |  | Function                  |
+      |  +---------------------------+
+      |
+      +--> Delete VM -> MI persists and can be reused
 ```
 
 **When to use each:**
@@ -340,28 +434,27 @@ Output:
 
 Authentication and Authorization flow:
 
-```mermaid
-graph LR
-    AuthN["🔐 Authentication<br/>(Entra ID)<br/><br/>Verifies:<br/>• Credentials<br/>• MFA<br/>• CA policies"]
-    
-    Token["🎫 Token<br/>Issued<br/>(JWT)"]
-    
-    AuthZ["🔒 Authorization<br/>(RBAC)<br/><br/>Checks:<br/>• Role assignment<br/>• Scope<br/>• Resource type"]
-    
-    Decision{"Has<br/>permission?"}
-    Access["✅ Access<br/>granted<br/>(200 OK)"]
-    Block["❌ Access<br/>blocked<br/>(403 Forbidden)"]
-    
-    AuthN -->|"Token issued"| Token
-    Token --> AuthZ
-    AuthZ --> Decision
-    Decision -->|"Allow"| Access
-    Decision -->|"Deny"| Block
-    
-    style AuthN fill:#e1f5ff
-    style Token fill:#fff4e1
-    style AuthZ fill:#ffe1e1
-    style Access fill:#e1ffe1
+```text
++------------------------------------------+      Token issued      +---------------------------+
+| Authentication (Entra ID)                | ---------------------> | Token (JWT)               |
+| Verifies credentials, MFA, CA policies   |                        +---------------------------+
++------------------------------------------+                                   |
+                                        v
+                               +------------------------------------------+
+                               | Authorization (RBAC)                     |
+                               | Checks role assignment, scope, resource  |
+                               +------------------------------------------+
+                                        |
+                                        v
+                               +---------------------------+
+                               | Has permission?           |
+                               +---------------------------+
+                                 | Allow        | Deny
+                                 v              v
+                        +---------------------------+   +-------------------------------+
+                        | Access granted            |   | Access blocked                |
+                        | (200 OK)                  |   | (403 Forbidden)               |
+                        +---------------------------+   +-------------------------------+
 ```
 
 **Error code mapping:**
@@ -432,42 +525,38 @@ Controls might include:
 
 Conditional Access evaluation:
 
-```mermaid
-graph TD
-    SignIn["🔐 Sign-in attempt<br/>(user authenticates)"]
-    
-    Signals["📊 Evaluate signals"]
-    User["👤 User/Group<br/>membership"]
-    Device["💻 Device<br/>compliance<br/>(Intune)"]
-    Location["📍 Location/<br/>IP range"]
-    Risk["⚠️ Sign-in risk<br/>(Identity Protection)"]
-    
-    Controls{"⚙️ Apply CA policy<br/>controls"}
-    MFA["🔑 Require MFA"]
-    Compliant["✅ Require<br/>compliant device"]
-    Block["🚫 Block access"]
-    
-    Decision{"Passed all<br/>requirements?"}
-    Token["🎫 Token issued<br/>(access granted)"]
-    Denied["❌ Access denied<br/>(error shown)"]
-    
-    SignIn --> Signals
-    Signals -->|Check| User
-    Signals -->|Check| Device
-    Signals -->|Check| Location
-    Signals -->|Check| Risk
-    Signals --> Controls
-    Controls -->|Require| MFA
-    Controls -->|Require| Compliant
-    Controls -->|Or| Block
-    Controls --> Decision
-    Decision -->|"Yes"| Token
-    Decision -->|"No"| Denied
-    
-    style SignIn fill:#e1f5ff
-    style Controls fill:#fff4e1
-    style Token fill:#e1ffe1
-    style Denied fill:#ffe1e1
+```text
++------------------------------------------+
+| Sign-in attempt                          |
+| (user authenticates)                     |
++------------------------------------------+
+          |
+          v
++------------------------------------------+
+| Evaluate signals                         |
+| - User/Group membership                  |
+| - Device compliance (Intune)             |
+| - Location / IP range                    |
+| - Sign-in risk                           |
++------------------------------------------+
+          |
+          v
++------------------------------------------+
+| Apply Conditional Access controls        |
+| - Require MFA                            |
+| - Require compliant device               |
+| - Or block access                        |
++------------------------------------------+
+          |
+          v
++------------------------------------------+
+| Passed all requirements?                 |
++------------------------------------------+
+     | Yes                                      | No
+     v                                          v
++------------------------------------------+   +------------------------------------------+
+| Token issued (access granted)            |   | Access denied (error shown)             |
++------------------------------------------+   +------------------------------------------+
 ```
 
 **Example CA policy:**
@@ -490,20 +579,29 @@ MFA improves resistance to credential theft.
 
 MFA method security ranking:
 
-```mermaid
-graph TD
-    Best["🛡️ Most Resistant<br/>(Phishing-resistant)<br/><br/>• FIDO2 security keys<br/>• Windows Hello for Business<br/>• Certificate-based authentication<br/>• Authenticator number matching"]
-    
-    Medium["🔐 Moderately Resistant<br/><br/>• Authenticator app (OTP codes)<br/>• Software tokens<br/>• Hardware tokens (OATH)"]
-    
-    Weak["⚠️ Least Resistant<br/>(Vulnerable to interception)<br/><br/>• SMS codes<br/>• Voice call codes"]
-    
-    Best --> Medium
-    Medium --> Weak
-    
-    style Best fill:#e1ffe1
-    style Medium fill:#fff4e1
-    style Weak fill:#ffe1e1
+```text
++------------------------------------------+
+| Most resistant (phishing-resistant)      |
+| - FIDO2 security keys                    |
+| - Windows Hello for Business             |
+| - Certificate-based authentication       |
+| - Authenticator number matching          |
++------------------------------------------+
+          |
+          v
++------------------------------------------+
+| Moderately resistant                     |
+| - Authenticator app (OTP codes)          |
+| - Software tokens                        |
+| - Hardware tokens (OATH)                 |
++------------------------------------------+
+          |
+          v
++------------------------------------------+
+| Least resistant                          |
+| - SMS codes                              |
+| - Voice call codes                       |
++------------------------------------------+
 ```
 
 **Microsoft recommendation:**
@@ -534,21 +632,22 @@ Use audit logs to answer:
 
 Log types and sources:
 
-```mermaid
-graph LR
-    AuthEvents["🔐 Authentication events<br/><br/>• Sign-in success/failure<br/>• MFA prompts<br/>• CA policy applied<br/>• Location/device info"]
-    
-    SignInLogs["📊 Sign-in logs<br/>(Portal: Entra ID ><br/>Monitoring > Sign-ins)"]
-    
-    DirChanges["⚙️ Directory changes<br/><br/>• User created/deleted<br/>• Group membership<br/>• Role assignments<br/>• Policy modifications"]
-    
-    AuditLogs["📝 Audit logs<br/>(Portal: Entra ID ><br/>Monitoring > Audit logs)"]
-    
-    AuthEvents --> SignInLogs
-    DirChanges --> AuditLogs
-    
-    style SignInLogs fill:#e1f5ff
-    style AuditLogs fill:#ffe1e1
+```text
++------------------------------------------+      +------------------------------------------+
+| Authentication events                    | ---> | Sign-in logs                             |
+| - Sign-in success/failure                |      | Portal: Entra ID > Monitoring > Sign-ins|
+| - MFA prompts                            |      +------------------------------------------+
+| - CA policy applied                      |
+| - Location/device info                   |
++------------------------------------------+
+
++------------------------------------------+      +------------------------------------------+
+| Directory changes                        | ---> | Audit logs                               |
+| - User created/deleted                   |      | Portal: Entra ID > Monitoring > Audit    |
+| - Group membership                       |      | logs                                     |
+| - Role assignments                       |      +------------------------------------------+
+| - Policy modifications                   |
++------------------------------------------+
 ```
 
 **Retention:**
@@ -570,20 +669,23 @@ graph LR
 
 ### Scenario 1: New employee onboarding (resource access)
 
-```mermaid
-graph LR
-    A["1️⃣ Create user<br/>(alice@contoso.com)"]
-    B["2️⃣ Add to group<br/>('RG-App-Contributors')"]
-    C["3️⃣ Assign RBAC role<br/>('Contributor')<br/>to group at<br/>RG scope"]
-    D["4️⃣ Verify access<br/>(user tests creating<br/>a storage account)"]
-    
-    A --> B
-    B --> C
-    C --> D
-    
-    style A fill:#e1f5ff
-    style C fill:#e1ffe1
-    style D fill:#fff4e1
+```text
++------------------------------------------+    +------------------------------------------+
+| 1) Create user                           | -> | 2) Add to group                          |
+| alice@contoso.com                        |    | RG-App-Contributors                      |
++------------------------------------------+    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 3) Assign RBAC role                      |
+                    | Contributor to group at RG scope         |
+                    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 4) Verify access                         |
+                    | User tests storage account creation      |
+                    +------------------------------------------+
 ```
 
 **Commands:**
@@ -604,24 +706,23 @@ az ad group member add --group "RG-App-Contributors" --member-id $(az ad user sh
 
 ### Scenario 2: App needs access to Storage without secrets
 
-```mermaid
-graph LR
-    A["1️⃣ Enable<br/>Managed Identity<br/>(system-assigned)<br/>on VM/App Service"]
-    
-    B["2️⃣ Assign<br/>'Storage Blob<br/>Data Contributor'<br/>role to MI"]
-    
-    C["3️⃣ App requests<br/>token from IMDS<br/>(169.254.169.254)"]
-    
-    D["4️⃣ Access Storage<br/>with token<br/>(no secrets!)"]
-    
-    A --> B
-    B --> C
-    C --> D
-    
-    style A fill:#e1f5ff
-    style B fill:#e1ffe1
-    style C fill:#fff4e1
-    style D fill:#e1ffe1
+```text
++------------------------------------------+    +------------------------------------------+
+| 1) Enable managed identity               | -> | 2) Assign role to MI                     |
+| (system-assigned) on VM/App Service      |    | Storage Blob Data Contributor            |
++------------------------------------------+    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 3) App requests token from IMDS          |
+                    | 169.254.169.254                          |
+                    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 4) Access Storage with token             |
+                    | No secrets required                       |
+                    +------------------------------------------+
 ```
 
 **Commands:**
@@ -644,23 +745,23 @@ az role assignment create \
 
 ### Scenario 3: External partner access (B2B guest)
 
-```mermaid
-graph LR
-    A["1️⃣ Invite guest user<br/>(B2B invitation)<br/>partner@external.com"]
-    
-    B["2️⃣ Add to group<br/>('External-Auditors')"]
-    
-    C["3️⃣ Assign 'Reader'<br/>role at specific<br/>RG scope"]
-    
-    D["4️⃣ Monitor sign-in<br/>activity in logs<br/>(track access)"]
-    
-    A --> B
-    B --> C
-    C --> D
-    
-    style A fill:#e1f5ff
-    style C fill:#e1ffe1
-    style D fill:#fff4e1
+```text
++------------------------------------------+    +------------------------------------------+
+| 1) Invite guest user (B2B)               | -> | 2) Add to group                          |
+| partner@external.com                      |    | External-Auditors                        |
++------------------------------------------+    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 3) Assign Reader role                    |
+                    | at specific resource group scope         |
+                    +------------------------------------------+
+                             |
+                             v
+                    +------------------------------------------+
+                    | 4) Monitor sign-in activity              |
+                    | in logs for auditing                     |
+                    +------------------------------------------+
 ```
 
 **Commands:**
