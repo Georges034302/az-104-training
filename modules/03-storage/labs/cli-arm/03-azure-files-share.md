@@ -1,136 +1,187 @@
-# Lab: Azure Files Share (Create + Quota)
+# Lab: Azure Files Share (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create a storage account and an Azure Files share with quota. (Mounting is optional and depends on client network access to port 445.)
+Create a storage account and SMB-based Azure file share, upload a test file, confirm quota settings, and validate the share endpoint. Mounting the share is optional and not required for this lab.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Storage --> Share[File Share]
-  Client --> SMB[SMB 445] --> Share
-```
+
+ [Resource Group]
+      |
+      v
+ [Storage Account]
+      |
+      v
+ [Azure File Share]
+    /         \
+   v           v
+ [Quota]    [Uploaded File]
 
 ## Estimated time
-25–40 minutes
+30-40 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- The lab uses a small standard file share with a low quota.
+- No VM is required, which keeps cost down.
+- Mounting over SMB may be blocked in some corporate or ISP networks because of outbound port 445 restrictions.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with permission to create storage resources
+- Azure CLI installed and authenticated with `az login`
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m03-files"
+LAB="m03files"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+SHARE_NAME="share1"
+QUOTA_GB="5"
+LOCAL_FILE="share-test.txt"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, SHARE_NAME=$SHARE_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create the resource group
 ```bash
-# Create the resource group in the specified location
 az group create \
   --name "$RG_NAME" \
   --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
 ```
 
-### 2) Deploy resources
+### 2) Create the storage account and file share
 ```bash
-# Generate random suffix for globally unique storage account name
 SUFFIX="$(openssl rand -hex 3)"
+STG_NAME="$(echo "${PREFIX}${LAB}${SUFFIX}" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
 
-# Create storage account name (lowercase, no special characters)
-STG_NAME="$(echo "${PREFIX}${SUFFIX}files" | tr -d '-' | tr '[:upper:]' '[:lower:]')"
-
-# Define file share name and quota
-SHARE_NAME="share1"
-QUOTA_GB=5
-echo "STG_NAME=$STG_NAME"
-echo "SHARE_NAME=$SHARE_NAME"
-echo "QUOTA_GB=$QUOTA_GB"
-
-# Create the storage account with LRS redundancy
 az storage account create \
   --name "$STG_NAME" \
   --resource-group "$RG_NAME" \
   --location "$LOCATION" \
   --sku Standard_LRS \
-  --kind StorageV2
+  --kind StorageV2 \
+  --enable-large-file-share false
 
-# Retrieve the storage account key for authentication
-STG_KEY="$(az storage account keys list \
-  --account-name "$STG_NAME" \
-  --resource-group "$RG_NAME" \
-  --query "[0].value" \
-  -o tsv)"
-echo "STG_KEY=<hidden>"
-
-# Get the file service endpoint URL
 FILE_ENDPOINT="$(az storage account show \
   --name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --query primaryEndpoints.file \
-  -o tsv)"
+  --query primaryEndpoints.file -o tsv)"
+STG_KEY="$(az storage account keys list \
+  --account-name "$STG_NAME" \
+  --resource-group "$RG_NAME" \
+  --query "[0].value" -o tsv)"
+
+echo "STG_NAME=$STG_NAME"
 echo "FILE_ENDPOINT=$FILE_ENDPOINT"
 
-# Create an Azure Files share with the specified quota
 az storage share-rm create \
   --resource-group "$RG_NAME" \
   --storage-account "$STG_NAME" \
   --name "$SHARE_NAME" \
   --quota "$QUOTA_GB"
-echo "Created file share: $SHARE_NAME"
+```
 
-# List all file shares in the storage account
-az storage share-rm list \
-  --resource-group "$RG_NAME" \
-  --storage-account "$STG_NAME" \
+### 3) Upload a sample file
+```bash
+echo "Azure Files lab content" > "$LOCAL_FILE"
+
+az storage file upload \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --share-name "$SHARE_NAME" \
+  --source "$LOCAL_FILE" \
+  --path "$LOCAL_FILE"
+
+az storage file list \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --share-name "$SHARE_NAME" \
   -o table
 ```
 
-
-### 3) Validate
+### 4) Validate
 ```bash
-# Display the file share details including quota
 az storage share-rm show \
   --resource-group "$RG_NAME" \
   --storage-account "$STG_NAME" \
   --name "$SHARE_NAME" \
+  --query "{share:name,quota:shareQuota,enabledProtocol:enabledProtocols}" \
   -o table
-echo "Validated file share and quota."
+
+az storage file show \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --share-name "$SHARE_NAME" \
+  --path "$LOCAL_FILE" \
+  --query "{name:name,contentLength:properties.contentLength,lastModified:properties.lastModified}" \
+  -o table
 ```
 
+## ARM template solution (optional)
+Use this if you want to create the storage account and share declaratively before running the upload steps.
 
-## ARM template solution (when needed)
-Not required for this lab.
+```bash
+cat > main.json << 'ARMEOF'
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "type": "string" },
+    "storageAccountName": { "type": "string" },
+    "shareName": { "type": "string" },
+    "shareQuota": { "type": "int", "defaultValue": 5 }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('shareName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "shareQuota": "[parameters('shareQuota')]"
+      }
+    }
+  ]
+}
+ARMEOF
+
+az deployment group create \
+  --resource-group "$RG_NAME" \
+  --template-file main.json \
+  --parameters \
+    location="$LOCATION" \
+    storageAccountName="$STG_NAME" \
+    shareName="$SHARE_NAME" \
+    shareQuota="$QUOTA_GB"
+```
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
-rm -f .env
-echo "Cleaned up environment file"
+az group delete --name "$RG_NAME" --yes --no-wait
+rm -f .env main.json "$LOCAL_FILE"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- This lab validates Azure Files objects and data-plane upload, not SMB mounting.
+- If you later mount the share from a client, confirm network policy allows outbound TCP 445.

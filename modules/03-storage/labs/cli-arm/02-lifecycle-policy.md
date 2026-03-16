@@ -1,63 +1,62 @@
-# Lab: Blob Lifecycle Management Policy (Hot → Cool)
+# Lab: Blob Lifecycle Management Policy (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create a storage account and apply a lifecycle policy to move blobs to Cool tier after N days. Validate policy exists.
+Create a storage account, add a blob container and sample block blob, then apply a lifecycle management policy that moves base blobs to the Cool tier after seven days. Validate the policy configuration rather than waiting for an actual tier transition.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Storage --> Policy[Lifecycle Policy]
-  Policy --> Tier[Move to Cool]
-  Policy --> Delete[Optional Delete]
-```
+
+ [Storage Account]
+      |
+      v
+ [Blob Container]
+      |
+      v
+ [Lifecycle Policy]
+      |
+      v
+ [Move Base Blobs To Cool After 7 Days]
 
 ## Estimated time
-25–35 minutes
+30-40 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- The lab uses a small storage account and a small sample blob.
+- Lifecycle processing is asynchronous, so this lab validates policy configuration only.
+- The resource group can be deleted when finished.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with permission to create storage resources
+- Azure CLI installed and authenticated with `az login`
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m03-lifecycle"
+LAB="m03life"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+CONTAINER_NAME="data"
+BLOB_NAME="sample-lifecycle.txt"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, CONTAINER_NAME=$CONTAINER_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create the resource group
 ```bash
-# Create the resource group in the specified location
 az group create \
   --name "$RG_NAME" \
   --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
 ```
 
-### 2) Deploy resources
+### 2) Create the storage account and sample blob
 ```bash
-# Generate random suffix for globally unique storage account name
 SUFFIX="$(openssl rand -hex 3)"
+STG_NAME="$(echo "${PREFIX}${LAB}${SUFFIX}" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
 
-# Create storage account name (lowercase, no special characters)
-STG_NAME="$(echo "${PREFIX}${SUFFIX}life" | tr -d '-' | tr '[:upper:]' '[:lower:]')"
-echo "STG_NAME=$STG_NAME"
-
-# Create the storage account with LRS redundancy
 az storage account create \
   --name "$STG_NAME" \
   --resource-group "$RG_NAME" \
@@ -65,73 +64,167 @@ az storage account create \
   --sku Standard_LRS \
   --kind StorageV2
 
-# Define the lifecycle policy JSON filename
-POLICY_FILE="lifecycle.json"
+STG_KEY="$(az storage account keys list \
+  --account-name "$STG_NAME" \
+  --resource-group "$RG_NAME" \
+  --query "[0].value" -o tsv)"
 
-# Create the lifecycle policy JSON file
-cat > "$POLICY_FILE" << 'EOF'
+az storage container create \
+  --name "$CONTAINER_NAME" \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --public-access off
+
+echo "Lifecycle test blob" > "$BLOB_NAME"
+
+az storage blob upload \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --container-name "$CONTAINER_NAME" \
+  --name "$BLOB_NAME" \
+  --file "$BLOB_NAME" \
+  --overwrite true
+
+echo "STG_NAME=$STG_NAME"
+```
+
+### 3) Create and apply the lifecycle policy
+```bash
+cat > policy.json << 'POLICYEOF'
 {
   "rules": [
     {
       "enabled": true,
-      "name": "move-to-cool",
+      "name": "move-block-blobs-to-cool",
       "type": "Lifecycle",
       "definition": {
-        "filters": { "blobTypes": [ "blockBlob" ] },
+        "filters": {
+          "blobTypes": [
+            "blockBlob"
+          ]
+        },
         "actions": {
-          "baseBlob": { "tierToCool": { "daysAfterModificationGreaterThan": 7 } }
+          "baseBlob": {
+            "tierToCool": {
+              "daysAfterModificationGreaterThan": 7
+            }
+          }
         }
       }
     }
   ]
 }
-EOF
-echo "Wrote lifecycle policy file: $POLICY_FILE"
+POLICYEOF
 
-# Apply the lifecycle management policy to the storage account
 az storage account management-policy create \
   --account-name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --policy @"$POLICY_FILE"
+  --policy @policy.json
 
-# Retrieve the policy ID to verify creation
 POLICY_ID="$(az storage account management-policy show \
   --account-name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
 echo "POLICY_ID=$POLICY_ID"
 ```
 
-
-### 3) Validate
+### 4) Validate
 ```bash
-# Display the lifecycle management policy in JSON format
 az storage account management-policy show \
   --account-name "$STG_NAME" \
   --resource-group "$RG_NAME" \
-  -o jsonc
-echo "Validated lifecycle policy exists."
+  --query "policy.rules[].{name:name,enabled:enabled,moveToCool:definition.actions.baseBlob.tierToCool.daysAfterModificationGreaterThan}" \
+  -o table
+
+az storage blob show \
+  --account-name "$STG_NAME" \
+  --account-key "$STG_KEY" \
+  --container-name "$CONTAINER_NAME" \
+  --name "$BLOB_NAME" \
+  --query "{blob:name,currentTier:properties.accessTier,lastModified:properties.lastModified}" \
+  -o table
 ```
 
+## ARM template solution (optional)
+Use this if you want to deploy the storage account and management policy declaratively.
 
-## ARM template solution (when needed)
-Not required for this lab.
+```bash
+cat > main.json << 'ARMEOF'
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "type": "string" },
+    "storageAccountName": { "type": "string" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/managementPolicies",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/default', parameters('storageAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "policy": {
+          "rules": [
+            {
+              "enabled": true,
+              "name": "move-block-blobs-to-cool",
+              "type": "Lifecycle",
+              "definition": {
+                "filters": {
+                  "blobTypes": [
+                    "blockBlob"
+                  ]
+                },
+                "actions": {
+                  "baseBlob": {
+                    "tierToCool": {
+                      "daysAfterModificationGreaterThan": 7
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+ARMEOF
+
+az deployment group create \
+  --resource-group "$RG_NAME" \
+  --template-file main.json \
+  --parameters \
+    location="$LOCATION" \
+    storageAccountName="$STG_NAME"
+```
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove lifecycle policy file and environment file
-rm -f lifecycle.json .env
-echo "Cleaned up lifecycle.json and environment file"
+az group delete --name "$RG_NAME" --yes --no-wait
+rm -f .env main.json policy.json "$BLOB_NAME"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- The policy does not force an immediate move during the lab. Azure evaluates lifecycle rules asynchronously.
+- Lifecycle policies are account-level constructs; the same policy can apply to multiple containers when filters match.

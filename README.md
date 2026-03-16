@@ -73,19 +73,24 @@ This repository provides structured learning paths combining conceptual lessons 
 <details>
 <summary><h3>Module 03: Azure Storage</h3></summary>
 
-**Focus**: Storage accounts, blob containers, Azure Files, lifecycle policies, and security
+**Focus**: Storage account design, redundancy, blob lifecycle, Azure Files, and secure data access
 
 #### 📖 Lessons
-- [Storage Accounts & Redundancy](modules/03-storage/lessons/01-storage-accounts-redundancy.md) - Account types, performance tiers, and replication options (LRS, GRS, ZRS, RA-GRS)
-- [Blob Storage & Lifecycle Management](modules/03-storage/lessons/02-blob-lifecycle.md) - Container management and automated tier transitions
-- [Azure Files](modules/03-storage/lessons/03-azure-files.md) - SMB file shares for cloud and hybrid scenarios
-- [Storage Security: SAS vs RBAC](modules/03-storage/lessons/04-storage-security-sas-rbac.md) - Shared Access Signatures and role-based access comparison
+- [Storage Accounts & Redundancy](modules/03-storage/lessons/01-storage-accounts-redundancy.md) - Storage account capabilities, performance models, and redundancy choices including LRS, ZRS, GRS, and GZRS variants
+- [Blob Storage & Lifecycle Management](modules/03-storage/lessons/02-blob-lifecycle.md) - Blob types, access tiers, lifecycle rules, and data protection controls
+- [Azure Files](modules/03-storage/lessons/03-azure-files.md) - Azure Files architecture, SMB/NFS considerations, share tiers, and hybrid file scenarios
+- [Storage Security: SAS vs RBAC](modules/03-storage/lessons/04-storage-security-sas-rbac.md) - Data-plane authorization with Azure RBAC, SAS, and supporting network controls
 
 #### 🧪 Labs
-- [Storage Account & Blob Container (CLI + ARM)](modules/03-storage/labs/cli-arm/01-storage-account-blob-container.md) | [Portal](modules/03-storage/labs/portal/01-storage-account-blob-container.md) - Create storage account, upload and download blobs
-- [Lifecycle Policy (CLI + ARM)](modules/03-storage/labs/cli-arm/02-lifecycle-policy.md) | [Portal](modules/03-storage/labs/portal/02-lifecycle-policy.md) - Automate blob tier transitions based on age
-- [Azure Files Share (CLI + ARM)](modules/03-storage/labs/cli-arm/03-azure-files-share.md) | [Portal](modules/03-storage/labs/portal/03-azure-files-share.md) - Create and configure SMB file share with quota
-- [SAS vs RBAC (CLI + ARM)](modules/03-storage/labs/cli-arm/04-sas-vs-rbac.md) | [Portal](modules/03-storage/labs/portal/04-sas-vs-rbac.md) - Compare delegation methods with SAS tokens and Azure RBAC
+- [Storage Account & Blob Container (CLI + ARM)](modules/03-storage/labs/cli-arm/01-storage-account-blob-container.md) | [Portal](modules/03-storage/labs/portal/01-storage-account-blob-container.md) - Create a private blob container, upload content, and validate download flow
+- [Lifecycle Policy (CLI + ARM)](modules/03-storage/labs/cli-arm/02-lifecycle-policy.md) | [Portal](modules/03-storage/labs/portal/02-lifecycle-policy.md) - Configure and validate a lifecycle rule that moves block blobs to Cool storage
+- [Azure Files Share (CLI + ARM)](modules/03-storage/labs/cli-arm/03-azure-files-share.md) | [Portal](modules/03-storage/labs/portal/03-azure-files-share.md) - Create an SMB-based Azure file share, set quota, and validate file upload
+- [SAS vs RBAC (CLI + ARM)](modules/03-storage/labs/cli-arm/04-sas-vs-rbac.md) | [Portal](modules/03-storage/labs/portal/04-sas-vs-rbac.md) - Compare delegated SAS access with identity-based Azure RBAC authorization
+
+**Module 03 lab quality baseline**:
+- CLI + ARM labs are fully parameterized with `.env` and include validation + cleanup.
+- Portal labs are detailed step-by-step and aligned with equivalent CLI outcomes.
+- Storage lab diagrams are text-based (no Mermaid).
 
 </details>
 
