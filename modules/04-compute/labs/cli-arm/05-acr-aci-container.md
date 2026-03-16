@@ -1,122 +1,92 @@
-# Lab: ACR Build + ACI Run Container (Minimal)
+# Lab: Build in ACR and Run in ACI (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create an ACR, build a tiny container image using ACR Tasks, and run it in ACI. Capture login server and container FQDN.
+Create an Azure Container Registry, build an image with ACR Tasks, deploy that image to Azure Container Instances, and validate runtime health and endpoint access.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Code[Dockerfile] --> ACR[ACR Build Task] --> Image[Image]
-  Image --> ACI[ACI Container Group] --> FQDN[FQDN/IP]
-```
+
+ [Dockerfile Source]
+        |
+        v
+ [ACR Build Task]
+        |
+        v
+ [Image in ACR]
+        |
+        v
+ [ACI Container Group]
+        |
+        v
+ [Public FQDN]
 
 ## Estimated time
-45–60 minutes
+45-60 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- ACR and ACI both incur cost while provisioned.
+- Use Basic ACR and small ACI resources for lab scope.
+- In production, prefer identity-based pulls rather than admin credentials.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create ACR and ACI resources
+- Azure CLI installed and authenticated with az login
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m04-acr-aci"
+LAB="m04acraci"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+IMAGE_NAME="nginx-demo:v1"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and ACR
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Generate random suffix for globally unique ACR name
 SUFFIX="$(openssl rand -hex 3)"
+ACR_NAME="$(echo "${PREFIX}${LAB}${SUFFIX}" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-50)"
+ACI_NAME="${PREFIX}-${LAB}-aci"
+DNS_LABEL="$(echo "${PREFIX}${LAB}${SUFFIX}aci" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-60)"
 
-# Create ACR name (lowercase, no special characters)
-ACR_NAME="$(echo "${PREFIX}${SUFFIX}acr" | tr -d '-' | tr '[:upper:]' '[:lower:]')"
-echo "ACR_NAME=$ACR_NAME"
-
-# Create the Azure Container Registry with Basic SKU
-ACR_ID="$(az acr create \
+az acr create \
   --resource-group "$RG_NAME" \
   --name "$ACR_NAME" \
   --sku Basic \
-  --location "$LOCATION" \
-  --query id \
-  -o tsv)"
-echo "ACR_ID=$ACR_ID"
+  --location "$LOCATION"
 
-# Retrieve the ACR login server URL
-ACR_LOGIN_SERVER="$(az acr show \
-  --name "$ACR_NAME" \
-  --query loginServer \
-  -o tsv)"
+ACR_LOGIN_SERVER="$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)"
 echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER"
+```
 
-# Enable admin user for simplified authentication (lab only)
-az acr update \
-  --name "$ACR_NAME" \
-  --admin-enabled true
+### 2) Build image in ACR Tasks
+```bash
+az acr update --name "$ACR_NAME" --admin-enabled true
 
-# Get ACR admin credentials
-ACR_USER="$(az acr credential show \
-  --name "$ACR_NAME" \
-  --query username \
-  -o tsv)"
-ACR_PASS="$(az acr credential show \
-  --name "$ACR_NAME" \
-  --query passwords[0].value \
-  -o tsv)"
-echo "ACR_USER=$ACR_USER"
-echo "ACR_PASS=<hidden>"
+ACR_USER="$(az acr credential show --name "$ACR_NAME" --query username -o tsv)"
+ACR_PASS="$(az acr credential show --name "$ACR_NAME" --query passwords[0].value -o tsv)"
 
-# Create a directory for the application
-APP_DIR="app"
-mkdir -p "$APP_DIR"
-
-# Create a minimal Dockerfile for demonstration
-cat > "$APP_DIR/Dockerfile" << 'EOF'
+mkdir -p app
+cat > app/Dockerfile << 'DOCKEREOF'
 FROM mcr.microsoft.com/oss/nginx/nginx:1.25.3
-RUN echo "AZ-104 ACI demo" > /usr/share/nginx/html/index.html
-EOF
-echo "Created Dockerfile in $APP_DIR"
+RUN echo "AZ-104 ACR to ACI lab" > /usr/share/nginx/html/index.html
+DOCKEREOF
 
-# Define the image name and tag
-IMAGE_NAME="nginx-demo:v1"
-echo "IMAGE_NAME=$IMAGE_NAME"
-
-# Build the container image using ACR Tasks (no local Docker required)
 az acr build \
   --registry "$ACR_NAME" \
   --image "$IMAGE_NAME" \
-  "$APP_DIR"
-echo "Built image in ACR: $ACR_LOGIN_SERVER/$IMAGE_NAME"
+  app
+```
 
-# Define Azure Container Instance name
-ACI_NAME="${PREFIX}-${LAB}-aci"
-echo "ACI_NAME=$ACI_NAME"
-
-# Create an ACI container group using the ACR image
+### 3) Deploy ACI from private ACR image
+```bash
 ACI_ID="$(az container create \
   --resource-group "$RG_NAME" \
   --name "$ACI_NAME" \
@@ -124,55 +94,45 @@ ACI_ID="$(az container create \
   --registry-login-server "$ACR_LOGIN_SERVER" \
   --registry-username "$ACR_USER" \
   --registry-password "$ACR_PASS" \
-  --dns-name-label "${PREFIX}${SUFFIX}aci" \
+  --dns-name-label "$DNS_LABEL" \
+  --ip-address Public \
   --ports 80 \
-  --query id \
-  -o tsv)"
-echo "ACI_ID=$ACI_ID"
+  --query id -o tsv)"
 
-# Retrieve the container's fully qualified domain name
 ACI_FQDN="$(az container show \
   --resource-group "$RG_NAME" \
   --name "$ACI_NAME" \
-  --query ipAddress.fqdn \
-  -o tsv)"
+  --query ipAddress.fqdn -o tsv)"
+
+echo "ACI_ID=$ACI_ID"
 echo "ACI_FQDN=$ACI_FQDN"
 ```
 
-
-### 3) Validate
+### 4) Validate
 ```bash
-# Display container instance details
 az container show \
   --resource-group "$RG_NAME" \
   --name "$ACI_NAME" \
+  --query "{name:name,state:instanceView.state,fqdn:ipAddress.fqdn,image:containers[0].image}" \
   -o jsonc
 
-# View container logs
 az container logs \
   --resource-group "$RG_NAME" \
   --name "$ACI_NAME"
-echo "Validated ACI running and logs accessible."
+
+curl -I "http://$ACI_FQDN"
 ```
 
-
 ## ARM template solution (when needed)
-Not required for this lab.
+Not required for this lab. Building and pushing images with runtime credentials is intentionally performed through operational CLI commands.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the app directory and environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -rf app .env
-echo "Cleaned up app directory and environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- ACR admin credentials are used only to keep the lab deterministic. For production, prefer managed identity and AcrPull role.
+- If FQDN lookup takes time, wait briefly and retry validation.

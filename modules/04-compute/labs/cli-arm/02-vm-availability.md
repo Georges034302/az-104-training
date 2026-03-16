@@ -1,129 +1,117 @@
-# Lab: VM Availability (Availability Set OR Zone)
+# Lab: VM Availability with Availability Set (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Deploy two VMs into an availability set (simple) and understand how fault/update domains apply. Zone deployment is mentioned as an alternative.
+Deploy two Linux VMs in one availability set so they are distributed across fault and update domains, then validate availability-set membership.
 
 ## What you will build
-```mermaid
-flowchart LR
-  AS[Availability Set] --> FD[Fault Domains]
-  AS --> UD[Update Domains]
-  FD --> VM1[VM1]
-  FD --> VM2[VM2]
-```
+
+ [Availability Set]
+      |
+      +--> [VM1]
+      |
+      +--> [VM2]
+      |
+      +--> [Fault Domains]
+      +--> [Update Domains]
 
 ## Estimated time
-45–60 minutes
+45-60 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- This lab deploys two VMs, which can incur more cost than a single-VM lab.
+- Keep VM size small and clean up immediately when finished.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create compute and network resources
+- Azure CLI installed and authenticated with az login
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m04-availability"
+LAB="m04avail"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+AS_NAME="${PREFIX}-${LAB}-as"
+VM1_NAME="${PREFIX}-${LAB}-vm1"
+VM2_NAME="${PREFIX}-${LAB}-vm2"
+ADMIN_USER="azureuser"
+VM_SIZE="Standard_B1s"
+VM_IMAGE="Ubuntu2204"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, AS_NAME=$AS_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and availability set
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Define availability set and VM names
-AS_NAME="${PREFIX}-${LAB}-as"
-VM1="${PREFIX}-${LAB}-vm1"
-VM2="${PREFIX}-${LAB}-vm2"
-ADMIN_USER="azureuser"
-echo "AS_NAME=$AS_NAME"
-
-# Create an availability set with fault and update domains
 AS_ID="$(az vm availability-set create \
   --resource-group "$RG_NAME" \
   --name "$AS_NAME" \
+  --location "$LOCATION" \
   --platform-fault-domain-count 2 \
   --platform-update-domain-count 5 \
-  --query id \
-  -o tsv)"
-echo "AS_ID=$AS_ID"
+  --sku Aligned \
+  --query id -o tsv)"
 
-# Create the first VM in the availability set
+echo "AS_ID=$AS_ID"
+```
+
+### 2) Deploy two VMs in the availability set
+```bash
 VM1_ID="$(az vm create \
   --resource-group "$RG_NAME" \
-  --name "$VM1" \
-  --image UbuntuLTS \
-  --size Standard_B1s \
+  --name "$VM1_NAME" \
+  --image "$VM_IMAGE" \
+  --size "$VM_SIZE" \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
   --availability-set "$AS_NAME" \
-  --query id \
-  -o tsv)"
-echo "VM1_ID=$VM1_ID"
+  --query id -o tsv)"
 
-# Create the second VM in the same availability set
 VM2_ID="$(az vm create \
   --resource-group "$RG_NAME" \
-  --name "$VM2" \
-  --image UbuntuLTS \
-  --size Standard_B1s \
+  --name "$VM2_NAME" \
+  --image "$VM_IMAGE" \
+  --size "$VM_SIZE" \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
   --availability-set "$AS_NAME" \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
+echo "VM1_ID=$VM1_ID"
 echo "VM2_ID=$VM2_ID"
 ```
 
-
 ### 3) Validate
 ```bash
-# Display availability set details including VM members
 az vm availability-set show \
   --resource-group "$RG_NAME" \
   --name "$AS_NAME" \
+  --query "{faultDomains:platformFaultDomainCount,updateDomains:platformUpdateDomainCount,vms:virtualMachines[].id}" \
   -o jsonc
-echo "Validated availability set and VM membership."
+
+az vm list \
+  --resource-group "$RG_NAME" \
+  --query "[].{name:name,availabilitySet:availabilitySet.id,powerState:powerState}" \
+  -o table
 ```
 
-
 ## ARM template solution (when needed)
-Not required for this lab.
+Not required for this lab. Availability concepts are validated through live deployment and inspection.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- A VM cannot be both zonal and placed in an availability set at the same time.
+- If zone-level resilience is required, use zonal VMs plus zone-aware architecture instead of an availability set.

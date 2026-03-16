@@ -97,21 +97,26 @@ This repository provides structured learning paths combining conceptual lessons 
 <details>
 <summary><h3>Module 04: Compute Resources</h3></summary>
 
-**Focus**: Virtual machines, availability, scaling, App Service, and containers
+**Focus**: VM operations, availability design, scaling strategy, App Service administration, and container runtimes
 
 #### 📖 Lessons
-- [Virtual Machines](modules/04-compute/lessons/01-virtual-machines.md) - VM sizes, SKUs, images, and deployment options
-- [Availability Sets & Zones](modules/04-compute/lessons/02-availability-sets-zones.md) - High availability with fault and update domains
-- [Scaling](modules/04-compute/lessons/03-scaling.md) - VM Scale Sets (VMSS) and autoscaling strategies
-- [App Service](modules/04-compute/lessons/04-app-service.md) - Web apps, deployment slots, and app service plans
-- [Containers: ACR, ACI & ACA](modules/04-compute/lessons/05-containers-acr-aci-aca.md) - Azure Container Registry, Container Instances, and Container Apps
+- [Virtual Machines](modules/04-compute/lessons/01-virtual-machines.md) - VM resource model, lifecycle states, dependency troubleshooting, and secure operations
+- [Availability Sets & Zones](modules/04-compute/lessons/02-availability-sets-zones.md) - Availability set versus zonal architecture and resilience trade-offs
+- [Scaling](modules/04-compute/lessons/03-scaling.md) - Scale up/down versus out/in, VMSS autoscale policy design, and App Service plan scaling semantics
+- [App Service](modules/04-compute/lessons/04-app-service.md) - Plan tiers, app configuration, deployment slots, and networking behavior
+- [Containers: ACR, ACI & ACA](modules/04-compute/lessons/05-containers-acr-aci-aca.md) - Image registry workflows, runtime selection, and secure image pull patterns
 
 #### 🧪 Labs
-- [Deploy a Virtual Machine (CLI + ARM)](modules/04-compute/labs/cli-arm/01-deploy-vm.md) | [Portal](modules/04-compute/labs/portal/01-deploy-vm.md) - Create Linux VM with VNet, NSG, and SSH access
-- [VM Availability (CLI + ARM)](modules/04-compute/labs/cli-arm/02-vm-availability.md) | [Portal](modules/04-compute/labs/portal/02-vm-availability.md) - Deploy VMs in an availability set for fault tolerance
-- [VMSS Autoscale (CLI + ARM)](modules/04-compute/labs/cli-arm/03-vmss-autoscale.md) | [Portal](modules/04-compute/labs/portal/03-vmss-autoscale.md) - Configure VM Scale Set with CPU-based autoscaling rules
-- [App Service Deploy (CLI + ARM)](modules/04-compute/labs/cli-arm/04-app-service-deploy.md) | [Portal](modules/04-compute/labs/portal/04-app-service-deploy.md) - Create web app with Node.js runtime and app settings
-- [ACR & ACI Container (CLI + ARM)](modules/04-compute/labs/cli-arm/05-acr-aci-container.md) | [Portal](modules/04-compute/labs/portal/05-acr-aci-container.md) - Build container image in ACR and deploy to ACI
+- [Deploy a Virtual Machine (CLI + ARM)](modules/04-compute/labs/cli-arm/01-deploy-vm.md) | [Portal](modules/04-compute/labs/portal/01-deploy-vm.md) - Deploy Linux VM with subnet-level NSG control and runtime/network validation
+- [VM Availability (CLI + ARM)](modules/04-compute/labs/cli-arm/02-vm-availability.md) | [Portal](modules/04-compute/labs/portal/02-vm-availability.md) - Deploy two VMs in one availability set and validate domain-aware placement
+- [VMSS Autoscale (CLI + ARM)](modules/04-compute/labs/cli-arm/03-vmss-autoscale.md) | [Portal](modules/04-compute/labs/portal/03-vmss-autoscale.md) - Configure bounded CPU-based autoscale policies for VM Scale Sets
+- [App Service Deploy (CLI + ARM)](modules/04-compute/labs/cli-arm/04-app-service-deploy.md) | [Portal](modules/04-compute/labs/portal/04-app-service-deploy.md) - Create App Service plan + web app and verify configuration/runtime endpoint behavior
+- [ACR & ACI Container (CLI + ARM)](modules/04-compute/labs/cli-arm/05-acr-aci-container.md) | [Portal](modules/04-compute/labs/portal/05-acr-aci-container.md) - Build in ACR and deploy to ACI with private image pull validation
+
+**Module 04 lab quality baseline**:
+- CLI + ARM labs are fully parameterized with `.env` and include validation + cleanup.
+- Portal labs are detailed step-by-step and aligned with equivalent CLI outcomes.
+- Compute lab diagrams are text-based (no Mermaid).
 
 </details>
 

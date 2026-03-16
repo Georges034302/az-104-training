@@ -1,128 +1,121 @@
-# Lab: Deploy App Service (Web App) + App Settings
+# Lab: Deploy App Service and Configuration (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create an App Service Plan + Web App and configure an app setting. Capture the web app URL.
+Create an App Service plan and web app, configure application settings, deploy a simple static payload, and validate hostname and settings.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Client --> Web[Web App]
-  Web --> Settings[App Settings]
-  Plan[App Service Plan] --> Web
-```
+
+ [Client]
+    |
+    v
+ [Web App]
+    |
+    +--> [App Settings]
+    +--> [Deployment Content]
+    |
+    v
+ [App Service Plan]
 
 ## Estimated time
-35–50 minutes
+35-50 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- App Service Plan tier controls cost and capability.
+- Keep the lab at small plan size and cleanup after validation.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create App Service resources
+- Azure CLI installed and authenticated with az login
+- zip command available in shell
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m04-appsvc"
+LAB="m04appsvc"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+PLAN_NAME="${PREFIX}-${LAB}-plan"
+RUNTIME="NODE|20-lts"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, PLAN_NAME=$PLAN_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and plan
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Define App Service Plan and Web App names
-PLAN_NAME="${PREFIX}-${LAB}-plan"
+WEBAPP_NAME="$(echo "${PREFIX}${LAB}$(openssl rand -hex 3)" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-60)"
 
-# Create unique Web App name (globally unique requirement)
-WEBAPP_NAME="$(echo "${PREFIX}${LAB//-/}$(openssl rand -hex 3)" | tr -d '-' | tr '[:upper:]' '[:lower:]')"
-
-# Define the runtime stack for the web app
-RUNTIME="NODE|18-lts"
-echo "PLAN_NAME=$PLAN_NAME"
-echo "WEBAPP_NAME=$WEBAPP_NAME"
-
-# Create the App Service Plan with Basic SKU
 az appservice plan create \
   --resource-group "$RG_NAME" \
   --name "$PLAN_NAME" \
   --location "$LOCATION" \
-  --sku B1
+  --sku B1 \
+  --is-linux
+```
 
-# Create the Web App within the App Service Plan
+### 2) Create web app and configure settings
+```bash
 WEBAPP_ID="$(az webapp create \
   --resource-group "$RG_NAME" \
   --plan "$PLAN_NAME" \
   --name "$WEBAPP_NAME" \
   --runtime "$RUNTIME" \
-  --query id \
-  -o tsv)"
-echo "WEBAPP_ID=$WEBAPP_ID"
+  --query id -o tsv)"
 
-# Configure application settings for the web app
 az webapp config appsettings set \
   --resource-group "$RG_NAME" \
   --name "$WEBAPP_NAME" \
-  --settings DEMO_SETTING="az104"
-echo "Set DEMO_SETTING=az104"
+  --settings DEMO_SETTING="az104" ENVIRONMENT="lab"
 
-# Retrieve the web app's default hostname (URL)
+mkdir -p site
+cat > site/index.html << 'HTMLEOF'
+<html><body><h1>AZ-104 App Service Lab</h1><p>Compute module deployment succeeded.</p></body></html>
+HTMLEOF
+
+cd site && zip -r ../site.zip . && cd - >/dev/null
+
+az webapp deploy \
+  --resource-group "$RG_NAME" \
+  --name "$WEBAPP_NAME" \
+  --src-path site.zip \
+  --type zip
+
 WEBAPP_URL="$(az webapp show \
   --resource-group "$RG_NAME" \
   --name "$WEBAPP_NAME" \
-  --query defaultHostName \
-  -o tsv)"
+  --query defaultHostName -o tsv)"
+
+echo "WEBAPP_ID=$WEBAPP_ID"
 echo "WEBAPP_URL=https://$WEBAPP_URL"
 ```
 
-
 ### 3) Validate
 ```bash
-# List all application settings for the web app
 az webapp config appsettings list \
   --resource-group "$RG_NAME" \
   --name "$WEBAPP_NAME" \
+  --query "[].{name:name,value:value}" \
   -o table
-echo "Validated web app and app settings."
+
+curl -I "https://$WEBAPP_URL"
 ```
 
-
 ## ARM template solution (when needed)
-Optional: ARM/Bicep is commonly used for App Service, but this lab keeps it simple via CLI/Portal.
+Optional. App Service is commonly deployed with ARM/Bicep in production pipelines, but this lab focuses on operational CLI deployment and validation.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
-rm -f .env
-echo "Cleaned up environment file"
+az group delete --name "$RG_NAME" --yes --no-wait
+rm -rf .env site site.zip
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- App names must be globally unique.
+- Scaling in App Service applies at plan level, not per-app in isolation.

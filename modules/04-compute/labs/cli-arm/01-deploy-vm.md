@@ -1,155 +1,146 @@
-# Lab: Deploy a Linux VM (Simple)
+# Lab: Deploy a Linux VM with VNet and NSG (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create a VNet, subnet, NSG, and deploy a small Linux VM. Capture public IP and validate SSH connectivity (optional).
+Deploy a Linux VM in a dedicated subnet, secure inbound SSH with an NSG rule, capture the public endpoint, and validate compute and network state.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Client --> SSH[SSH 22] --> PIP[Public IP] --> VM[Linux VM]
-  VM --> NIC[NIC] --> Subnet --> VNet
-  Subnet --> NSG[NSG Rule Allow SSH]
-```
+
+ [Client IP]
+      |
+      v
+ [NSG Allow SSH 22]
+      |
+      v
+ [Subnet]
+      |
+      v
+ [NIC] ---> [Linux VM]
+              |
+              v
+           [Public IP]
 
 ## Estimated time
-45–60 minutes
+45-60 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- All resources are deployed into one lab resource group for complete cleanup.
+- Restrict SSH source CIDR whenever possible. Do not leave management ports open to the internet in real environments.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create compute and network resources
+- Azure CLI installed and authenticated with az login
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m04-vm"
+LAB="m04vm"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
-
-source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
-```
-
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
-```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
-
-### 2) Deploy resources
-```bash
-# Define names for networking and VM resources
 VNET_NAME="${PREFIX}-${LAB}-vnet"
 SUBNET_NAME="vm"
 NSG_NAME="${PREFIX}-${LAB}-nsg"
 VM_NAME="${PREFIX}-${LAB}-vm"
 ADMIN_USER="azureuser"
-echo "VM_NAME=$VM_NAME"
+VM_SIZE="Standard_B1s"
+VM_IMAGE="Ubuntu2204"
+VNET_CIDR="10.60.0.0/16"
+SUBNET_CIDR="10.60.2.0/24"
+SSH_SOURCE_CIDR="0.0.0.0/0"
+ENVEOF
 
-# Create VNet with a VM subnet
+source .env
+echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME"
+```
+
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and network
+```bash
+az group create --name "$RG_NAME" --location "$LOCATION"
+
 az network vnet create \
   --resource-group "$RG_NAME" \
   --name "$VNET_NAME" \
-  --address-prefixes "10.60.0.0/16" \
+  --address-prefixes "$VNET_CIDR" \
   --subnet-name "$SUBNET_NAME" \
-  --subnet-prefixes "10.60.2.0/24"
+  --subnet-prefixes "$SUBNET_CIDR"
 
-# Create Network Security Group
 NSG_ID="$(az network nsg create \
   --resource-group "$RG_NAME" \
   --name "$NSG_NAME" \
-  --query NewNSG.id \
-  -o tsv)"
-echo "NSG_ID=$NSG_ID"
+  --query NewNSG.id -o tsv)"
 
-# Add inbound rule to allow SSH traffic
 az network nsg rule create \
   --resource-group "$RG_NAME" \
   --nsg-name "$NSG_NAME" \
   --name "Allow-SSH" \
   --priority 1000 \
+  --direction Inbound \
   --access Allow \
   --protocol Tcp \
-  --direction Inbound \
-  --source-address-prefixes "*" \
+  --source-address-prefixes "$SSH_SOURCE_CIDR" \
+  --source-port-ranges "*" \
+  --destination-address-prefixes "*" \
   --destination-port-ranges 22
 
-# Associate the NSG with the VM subnet
 az network vnet subnet update \
   --resource-group "$RG_NAME" \
   --vnet-name "$VNET_NAME" \
   --name "$SUBNET_NAME" \
   --network-security-group "$NSG_ID"
+```
 
-# Create a Linux VM with Ubuntu LTS image and small size
+### 2) Deploy the VM
+```bash
 VM_ID="$(az vm create \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
-  --image UbuntuLTS \
-  --size Standard_B1s \
+  --image "$VM_IMAGE" \
+  --size "$VM_SIZE" \
   --admin-username "$ADMIN_USER" \
   --vnet-name "$VNET_NAME" \
   --subnet "$SUBNET_NAME" \
   --nsg "" \
+  --public-ip-sku Standard \
   --generate-ssh-keys \
-  --query id \
-  -o tsv)"
-echo "VM_ID=$VM_ID"
+  --query id -o tsv)"
 
-# Retrieve the VM's public IP address for SSH access
 VM_PUBLIC_IP="$(az vm show \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
-  -d \
-  --query publicIps \
-  -o tsv)"
+  -d --query publicIps -o tsv)"
+
+echo "VM_ID=$VM_ID"
 echo "VM_PUBLIC_IP=$VM_PUBLIC_IP"
-
-# Optional: Test SSH connectivity (uncomment to use)
-# ssh ${ADMIN_USER}@${VM_PUBLIC_IP}
 ```
-
 
 ### 3) Validate
 ```bash
-# Display VM details in table format
-az vm show \
+az vm get-instance-view \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
+  --query "instanceView.statuses[].displayStatus" \
   -o table
-echo "Validated VM deployment and captured public IP."
+
+az network vnet subnet show \
+  --resource-group "$RG_NAME" \
+  --vnet-name "$VNET_NAME" \
+  --name "$SUBNET_NAME" \
+  --query "{subnet:name,nsg:networkSecurityGroup.id,addressPrefix:addressPrefix}" \
+  -o table
 ```
 
-
 ## ARM template solution (when needed)
-Not required for this lab.
+Not required for this lab. The primary learning objective is operational VM deployment and validation via CLI.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- VM stop and VM deallocate are different cost states. Use deallocate to stop compute billing.
+- In production, set SSH_SOURCE_CIDR to your public IP range instead of 0.0.0.0/0.

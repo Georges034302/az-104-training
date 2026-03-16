@@ -1,65 +1,91 @@
-# Lab: VM Availability (Availability Set OR Zone)
+# Lab: VM Availability with Availability Set (Portal)
 > Variant: Portal lab track (CLI/ARM walkthrough omitted).
 
 ## Objective
-Deploy two VMs into an availability set (simple) and understand how fault/update domains apply. Zone deployment is mentioned as an alternative.
+Deploy two VMs in one availability set and verify they are placed under the same availability-set construct for fault and update domain distribution.
 
 ## What you will build
-```mermaid
-flowchart LR
-  AS[Availability Set] --> FD[Fault Domains]
-  AS --> UD[Update Domains]
-  FD --> VM1[VM1]
-  FD --> VM2[VM2]
-```
+
+ [Availability Set]
+      |
+      +--> [VM1]
+      +--> [VM2]
+      +--> [Fault Domains]
+      +--> [Update Domains]
 
 ## Estimated time
-45–60 minutes
+45-60 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- This lab uses two VMs. Use small sizes and clean up quickly.
+- Keep this lab focused on availability-set behavior, not zone deployment.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create compute resources
+- Azure Portal access
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m04-availability"
+LAB="m04avail"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+AS_NAME="${PREFIX}-${LAB}-as"
+VM1_NAME="${PREFIX}-${LAB}-vm1"
+VM2_NAME="${PREFIX}-${LAB}-vm2"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, AS_NAME=$AS_NAME"
 ```
 
-## Portal solution (high-level)
-- Portal → Create an Availability Set (choose fault/update domain count).
-- Create VM1 and VM2 and select the same Availability Set.
-- Validate under Availability Set → VMs.
-- Alternative: create VMs in different Availability Zones (if region/sku supports).
+## Portal solution (step-by-step)
+### 1) Create resource group
+1. Open Resource groups and select Create.
+2. Set name ${RG_NAME} and region ${LOCATION}.
+3. Select Review + create, then Create.
 
+### 2) Create availability set
+1. Open Availability sets and select Create.
+2. Set:
+   - Resource group: ${RG_NAME}
+   - Name: ${AS_NAME}
+   - Region: ${LOCATION}
+   - Fault domains: 2
+   - Update domains: 5
+3. Select Review + create, then Create.
 
+### 3) Create VM1 in the availability set
+1. Open Virtual machines and select Create.
+2. On Basics:
+   - Resource group: ${RG_NAME}
+   - Name: ${VM1_NAME}
+   - Region: ${LOCATION}
+   - Availability options: Availability set
+   - Availability set: ${AS_NAME}
+   - Image: Ubuntu Server 22.04 LTS
+   - Size: Standard_B1s (or closest available)
+3. Complete the wizard and create VM1.
+
+### 4) Create VM2 in the same availability set
+1. Repeat VM creation.
+2. Set VM name to ${VM2_NAME}.
+3. Set Availability options to Availability set and select ${AS_NAME}.
+4. Create VM2.
+
+### 5) Validate
+1. Open Availability sets > ${AS_NAME}.
+2. Confirm both ${VM1_NAME} and ${VM2_NAME} appear under Virtual machines.
+3. Confirm fault and update domain configuration is visible on the availability set resource.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- A VM cannot be both zonal and in an availability set at the same time.
+- If your design requires datacenter-level fault isolation, use availability zones instead of availability sets.
