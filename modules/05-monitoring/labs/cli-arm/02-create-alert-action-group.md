@@ -1,133 +1,128 @@
-# Lab: Create an Alert + Action Group (Metric Alert)
+# Lab: Create CPU Alert and Action Group (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create an action group (email) and a CPU metric alert for a VM. Capture action group ID and alert rule ID.
+Create a VM, build an email-based Action Group, configure a CPU metric alert, and verify alert rule scope and action wiring.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Metric[CPU Metric] --> Alert[Alert Rule] --> AG[Action Group] --> Notify[Email]
-```
+
+ [VM: Percentage CPU Metric]
+            |
+            v
+      [Metric Alert Rule]
+            |
+            v
+        [Action Group]
+            |
+            v
+     [Email Notification]
 
 ## Estimated time
-35–50 minutes
+40-55 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- Uses one small VM for metric signal generation.
+- Resources are grouped for one-command cleanup.
+- Email notifications may be sent if the alert triggers.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create VM and monitor resources
+- Azure CLI installed and authenticated with `az login`
+- A valid email inbox for Action Group receiver testing
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m05-alerts"
+LAB="m05alerts"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+VM_NAME="${PREFIX}-${LAB}-vm"
+AG_NAME="${PREFIX}-${LAB}-ag"
+ALERT_NAME="${PREFIX}-${LAB}-cpu-high"
+ADMIN_USER="azureuser"
+ALERT_EMAIL="you@example.com"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME, AG_NAME=$AG_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create target VM
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Define VM name for the alert target
-VM_NAME="${PREFIX}-${LAB}-vm"
-ADMIN_USER="azureuser"
-
-# Create a simple VM to monitor
 VM_ID="$(az vm create \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
-  --image UbuntuLTS \
+  --image Ubuntu2204 \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
 echo "VM_ID=$VM_ID"
+```
 
-# Define action group name and email recipient
-AG_NAME="${PREFIX}-${LAB}-ag"
-EMAIL="you@example.com"   # change before running
-echo "AG_NAME=$AG_NAME"
-echo "EMAIL=$EMAIL"
-
-# Create an action group with email notification
+### 2) Create Action Group
+```bash
 AG_ID="$(az monitor action-group create \
   --resource-group "$RG_NAME" \
   --name "$AG_NAME" \
-  --short-name "az104" \
-  --action email admin "$EMAIL" \
-  --query id \
-  -o tsv)"
+  --short-name "m05ag" \
+  --action email OpsTeam "$ALERT_EMAIL" \
+  --query id -o tsv)"
+
 echo "AG_ID=$AG_ID"
+```
 
-# Define the metric alert name
-ALERT_NAME="${PREFIX}-${LAB}-cpu-alert"
-echo "ALERT_NAME=$ALERT_NAME"
-
-# Create a CPU metric alert that triggers when average CPU exceeds 70%
+### 3) Create CPU metric alert rule
+```bash
 ALERT_ID="$(az monitor metrics alert create \
   --resource-group "$RG_NAME" \
   --name "$ALERT_NAME" \
   --scopes "$VM_ID" \
+  --description "Trigger when average CPU exceeds 70 percent over 5 minutes" \
   --condition "avg Percentage CPU > 70" \
   --window-size 5m \
   --evaluation-frequency 1m \
-  --action "$AG_ID" \
   --severity 2 \
-  --query id \
-  -o tsv)"
+  --action "$AG_ID" \
+  --query id -o tsv)"
+
 echo "ALERT_ID=$ALERT_ID"
 ```
 
-
-### 3) Validate
+### 4) Validate configuration
 ```bash
-# Display the metric alert configuration details
+az monitor action-group show \
+  --resource-group "$RG_NAME" \
+  --name "$AG_NAME" \
+  --query "{name:name,enabled:enabled,emailReceivers:emailReceivers[].name}" -o jsonc
+
 az monitor metrics alert show \
   --resource-group "$RG_NAME" \
   --name "$ALERT_NAME" \
-  -o jsonc
-echo "Validated metric alert and action group association."
+  --query "{name:name,severity:severity,enabled:enabled,scopes:scopes,actions:actions}" -o jsonc
 ```
 
+### 5) Optional trigger simulation
+```bash
+echo "Optional: generate CPU load in VM to test end-to-end notification path."
+echo "If you skip this, control-plane validation above is still valid for AZ-104 lab scope."
+```
 
-## ARM template solution (when needed)
-Not required for this lab.
+## ARM template solution (optional)
+Use ARM/Bicep for organization-wide alert baselines. This lab focuses on admin operations through Azure CLI.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- Keep alert thresholds realistic for your workload baseline to reduce noise.
+- Action Group resources are reusable across multiple alert rules.

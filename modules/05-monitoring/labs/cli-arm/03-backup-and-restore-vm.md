@@ -1,165 +1,123 @@
-# Lab: Backup a VM + Restore Test (Recovery Services Vault)
-> Variant: CLI + ARM lab track (Portal walkthrough omitted).
+# Lab: Backup a VM and Validate Restore Path (CLI + ARM)
+> Variant: CLI + ARM lab track (Portal walkthrough included for restore validation step).
 
 ## Objective
-Create a VM, create a Recovery Services Vault, enable VM backup using a policy, then perform a restore test (restore to a new VM is recommended).
+Create a VM and Recovery Services vault, enable VM backup using policy-based protection, and verify recoverability with a controlled restore test path.
 
 ## What you will build
-```mermaid
-flowchart LR
-  VM --> Vault[Recovery Services Vault]
-  Vault --> Policy[Backup Policy]
-  Policy --> RP[Recovery Point]
-  Restore --> NewVM[Restored VM]
-```
+
+ [Azure VM]
+    |
+    v
+ [Recovery Services Vault]
+    |
+    v
+ [Backup Policy + Recovery Points]
+    |
+    v
+ [Restore Validation]
 
 ## Estimated time
-75–120 minutes
+80-120 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- Backup storage consumption increases with recovery points and retention.
+- Keep VM size small for lab cost control.
+- Delete restored artifacts after validation to avoid unnecessary charges.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create VM and Recovery Services resources
+- Azure CLI installed and authenticated with `az login`
+- Azure Portal access for restore wizard validation
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m05-backup"
+LAB="m05backup"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+VM_NAME="${PREFIX}-${LAB}-vm"
+VAULT_NAME="${PREFIX}-${LAB}-rsv"
+ADMIN_USER="azureuser"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME, VAULT_NAME=$VAULT_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create VM and vault
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Define VM name and admin username
-VM_NAME="${PREFIX}-${LAB}-vm"
-ADMIN_USER="azureuser"
-
-# Create a simple VM to be backed up
 VM_ID="$(az vm create \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
-  --image UbuntuLTS \
+  --image Ubuntu2204 \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id \
-  -o tsv)"
-echo "VM_ID=$VM_ID"
+  --query id -o tsv)"
 
-# Define Recovery Services Vault name
-VAULT_NAME="${PREFIX}-${LAB}-rsv"
-echo "VAULT_NAME=$VAULT_NAME"
-
-# Create the Recovery Services Vault
 VAULT_ID="$(az backup vault create \
   --resource-group "$RG_NAME" \
   --name "$VAULT_NAME" \
   --location "$LOCATION" \
-  --query id \
-  -o tsv)"
-echo "VAULT_ID=$VAULT_ID"
+  --query id -o tsv)"
 
-# Configure vault backup storage redundancy for cost-effective lab usage
+echo "VM_ID=$VM_ID"
+echo "VAULT_ID=$VAULT_ID"
+```
+
+### 2) Configure vault and enable VM protection
+```bash
 az backup vault backup-properties set \
   --resource-group "$RG_NAME" \
   --vault-name "$VAULT_NAME" \
   --backup-storage-redundancy LocallyRedundant
-echo "Configured vault redundancy (lab)."
 
-# NOTE: Enabling VM backup via CLI can require additional steps and policy identifiers.
-# For learning reliability, use Portal to enable backup on the VM, then use CLI to inspect.
-echo "RECOMMENDED: Enable backup via Portal (Vault -> Backup) for this lab."
+az backup protection enable-for-vm \
+  --resource-group "$RG_NAME" \
+  --vault-name "$VAULT_NAME" \
+  --vm "$VM_NAME" \
+  --policy-name DefaultPolicy
 
-# List backup containers and items after enabling backup via Portal
-# az backup container list --resource-group "$RG_NAME" --vault-name "$VAULT_NAME" -o table
-# az backup item list --resource-group "$RG_NAME" --vault-name "$VAULT_NAME" -o table
+echo "Backup protection enabled for VM: $VM_NAME"
 ```
 
-
-### 3) Validate
+### 3) Validate backup registration
 ```bash
-# Display Recovery Services Vault details
 az backup vault show \
   --resource-group "$RG_NAME" \
   --name "$VAULT_NAME" \
-  -o table
-echo "Validate: vault exists. After Portal enablement, validate backup item appears in the vault."
-```
+  --query "{name:name,location:location,provisioningState:properties.provisioningState}" -o jsonc
 
-
-## ARM template solution (when needed)
-This lab includes a minimal ARM template example for enabling a Recovery Services Vault.
-> Use ARM here to show how admins often codify vault creation. Backup enablement is still simpler via Portal/CLI for learning.
-
-```json
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "vaultName": { "type": "string" },
-    "location": { "type": "string" }
-  },
-  "resources": [
-    {
-      "type": "Microsoft.RecoveryServices/vaults",
-      "apiVersion": "2023-04-01",
-      "name": "[parameters('vaultName')]",
-      "location": "[parameters('location')]",
-      "properties": {}
-    }
-  ]
-}
-```
-
-Deploy it (commented):
-```bash
-# Define vault name for ARM template deployment
-VAULT_NAME="${PREFIX}-${LAB}-rsv"
-echo "VAULT_NAME=$VAULT_NAME"
-
-# Deploy the ARM template to create the Recovery Services Vault
-az deployment group create \
+az backup item list \
   --resource-group "$RG_NAME" \
-  --template-file vault.json \
-  --parameters vaultName="$VAULT_NAME" location="$LOCATION"
+  --vault-name "$VAULT_NAME" \
+  --backup-management-type AzureIaasVM \
+  --workload-type VM \
+  -o table
 ```
 
+### 4) Restore-path validation (Portal step)
+```bash
+echo "Portal step required: Recovery Services vault > Backup items > Azure Virtual Machine > $VM_NAME"
+echo "Run Restore VM or Restore Disks to validate recoverability workflow."
+echo "Use a new target name/resource to avoid impacting source VM."
+```
+
+## ARM template solution (optional)
+You can codify vault creation and policy baseline in ARM/Bicep. Keep restore validation as an operator-run exercise for AZ-104 readiness.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- Ingestion and backup job completion are asynchronous; allow time before expecting recovery points.
+- Backup and disaster recovery are different controls. This lab validates backup recoverability only.

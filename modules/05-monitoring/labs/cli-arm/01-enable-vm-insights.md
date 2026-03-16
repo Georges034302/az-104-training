@@ -1,115 +1,124 @@
-# Lab: Enable VM Insights + Query Logs (Minimal)
-> Variant: CLI + ARM lab track (Portal walkthrough omitted).
+# Lab: Enable VM Insights and Query Logs (CLI + ARM)
+> Variant: CLI + ARM lab track (Portal walkthrough included only for the VM Insights onboarding step).
 
 ## Objective
-Create a VM and a Log Analytics workspace, enable VM Insights/monitoring, and run a basic query. Capture workspace ID and VM ID.
+Create a VM and Log Analytics workspace, onboard the VM to Azure Monitor Agent/VM Insights, and confirm log visibility with KQL.
 
 ## What you will build
-```mermaid
-flowchart LR
-  VM --> Agent[Monitoring Agent] --> LAW[Log Analytics Workspace]
-  LAW --> KQL[KQL Query] --> Results
-```
+
+ [Linux VM]
+    |
+    v
+ [Azure Monitor Agent + VM Insights onboarding]
+    |
+    v
+ [Log Analytics Workspace]
+    |
+    v
+ [KQL Query Results]
 
 ## Estimated time
-60–75 minutes
+60-80 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- Uses a small VM size for low lab cost.
+- Resources are isolated in one resource group for full cleanup.
+- Leave the lab running only as long as needed for data ingestion validation.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with permission to create compute and monitoring resources
+- Azure CLI installed and authenticated with `az login`
+- Azure Portal access (required for reliable VM Insights onboarding flow)
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m05-vminsights"
+LAB="m05vminsights"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+LAW_NAME="${PREFIX}-${LAB}-law"
+VM_NAME="${PREFIX}-${LAB}-vm"
+ADMIN_USER="azureuser"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, LAW_NAME=$LAW_NAME, VM_NAME=$VM_NAME"
 ```
 
-
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and workspace
 ```bash
-# Create the resource group in the specified location
-az group create \
-  --name "$RG_NAME" \
-  --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
+az group create --name "$RG_NAME" --location "$LOCATION"
 
-### 2) Deploy resources
-```bash
-# Define Log Analytics workspace name
-LAW_NAME="${PREFIX}-${LAB}-law"
-echo "LAW_NAME=$LAW_NAME"
-
-# Create the Log Analytics workspace for monitoring data
 LAW_ID="$(az monitor log-analytics workspace create \
   --resource-group "$RG_NAME" \
   --workspace-name "$LAW_NAME" \
   --location "$LOCATION" \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
+LAW_WS_ID="$(az monitor log-analytics workspace show \
+  --resource-group "$RG_NAME" \
+  --workspace-name "$LAW_NAME" \
+  --query customerId -o tsv)"
+
 echo "LAW_ID=$LAW_ID"
+echo "LAW_WORKSPACE_ID=$LAW_WS_ID"
+```
 
-# Define VM name and admin username
-VM_NAME="${PREFIX}-${LAB}-vm"
-ADMIN_USER="azureuser"
-echo "VM_NAME=$VM_NAME"
-
-# Create a small VM for monitoring
+### 2) Create VM and install Azure Monitor Agent extension
+```bash
 VM_ID="$(az vm create \
   --resource-group "$RG_NAME" \
   --name "$VM_NAME" \
-  --image UbuntuLTS \
+  --image Ubuntu2204 \
   --size Standard_B1s \
   --admin-username "$ADMIN_USER" \
   --generate-ssh-keys \
-  --query id \
-  -o tsv)"
+  --query id -o tsv)"
+
+az vm extension set \
+  --resource-group "$RG_NAME" \
+  --vm-name "$VM_NAME" \
+  --publisher Microsoft.Azure.Monitor \
+  --name AzureMonitorLinuxAgent
+
 echo "VM_ID=$VM_ID"
-
-# NOTE: Enabling VM insights and monitoring agents varies by region and Azure Monitor Agent updates
-# This lab demonstrates infrastructure setup; use Portal VM → Insights for the most reliable agent enablement path
-echo "NOTE: Agent enablement can vary; use Portal VM → Insights for the most reliable path."
 ```
 
-
-### 3) Validate
+### 3) Onboard VM to VM Insights (Portal step for consistency)
 ```bash
-# Example KQL query to run in Portal Logs after agent is installed:
-# Heartbeat | take 10
-echo "Validate: Heartbeat entries appear for the VM after a few minutes."
+echo "Portal step required: open VM > Insights > Enable."
+echo "Select workspace $LAW_NAME and accept creation/association of Data Collection Rule if prompted."
 ```
 
+Why this portal step is included: VM Insights onboarding UX and API wiring (DCR associations) changes over time; portal is the most stable AZ-104 practice path.
 
-## ARM template solution (when needed)
-Optional: AMA/DCR deployments are often IaC-managed, but kept out of this minimal lab to reduce complexity.
+### 4) Validate monitoring pipeline
+```bash
+az vm extension show \
+  --resource-group "$RG_NAME" \
+  --vm-name "$VM_NAME" \
+  --name AzureMonitorLinuxAgent \
+  --query "{name:name,provisioningState:provisioningState}" -o table
+
+# Query may return empty for first few minutes after onboarding.
+az monitor log-analytics query \
+  --workspace "$LAW_WS_ID" \
+  --analytics-query "Heartbeat | where TimeGenerated > ago(30m) | where Computer contains '$VM_NAME' | summarize LastSeen=max(TimeGenerated) by Computer" \
+  -o table
+```
+
+## ARM template solution (optional)
+Use ARM/Bicep in production for repeatable VM + workspace deployment. Keep VM Insights onboarding verification in Portal for this training lab.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- First log ingestion can take several minutes after onboarding.
+- If the query returns no rows initially, wait 5-10 minutes and query again.

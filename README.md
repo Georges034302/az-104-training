@@ -123,21 +123,26 @@ This repository provides structured learning paths combining conceptual lessons 
 <details>
 <summary><h3>Module 05: Monitoring & Backup</h3></summary>
 
-**Focus**: Azure Monitor, Log Analytics, alerts, backup, and disaster recovery
+**Focus**: Azure Monitor observability, operational alerting, backup recoverability, and resilience planning
 
 #### 📖 Lessons
-- [Azure Monitor](modules/05-monitoring/lessons/01-azure-monitor.md) - Metrics, logs, and Application Insights fundamentals
-- [Log Analytics & KQL](modules/05-monitoring/lessons/02-log-analytics-kql.md) - Kusto Query Language for log analysis
-- [Alerts & Action Groups](modules/05-monitoring/lessons/03-alerts-action-groups.md) - Metric and log-based alerts with notification workflows
-- [Azure Backup](modules/05-monitoring/lessons/04-azure-backup.md) - Recovery Services Vault, backup policies, and retention
-- [Azure Site Recovery](modules/05-monitoring/lessons/05-azure-site-recovery.md) - Disaster recovery and business continuity planning
-- [Availability & Resilience](modules/05-monitoring/lessons/06-availability-resilience.md) - SLA calculations and resilience strategies
+- [Azure Monitor Foundations](modules/05-monitoring/lessons/01-azure-monitor.md) - Signal taxonomy, data routing patterns, and troubleshooting workflow across metrics, activity logs, and resource logs
+- [Log Analytics & KQL](modules/05-monitoring/lessons/02-log-analytics-kql.md) - Workspace/table model, query design, and collection-path precision for operational investigation
+- [Alerts & Action Groups](modules/05-monitoring/lessons/03-alerts-action-groups.md) - Alert type selection, noise-control strategy, and action routing design for reliable response
+- [Azure Backup](modules/05-monitoring/lessons/04-azure-backup.md) - Vault/policy/recovery-point behavior, restore paths, and governance practices
+- [Azure Site Recovery](modules/05-monitoring/lessons/05-azure-site-recovery.md) - Replication, failover/failback lifecycle, and DR validation expectations
+- [Availability & Resilience](modules/05-monitoring/lessons/06-availability-resilience.md) - SLA, RTO/RPO design reasoning and HA/Backup/DR decision alignment
 
 #### 🧪 Labs
-- [Enable VM Insights (CLI + ARM)](modules/05-monitoring/labs/cli-arm/01-enable-vm-insights.md) | [Portal](modules/05-monitoring/labs/portal/01-enable-vm-insights.md) - Deploy Log Analytics workspace and configure VM monitoring
-- [Create Alert & Action Group (CLI + ARM)](modules/05-monitoring/labs/cli-arm/02-create-alert-action-group.md) | [Portal](modules/05-monitoring/labs/portal/02-create-alert-action-group.md) - Set up CPU alert with email notification
-- [Backup & Restore VM (CLI + ARM)](modules/05-monitoring/labs/cli-arm/03-backup-and-restore-vm.md) | [Portal](modules/05-monitoring/labs/portal/03-backup-and-restore-vm.md) - Configure Recovery Services Vault and VM backup policy
-- [Service Health + Resource Health Alerts (CLI + ARM)](modules/05-monitoring/labs/cli-arm/04-service-health-resource-health-alerts.md) | [Portal](modules/05-monitoring/labs/portal/04-service-health-resource-health-alerts.md) - Configure activity log alerts for Service Health and Resource Health
+- [Enable VM Insights (CLI + ARM)](modules/05-monitoring/labs/cli-arm/01-enable-vm-insights.md) | [Portal](modules/05-monitoring/labs/portal/01-enable-vm-insights.md) - Build VM + Log Analytics pipeline, onboard VM Insights, and validate Heartbeat/KQL ingestion
+- [Create Alert & Action Group (CLI + ARM)](modules/05-monitoring/labs/cli-arm/02-create-alert-action-group.md) | [Portal](modules/05-monitoring/labs/portal/02-create-alert-action-group.md) - Create reusable Action Group and CPU metric alert with rule/action validation
+- [Backup & Restore VM (CLI + ARM)](modules/05-monitoring/labs/cli-arm/03-backup-and-restore-vm.md) | [Portal](modules/05-monitoring/labs/portal/03-backup-and-restore-vm.md) - Enable VM backup in Recovery Services vault and validate restore workflow safely
+- [Service Health + Resource Health Alerts (CLI + ARM)](modules/05-monitoring/labs/cli-arm/04-service-health-resource-health-alerts.md) | [Portal](modules/05-monitoring/labs/portal/04-service-health-resource-health-alerts.md) - Configure subscription-scope Activity Log alerts and shared health notification routing
+
+**Module 05 lab quality baseline**:
+- CLI + ARM labs are fully parameterized with `.env` and include explicit validation + cleanup.
+- Portal labs are detailed step-by-step and aligned with equivalent CLI outcomes.
+- Monitoring diagrams in lessons/labs are text-based (no Mermaid).
 
 </details>
 

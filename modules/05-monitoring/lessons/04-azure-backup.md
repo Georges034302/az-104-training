@@ -1,36 +1,114 @@
-# Azure Backup (Recovery Services Vault, Policies, Restore)
+# Azure Backup for VM Protection
 
-## What you will learn
-- How Azure Backup works for VMs
-- Policies and retention basics
-- Restore types (file vs full VM)
+## Overview
 
-## Concept flow architecture
-```mermaid
-flowchart LR
-  VM --> Vault[Recovery Services Vault]
-  Vault --> Policy[Backup Policy]
-  Policy --> Points[Recovery Points]
-  Restore --> VM
+Azure Backup provides managed data protection for Azure workloads, including virtual machines. In AZ-104, VM backup with Recovery Services vaults is a core operation and exam scenario.
+
+---
+
+## What You Will Learn
+
+- Recovery Services vault role and design considerations
+- Backup policy schedule and retention behavior
+- Recovery point lifecycle basics
+- Restore paths and validation strategy
+- Backup governance and operational controls
+
+---
+
+## Architecture View
+
+```
+ [Azure VM]
+    |
+    v
+ [Backup Policy]
+    |
+    v
+ [Recovery Services Vault]
+    |
+    v
+ [Recovery Points]
+    |
+    +--> [Restore VM]
+    +--> [Restore Disks]
+    +--> [File Recovery]
 ```
 
-## Key concepts (AZ-104 focus)
-- Recovery Services Vault stores backup configuration and recovery points metadata.
-- Policies control schedule and retention.
-- AZ-104 expects you to enable VM backup and perform restore operations.
+---
 
-## Admin mindset
-- Test restores periodically (restore to a new VM is safer for validation).
-- Use least privilege and lock critical vault resources (carefully).
-- Understand that restore operations can take time and incur storage costs.
+## Core Concepts
 
-## Common pitfalls / exam traps
-- Forgetting to register providers or missing permissions.
-- Assuming backups happen instantly after enabling (first backup schedule).
-- Not cleaning up restored VMs and disks.
+- **Recovery Services vault**:
+  - Logical container for backup configuration and recovery metadata.
+  - Security and lifecycle settings should be governed centrally.
 
-## Quick CLI signals (read-only examples)
-> These are **signals** you look for as an administrator. They are not a full lab.
+- **Backup policy**:
+  - Defines schedule frequency and retention periods.
+  - Policy choice directly influences recovery capability and cost.
+
+- **Recovery points**:
+  - Point-in-time states available for restore operations.
+  - Availability and retention depend on policy and successful jobs.
+
+Important: Enabling backup is only the start; recoverability must be verified by restore testing.
+
+---
+
+## Restore Options
+
+- **Create new VM** from a recovery point.
+- **Restore disks** for controlled recovery workflows.
+- **File recovery** for selective restore scenarios.
+
+Operational guidance:
+
+1. Prefer restore-to-new-target for validation and incident isolation.
+2. Document restore runbooks before outages happen.
+3. Track restore duration versus recovery objectives.
+
+---
+
+## Security and Governance
+
+- Restrict vault operations with least-privilege RBAC.
+- Protect critical vault resources with governance controls.
+- Monitor backup job failures and policy drift.
+- Validate that backup scope matches business-critical assets.
+
+Design principle: Backup architecture must align with RPO/RTO goals, not only policy defaults.
+
+---
+
+## Common Pitfalls and Exam Traps
+
+- Assuming backup enablement guarantees immediate recoverability.
+- Ignoring first successful backup status before relying on restore.
+- Confusing backup with full disaster recovery orchestration.
+- Not testing restore paths.
+- Leaving restored resources running and increasing cost unexpectedly.
+
+---
+
+## Quick CLI Reference
+
 ```bash
-# az <service> <command> ... 
+# List Recovery Services vaults in a resource group
+az backup vault list \
+  --resource-group <rg> \
+  -o table
+
+# List backup jobs in a vault
+az backup job list \
+  --resource-group <rg> \
+  --vault-name <vault-name> \
+  -o table
 ```
+
+---
+
+## Further Reading
+
+- https://learn.microsoft.com/en-us/azure/backup/backup-overview
+- https://learn.microsoft.com/en-us/azure/backup/backup-azure-vms-introduction
+- https://learn.microsoft.com/en-us/azure/backup/backup-azure-arm-restore-vms

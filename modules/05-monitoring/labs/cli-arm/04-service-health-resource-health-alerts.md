@@ -1,111 +1,113 @@
-# Lab: Service Health + Resource Health Alerts
+# Lab: Service Health and Resource Health Alerts (CLI + ARM)
 > Variant: CLI + ARM lab track (Portal walkthrough omitted).
 
 ## Objective
-Create an action group and configure Activity Log alerts for Service Health and Resource Health events at subscription scope.
+Create subscription-scoped Activity Log alerts for Service Health and Resource Health events and route both alerts to a shared Action Group.
 
 ## What you will build
-```mermaid
-flowchart LR
-  Events[Service/Resource Health Events] --> AlertRules[Activity Log Alerts]
-  AlertRules --> AG[Action Group]
-  AG --> Notify[Email Notification]
-```
+
+ [Service Health Events] ------+
+                              |
+ [Resource Health Events] ----+--> [Activity Log Alert Rules] --> [Action Group] --> [Email Receiver]
 
 ## Estimated time
-25-40 minutes
+30-45 minutes
 
 ## Cost + safety
-- This lab creates monitoring configuration only (low cost).
+- Monitoring configuration only; no VM required.
 - Use a dedicated resource group for easy cleanup.
 
 ## Prerequisites
 - Azure subscription with permission to create monitor resources
-- Azure CLI installed and authenticated (az login)
+- Azure CLI installed and authenticated with `az login`
+- A valid email inbox for notification tests
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m05-health-alerts"
+LAB="m05healthalerts"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+AG_NAME="${PREFIX}-${LAB}-ag"
+ALERT_EMAIL="you@example.com"
+SERVICE_ALERT_NAME="${PREFIX}-${LAB}-service"
+RESOURCE_ALERT_NAME="${PREFIX}-${LAB}-resource"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME"
+echo "Loaded: RG_NAME=$RG_NAME, AG_NAME=$AG_NAME"
 ```
 
-## Azure CLI solution (fully parameterised)
-### 1) Create Resource Group
+## Azure CLI solution (fully parameterized)
+### 1) Create resource group and discover subscription scope
 ```bash
 az group create --name "$RG_NAME" --location "$LOCATION"
-echo "RG_NAME=$RG_NAME"
-```
 
-### 2) Deploy resources
-```bash
-# Subscription scope for activity log alerts
 SUB_ID="$(az account show --query id -o tsv)"
 SUB_SCOPE="/subscriptions/${SUB_ID}"
+
 echo "SUB_SCOPE=$SUB_SCOPE"
+```
 
-# Action group (replace email before running)
-AG_NAME="${PREFIX}-${LAB}-ag"
-EMAIL="you@example.com"
-
+### 2) Create Action Group
+```bash
 AG_ID="$(az monitor action-group create \
   --resource-group "$RG_NAME" \
   --name "$AG_NAME" \
-  --short-name "az104h" \
-  --action email ops "$EMAIL" \
+  --short-name "m05hlth" \
+  --action email HealthOps "$ALERT_EMAIL" \
   --query id -o tsv)"
-echo "AG_ID=$AG_ID"
 
-# Service Health alert
-SERVICE_ALERT_NAME="${PREFIX}-${LAB}-service-health"
+echo "AG_ID=$AG_ID"
+```
+
+### 3) Create Service Health and Resource Health alerts
+```bash
 SERVICE_ALERT_ID="$(az monitor activity-log alert create \
-  --name "$SERVICE_ALERT_NAME" \
   --resource-group "$RG_NAME" \
+  --name "$SERVICE_ALERT_NAME" \
   --scopes "$SUB_SCOPE" \
   --condition category=ServiceHealth \
   --action-group "$AG_ID" \
+  --description "Notify on Azure Service Health events" \
   --query id -o tsv)"
-echo "SERVICE_ALERT_ID=$SERVICE_ALERT_ID"
 
-# Resource Health alert
-RESOURCE_ALERT_NAME="${PREFIX}-${LAB}-resource-health"
 RESOURCE_ALERT_ID="$(az monitor activity-log alert create \
-  --name "$RESOURCE_ALERT_NAME" \
   --resource-group "$RG_NAME" \
+  --name "$RESOURCE_ALERT_NAME" \
   --scopes "$SUB_SCOPE" \
   --condition category=ResourceHealth \
   --action-group "$AG_ID" \
+  --description "Notify on Azure Resource Health events" \
   --query id -o tsv)"
+
+echo "SERVICE_ALERT_ID=$SERVICE_ALERT_ID"
 echo "RESOURCE_ALERT_ID=$RESOURCE_ALERT_ID"
 ```
 
-### 3) Validate
+### 4) Validate alert definitions
 ```bash
-# List activity log alerts in the lab RG
-az monitor activity-log alert list --resource-group "$RG_NAME" -o table
+az monitor activity-log alert list \
+  --resource-group "$RG_NAME" \
+  --query "[].{name:name,enabled:enabled,scopes:scopes}" -o table
 
-# Show action group details
-az monitor action-group show --resource-group "$RG_NAME" --name "$AG_NAME" -o table
-
-echo "Validated Service Health and Resource Health alerts."
+az monitor action-group show \
+  --resource-group "$RG_NAME" \
+  --name "$AG_NAME" \
+  --query "{name:name,emailReceivers:emailReceivers[].emailAddress}" -o jsonc
 ```
 
-## ARM template solution (when needed)
-Not required for this lab.
+## ARM template solution (optional)
+Use ARM/Bicep in enterprise environments to standardize health alert baselines across subscriptions.
 
 ## Cleanup (required)
 ```bash
 az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleanup started: monitoring resources removed."
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Use a real monitored email address before creating the action group.
-- Activity Log alert signal arrival depends on platform events.
+- Activity Log alerts are control-plane event driven; notifications occur only when matching platform events happen.
+- Reuse one Action Group for multiple health alerts to simplify operations.

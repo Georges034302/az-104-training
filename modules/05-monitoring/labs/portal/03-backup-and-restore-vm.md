@@ -1,66 +1,95 @@
-# Lab: Backup a VM + Restore Test (Recovery Services Vault)
+# Lab: Backup a VM and Validate Restore (Portal)
 > Variant: Portal lab track (CLI/ARM walkthrough omitted).
 
 ## Objective
-Create a VM, create a Recovery Services Vault, enable VM backup using a policy, then perform a restore test (restore to a new VM is recommended).
+Protect a VM with Azure Backup using a Recovery Services vault, then validate recoverability through a controlled restore test.
 
 ## What you will build
-```mermaid
-flowchart LR
-  VM --> Vault[Recovery Services Vault]
-  Vault --> Policy[Backup Policy]
-  Policy --> RP[Recovery Point]
-  Restore --> NewVM[Restored VM]
-```
+
+ [Azure VM]
+    |
+    v
+ [Recovery Services Vault]
+    |
+    v
+ [Backup Policy + Recovery Points]
+    |
+    v
+ [Restore Validation Target]
 
 ## Estimated time
-75–120 minutes
+80-120 minutes
 
 ## Cost + safety
-- All resources are created in a **dedicated Resource Group** for this lab and can be deleted at the end.
-- Default region: **australiaeast** (change if needed).
+- Backup retention increases storage cost over time.
+- Use a small VM and default policy for lab scope.
+- Delete restored test resources after validation.
 
 ## Prerequisites
-- Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure subscription with rights to create VM and backup resources
+- Azure Portal access
 
-## Setup: Create environment file
+## Setup: create environment file
 ```bash
-cat > .env << 'EOF'
+cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
 PREFIX="az104"
-LAB="m05-backup"
+LAB="m05backup"
 RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+VM_NAME="${PREFIX}-${LAB}-vm"
+VAULT_NAME="${PREFIX}-${LAB}-rsv"
+ENVEOF
 
 source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
+echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME, VAULT_NAME=$VAULT_NAME"
 ```
 
-## Portal solution (high-level)
-- Portal → Create a small VM.
-- Portal → Recovery Services vaults → Create vault.
-- Vault → Backup → Azure → Virtual machine → Select VM → Enable backup (choose default policy).
-- Wait for first backup (or trigger) then test Restore (restore to a new VM).
-- Validate restored VM exists (then delete it during cleanup).
+## Portal solution (step-by-step)
+### 1) Create resource group and VM
+1. Open Resource groups and create ${RG_NAME} in ${LOCATION}.
+2. Open Virtual machines and create ${VM_NAME} in ${RG_NAME}.
+3. Select Ubuntu Server 22.04 LTS and a small size for lab cost control.
+4. Complete deployment.
 
+### 2) Create Recovery Services vault
+1. Open Recovery Services vaults and select Create.
+2. Set:
+  - Resource group: ${RG_NAME}
+  - Vault name: ${VAULT_NAME}
+  - Region: ${LOCATION}
+3. Select Review + create, then Create.
 
+### 3) Enable backup protection for VM
+1. Open vault ${VAULT_NAME}.
+2. Select Backup.
+3. Set workload where running to Azure.
+4. Set what do you want to backup to Virtual machine.
+5. Select Backup.
+6. In Select virtual machines, choose ${VM_NAME}.
+7. Keep the default backup policy for lab scope.
+8. Select Enable backup.
+
+### 4) Trigger backup and monitor job
+1. In vault, open Backup items > Azure Virtual Machine.
+2. Select ${VM_NAME}.
+3. Select Backup now.
+4. Choose retention date (short lab retention is acceptable).
+5. Track job completion in Backup jobs.
+
+### 5) Validate restore path
+1. In the same backup item, select Restore VM (or Restore Disks).
+2. Choose the most recent recovery point.
+3. Restore to a new target resource name to avoid affecting source VM.
+4. Validate restore output resource creation.
+5. Delete restored test resource after verification.
 
 ## Cleanup (required)
 ```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-
-# Remove the environment file
+az group delete --name "$RG_NAME" --yes --no-wait
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleanup started: $RG_NAME"
 ```
 
 ## Notes
-- Every CLI command that returns an ID/URL is captured into a **variable** and echoed.
-- If a command returns JSON, use `--query ... -o tsv` for clean variable assignment.
+- Backup enablement is not equivalent to tested recoverability; restore testing is mandatory.
+- Backup jobs and restore tasks are asynchronous and can require additional wait time.
