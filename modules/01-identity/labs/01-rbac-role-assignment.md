@@ -106,18 +106,20 @@ echo "Validated role assignment for objectId=$ASSIGNEE_OBJECT_ID at scope=$RG_ID
 ## ARM template solution (when needed)
 Not required for this lab (RBAC can be done via CLI/Portal).
 
-## Cleanup (requ\
+## Cleanup (required)
+```bash
+# Delete the resource group and all its resources asynchronously
+az group delete \
   --name "$RG_NAME" \
   --yes \
   --no-wait
 echo "Deleted RG: $RG_NAME (async)"
+```
 
+```bash
 # Remove the .env file
 rm -f .env
-echo "Cleaned up .env file
-# Delete the resource group and all its resources asynchronously
-az group delete --name "$RG_NAME" --yes --no-wait
-echo "Deleted RG: $RG_NAME (async)"
+echo "Cleaned up .env file"
 ```
 
 ## Notes

@@ -28,7 +28,8 @@ This repository provides structured learning paths combining conceptual lessons 
 - [Entra ID Basics](modules/01-identity/lessons/01-entra-id-basics.md) - Azure Active Directory fundamentals, users, groups, and authentication
 - [Role-Based Access Control (RBAC)](modules/01-identity/lessons/02-rbac.md) - Permission management with built-in and custom roles
 - [Managed Identities](modules/01-identity/lessons/03-managed-identities.md) - System and user-assigned identities for secure service authentication
-- [Governance: Policy, Locks & Tags](modules/01-identity/lessons/04-governance-policy-locks-tags.md) - Resource organization and compliance enforcement
+- [Azure Policy](modules/01-identity/lessons/04-azure-policy.md) - Policy definitions, compliance evaluation, and enforcement for governance
+- [Resource Management: Locks & Tags](modules/01-identity/lessons/05-resource-management-locks-tags.md) - Resource protection with locks and organization with tags
 
 #### 🧪 Labs
 - [RBAC Role Assignment](modules/01-identity/labs/01-rbac-role-assignment.md) - Assign Azure roles to users and service principals

@@ -5,7 +5,8 @@
 1. [Entra ID Basics](../modules/01-identity/lessons/01-entra-id-basics.md)
 2. [RBAC Fundamentals](../modules/01-identity/lessons/02-rbac.md)
 3. [Managed Identities](../modules/01-identity/lessons/03-managed-identities.md)
-4. [Governance: Policy, Locks, Tags](../modules/01-identity/lessons/04-governance-policy-locks-tags.md)
+4. [Azure Policy](../modules/01-identity/lessons/04-azure-policy.md)
+5. [Resource Management: Locks & Tags](../modules/01-identity/lessons/05-resource-management-locks-tags.md)
 
 ### Labs
 1. [RBAC Role Assignment](../modules/01-identity/labs/01-rbac-role-assignment.md)

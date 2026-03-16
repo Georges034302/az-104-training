@@ -9,7 +9,8 @@ This module covers the fundamentals of identity and access management in Azure, 
 1. **[Entra ID Basics](lessons/01-entra-id-basics.md)** - Azure Active Directory fundamentals, users, groups, and authentication methods
 2. **[Role-Based Access Control (RBAC)](lessons/02-rbac.md)** - Permission management with built-in and custom roles at different scopes
 3. **[Managed Identities](lessons/03-managed-identities.md)** - System and user-assigned identities for secure service-to-service authentication
-4. **[Governance: Policy, Locks & Tags](lessons/04-governance-policy-locks-tags.md)** - Resource organization, compliance enforcement, and cost management
+4. **[Azure Policy](lessons/04-azure-policy.md)** - Policy definitions, compliance evaluation, and enforcement for governance
+5. **[Resource Management: Locks & Tags](lessons/05-resource-management-locks-tags.md)** - Resource protection with locks and organization with tags
 
 ## 🧪 Labs
 
