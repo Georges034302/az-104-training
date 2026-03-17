@@ -20,7 +20,6 @@ This module covers the fundamentals of identity and access management in Azure, 
 - **All labs use parameterized variables and `.env` files** for easy reuse and automation.
 - **Explicit cleanup steps** are included in every lab (e.g., `az group delete`, `rm -f .env`).
 - **Portal labs are step-by-step and precise**—not just high-level summaries.
-- **All diagrams are text-based** (no Mermaid diagrams).
 
 ## 🧪 Labs
 

@@ -2,62 +2,58 @@
 
 ## Core Safety Rules
 
-✅ **Dedicated Resource Groups**: Every lab creates its own resource group for easy cleanup  
-✅ **Cleanup Required**: Always run cleanup commands at the end of each lab  
-✅ **Environment Isolation**: Use `.env` files to prevent configuration conflicts  
-✅ **Async Deletion**: All cleanup uses `--no-wait` flag for faster completion  
-✅ **Low-Cost SKUs**: All labs use the smallest viable SKU sizes
+- Every lab uses a dedicated resource group for one-command cleanup
+- Cleanup is required at the end of each lab (`az group delete` + `rm -f .env`)
+- `.env` files isolate local configuration between labs
+- Cleanup commands use `--no-wait` to start deletion immediately
+- Labs use the smallest practical SKUs for learning outcomes
 
-## Cost Optimization Settings
+## Cost Optimization Defaults
 
-### Default Region
-- **Location**: `australiaeast` (consistent across all labs)
+### Region
+- Default location: `australiaeast`
 
-### VM Sizes
-- **Preferred**: `Standard_B1s` or `Standard_B1ms` (burstable, cost-effective)
-- **Avoid**: D-series, F-series unless specifically required for testing
+### Compute
+- Preferred VM sizes: `Standard_B1s` or `Standard_B1ms`
+- Avoid larger families (for example D/F series) unless a lab explicitly needs them
 
 ### Storage
-- **Tier**: Standard (not Premium) unless testing performance
-- **Redundancy**: LRS (locally redundant) for lab purposes
-- **Access Tier**: Hot for short-lived blobs, Cool for testing lifecycle policies
+- Prefer Standard performance tier
+- Prefer LRS redundancy for short-lived labs
+- Use Hot/Cool tiers only as needed for lifecycle demonstrations
 
 ### Networking
-- **Public IPs**: Delete after use, avoid Standard SKU unless needed
-- **Load Balancers**: Use Basic SKU for labs
-- **VPN Gateway**: Not used (high cost)
-- **Application Gateway**: Basic SKU or omitted
+- Public IP resources should be deleted immediately after validation
+- Module 02 load balancer labs use Standard Load Balancer and Standard Public IP by design
+- Avoid deploying additional networking services not required by the guide
 
-## High-Cost Services to Avoid
+## Higher-Cost Services (Use Carefully)
 
-🚫 **VPN Gateway** ($30-300+/month) - Not included in labs  
-🚫 **ExpressRoute** ($50+/month) - Not included  
-⚠️ **Application Gateway** ($125+/month) - Use Basic tier only  
-⚠️ **Azure Site Recovery** - Keep labs lightweight and short-lived  
-⚠️ **Standard Public IPs** - Use Basic tier for labs
+- VPN Gateway: not part of the standard lab set
+- ExpressRoute: not part of the standard lab set
+- Application Gateway: do not deploy unless explicitly required by a lab
+- Azure Site Recovery: keep tests lightweight and short-lived
 
 ## Lab Cleanup Checklist
 
-Every lab includes this cleanup pattern:
-
 ```bash
-# 1. Delete Azure resource group (async)
-az group delete --name "$RG" --yes --no-wait
+# Delete Azure resources
+az group delete --name "$RG_NAME" --yes --no-wait
 
-# 2. Delete local .env file
+# Delete local lab variables
 rm -f .env
 ```
 
-## Monitoring Your Costs
+## Monitor and Control Spend
 
-### Check All Lab Resource Groups
+### List remaining lab resource groups
 ```bash
 az group list \
   --query "[?starts_with(name,'az104-')].{Name:name,Location:location}" \
   --output table
 ```
 
-### Delete All Lab Resource Groups
+### Bulk-delete all AZ-104 lab groups
 ```bash
 for rg in $(az group list --query "[?starts_with(name,'az104-')].name" -o tsv); do
   echo "Deleting $rg..."
@@ -67,16 +63,15 @@ done
 
 ## Best Practices
 
-💡 **Run labs during business hours** - Easier to remember cleanup  
-💡 **Set Azure spending alerts** - Get notified of unexpected costs  
-💡 **Review Azure Portal regularly** - Check for orphaned resources  
-💡 **Use `.env` files** - Prevents leaving hardcoded credentials  
-💡 **Test cleanup commands** - Verify resource deletion completed
+- Run labs when you can verify cleanup right away
+- Set Azure budget/spending alerts on the subscription
+- Check the Azure Portal for orphaned resources after each session
+- Keep secrets and local config in `.env`, not committed files
 
-## Estimated Lab Costs
+## Estimated Costs
 
-If cleaned up within 1-2 hours per lab:
-- **Per Lab**: $0.10 - $1.00 USD
-- **Full Course**: ~$10 - $20 USD total
+If resources are cleaned up within 1-2 hours:
+- Per lab: about $0.10-$1.50 USD
+- Full course: typically low double-digit USD, depending on runtime and region
 
-**Note**: Costs may vary by region and subscription type. Always verify deletion in Azure Portal.
+Actual cost depends on subscription type, region pricing, and how long resources are left running.

@@ -26,7 +26,6 @@ This module covers Azure networking fundamentals, including virtual networks, se
 
 - **CLI + ARM track**: Fully parameterized with `.env`, explicit validation, and cleanup.
 - **Portal track**: Detailed step-by-step procedures (not high-level summaries).
-- **Architecture diagrams**: Text-only boxes/arrows (no Mermaid).
 - **Safety**: Every lab uses dedicated resource groups and includes cleanup commands.
 
 ## Learning Outcomes

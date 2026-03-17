@@ -59,13 +59,7 @@ Nodes:
 +----------------------------------------------------+
 | Access Denied                                      |
 +----------------------------------------------------+
-Flow:
-[Principal Who? User/Group/SP/MI] --> [Role Assignment]
-[Role Definition What actions?...] --> [Role Assignment]
-[Scope Where? MG/Sub/RG/Resource] --> [Role Assignment]
-[Role Assignment] --> [RBAC Engine]
-[RBAC Engine] -- Allow --> [Access Granted]
-[RBAC Engine] -- Deny --> [Access Denied]
+
 ```
 
 **Formula:** *Principal* + *Role* + *Scope* = *Role Assignment*
@@ -106,18 +100,7 @@ Nodes:
 +----------------------------------------------------+
 | Access Allowed                                     |
 +----------------------------------------------------+
-Flow:
-[User/App sends request] --> [ARM validates token]
-[ARM validates token] --> [Identity authenticated?]
-[Identity authenticated?] -- No --> [Authentication failure]
-[Identity authenticated?] -- Yes --> [Check role assignments at all scopes]
-[Check role assignments at all scopes] --> [Deny assignment exists?]
-[Deny assignment exists?] -- Yes --> [Access Denied]
-[Deny assignment exists?] -- No --> [Matching allow assignment exists?]
-[Matching allow assignment exists?] -- No --> [Access Denied]
-[Matching allow assignment exists?] -- Yes --> [Action in role definition?]
-[Action in role definition?] -- No --> [Access Denied]
-[Action in role definition?] -- Yes --> [Access Allowed]
+
 ```
 
 **Key points:**
@@ -145,10 +128,7 @@ Nodes:
 +----------------------------------------------------+
 | Resource Narrowest scope                           |
 +----------------------------------------------------+
-Flow:
-[Management Group Broadest scope] --> [Subscription]
-[Subscription] --> [Resource Group]
-[Resource Group] --> [Resource Narrowest scope]
+
 ```
 
 **Inheritance rule:** Permissions granted at a parent scope apply to all child scopes.
@@ -175,12 +155,7 @@ Nodes:
 +----------------------------------------------------+
 | SQL: customer-db                                   |
 +----------------------------------------------------+
-Flow:
-[Alice] -- Reader role --> [Subscription: Production]
-[Subscription: Production] --> [RG: app-rg]
-[Subscription: Production] --> [RG: data-rg]
-[RG: app-rg] --> [VM: web-server]
-[RG: data-rg] --> [SQL: customer-db]
+
 ```
 
 **Result:** Alice can **read** (but not modify) everything in the subscription, including both resource groups and all their resources.
@@ -216,10 +191,10 @@ Flow:
 **CLI check:**
 ```bash
 # List Owner assignments at resource group scope
-# az role assignment list \
-#   --scope "/subscriptions/<sub-id>/resourceGroups/<rg-name>" \
-#   --role "Owner" \
-#   -o table
+az role assignment list \
+  --scope "/subscriptions/<sub-id>/resourceGroups/<rg-name>" \
+  --role "Owner" \
+  -o table
 ```
 
 ---
@@ -296,11 +271,7 @@ Nodes:
 +----------------------------------------------------+
 | Account configuration                              |
 +----------------------------------------------------+
-Flow:
-[Contributor role] -- Actions --> [Control Plane: Create storage...]
-[Storage Blob Data Contributor] -- DataActions --> [Data Plane: Upload blob Delete blob]
-[Control Plane: Create storage...] -- Cannot access --> [Blob data inside]
-[Data Plane: Upload blob Delete blob] -- Cannot modify --> [Account configuration]
+
 ```
 
 **Common roles with data actions:**
@@ -377,24 +348,24 @@ Result: All Compute actions **except** delete operations.
 
 ```bash
 # Create role definition JSON file
-# cat > vm-operator-role.json << 'EOF'
-# {
-#   "Name": "VM Operator Custom",
-#   "Description": "Start/stop VMs only",
-#   "Actions": [
-#     "Microsoft.Compute/virtualMachines/read",
-#     "Microsoft.Compute/virtualMachines/start/action",
-#     "Microsoft.Compute/virtualMachines/powerOff/action"
-#   ],
-#   "AssignableScopes": ["/subscriptions/<subscription-id>"]
-# }
-# EOF
+cat > vm-operator-role.json << 'EOF'
+{
+  "Name": "VM Operator Custom",
+  "Description": "Start/stop VMs only",
+  "Actions": [
+    "Microsoft.Compute/virtualMachines/read",
+    "Microsoft.Compute/virtualMachines/start/action",
+    "Microsoft.Compute/virtualMachines/powerOff/action"
+  ],
+  "AssignableScopes": ["/subscriptions/<subscription-id>"]
+}
+EOF
 
 # Create the custom role
-# az role definition create --role-definition vm-operator-role.json
+az role definition create --role-definition vm-operator-role.json
 
 # List custom roles
-# az role definition list --custom-role-only true -o table
+az role definition list --custom-role-only true -o table
 ```
 
 ---
@@ -433,25 +404,20 @@ Nodes:
 +----------------------------------------------------+
 | Access Denied No permission                        |
 +----------------------------------------------------+
-Flow:
-[Resource request] --> [Deny assignment matches?]
-[Deny assignment matches?] -- Yes --> [Access Denied Deny wins]
-[Deny assignment matches?] -- No --> [Allow assignment matches?]
-[Allow assignment matches?] -- Yes --> [Access Granted]
-[Allow assignment matches?] -- No --> [Access Denied No permission]
+
 ```
 
 ### CLI: Check Deny Assignments
 
 ```bash
 # List deny assignments at subscription scope
-# az role assignment list --include-inherited --include-deny -o table
+az role assignment list --include-inherited --include-deny -o table
 
 # Check deny assignments for a specific resource
-# az role assignment list \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Compute/virtualMachines/<vm> \
-#   --include-deny \
-#   -o table
+az role assignment list \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Compute/virtualMachines/<vm> \
+  --include-deny \
+  -o table
 ```
 
 ---
@@ -516,19 +482,7 @@ Nodes:
 +----------------------------------------------------+
 | Review and remove deny if possible                 |
 +----------------------------------------------------+
-Flow:
-[Access Denied] --> [User authenticated?]
-[User authenticated?] -- No --> [Check credentials Sign-in logs]
-[User authenticated?] -- Yes --> [Role assignment exists?]
-[Role assignment exists?] -- No --> [Add appropriate role assignment]
-[Role assignment exists?] -- Yes --> [Correct scope?]
-[Correct scope?] -- No --> [Adjust scope to correct level]
-[Correct scope?] -- Yes --> [Action in role definition?]
-[Action in role definition?] -- No --> [Create custom role or use...]
-[Action in role definition?] -- Yes --> [Assignment propagated?]
-[Assignment propagated?] -- No --> [Wait 5-10 minutes Refresh token]
-[Assignment propagated?] -- Yes --> [Deny assignment?]
-[Deny assignment?] -- Yes --> [Review and remove deny if possible]
+
 ```
 
 ### Validation Checklist
@@ -545,24 +499,24 @@ Flow:
 
 ```bash
 # Check current user's identity
-# az ad signed-in-user show
+az ad signed-in-user show
 
 # List all role assignments for current user
-# PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
-# az role assignment list --assignee "$PRINCIPAL_ID" --all -o table
+PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
+az role assignment list --assignee "$PRINCIPAL_ID" --all -o table
 
 # Check effective permissions at a scope
-# az role assignment list \
-#   --scope "/subscriptions/<sub-id>/resourceGroups/<rg>" \
-#   --assignee "$PRINCIPAL_ID" \
-#   --include-inherited \
-#   -o table
+az role assignment list \
+  --scope "/subscriptions/<sub-id>/resourceGroups/<rg>" \
+  --assignee "$PRINCIPAL_ID" \
+  --include-inherited \
+  -o table
 
 # View Activity Log for authorization failures
-# az monitor activity-log list \
-#   --offset 1h \
-#   --query "[?contains(authorization.action, 'Microsoft.Authorization')]" \
-#   -o table
+az monitor activity-log list \
+  --offset 1h \
+  --query "[?contains(authorization.action, 'Microsoft.Authorization')]" \
+  -o table
 ```
 
 ---
@@ -584,22 +538,20 @@ Nodes:
 +----------------------------------------------------+
 | app-prod-rg                                        |
 +----------------------------------------------------+
-Flow:
-[Dev Team Group] -- Contributor --> [app-dev-rg]
-[Dev Team Group] -- No access --> [app-prod-rg]
+
 ```
 
 **Implementation:**
 ```bash
 # Get the group object ID
-# GROUP_ID=$(az ad group show --group "Dev-Team" --query id -o tsv)
+GROUP_ID=$(az ad group show --group "Dev-Team" --query id -o tsv)
 
 # Assign Contributor at RG scope only
-# az role assignment create \
-#   --assignee-object-id "$GROUP_ID" \
-#   --assignee-principal-type Group \
-#   --role "Contributor" \
-#   --scope "/subscriptions/<sub-id>/resourceGroups/app-dev-rg"
+az role assignment create \
+  --assignee-object-id "$GROUP_ID" \
+  --assignee-principal-type Group \
+  --role "Contributor" \
+  --scope "/subscriptions/<sub-id>/resourceGroups/app-dev-rg"
 ```
 
 ---
@@ -610,13 +562,13 @@ Flow:
 
 ```bash
 # Create service principal for monitoring tool
-# SP_ID=$(az ad sp create-for-rbac --name "monitoring-sp" --query appId -o tsv)
+SP_ID=$(az ad sp create-for-rbac --name "monitoring-sp" --query appId -o tsv)
 
 # Assign Reader at subscription scope
-# az role assignment create \
-#   --assignee "$SP_ID" \
-#   --role "Reader" \
-#   --scope "/subscriptions/<subscription-id>"
+az role assignment create \
+  --assignee "$SP_ID" \
+  --role "Reader" \
+  --scope "/subscriptions/<subscription-id>"
 ```
 
 ---
@@ -627,10 +579,10 @@ Flow:
 
 ```bash
 # Assign data-plane role only (not Contributor)
-# az role assignment create \
-#   --assignee user@contoso.com \
-#   --role "Storage Blob Data Contributor" \
-#   --scope "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>"
+az role assignment create \
+  --assignee user@contoso.com \
+  --role "Storage Blob Data Contributor" \
+  --scope "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>"
 ```
 
 **Result:** User can upload/download blobs but **cannot** change firewall rules, delete account, etc.
@@ -697,55 +649,55 @@ Use RG scope to avoid assignment sprawl.
 
 ```bash
 # Create role assignment
-# az role assignment create \
-#   --assignee <user-or-sp-id> \
-#   --role "Contributor" \
-#   --scope <scope-path>
+az role assignment create \
+  --assignee <user-or-sp-id> \
+  --role "Contributor" \
+  --scope <scope-path>
 
 # List all role assignments at scope
-# az role assignment list --scope <scope-path> -o table
+az role assignment list --scope <scope-path> -o table
 
 # Delete role assignment
-# az role assignment delete \
-#   --assignee <user-or-sp-id> \
-#   --role "Contributor" \
-#   --scope <scope-path>
+az role assignment delete \
+  --assignee <user-or-sp-id> \
+  --role "Contributor" \
+  --scope <scope-path>
 ```
 
 ### Role Definition Operations
 
 ```bash
 # List all role definitions
-# az role definition list -o table
+az role definition list -o table
 
 # Get specific role definition
-# az role definition list --name "Contributor" -o json
+az role definition list --name "Contributor" -o json
 
 # Create custom role
-# az role definition create --role-definition <json-file>
+az role definition create --role-definition <json-file>
 
 # Update custom role
-# az role definition update --role-definition <json-file>
+az role definition update --role-definition <json-file>
 
 # Delete custom role
-# az role definition delete --name <role-name>
+az role definition delete --name <role-name>
 ```
 
 ### Troubleshooting Commands
 
 ```bash
 # Check current user's role assignments
-# PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
-# az role assignment list --assignee "$PRINCIPAL_ID" --all -o table
+PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
+az role assignment list --assignee "$PRINCIPAL_ID" --all -o table
 
 # List denied assignments
-# az role assignment list --include-deny -o table
+az role assignment list --include-deny -o table
 
 # View Activity Log for authorization events
-# az monitor activity-log list \
-#   --offset 1h \
-#   --query "[?contains(category, 'Authorization')]" \
-#   -o table
+az monitor activity-log list \
+  --offset 1h \
+  --query "[?contains(category, 'Authorization')]" \
+  -o table
 ```
 
 ---

@@ -44,8 +44,6 @@ Azure identity is easier when you hold this model:
 
 ## High-Level Architecture
 
-All diagrams in this course use plain text boxes and arrows for clarity and accessibility. **No Mermaid diagrams are used.**
-
 ```text
  [Human/App/Script]
    |
@@ -70,18 +68,6 @@ All diagrams in this course use plain text boxes and arrows for clarity and acce
    v
  [Compute / Storage / Network]
 ```
-
-**Key takeaway:** Entra ID does **not** grant permissions to Azure resources by itself. It provides identity and tokens. **RBAC** grants permissions.
-
----
-
-## Lab Standards
-
-All labs in this module (and the course) follow these standards:
-- **Parameterization:** All scripts and instructions use variables and `.env` files for easy reuse.
-- **Explicit Cleanup:** Every lab includes clear cleanup steps (e.g., `az group delete`, `rm -f .env`).
-- **Portal Labs:** Portal-based labs are written as detailed, step-by-step instructions—never just high-level summaries.
-- **Diagrams:** Only text-based diagrams are used (no Mermaid).
 
 **Key takeaway:** Entra ID does **not** grant permissions to Azure resources by itself. It provides identity and tokens. **RBAC** grants permissions.
 
@@ -189,9 +175,9 @@ Admin fix: sign out/in, refresh token, or wait for propagation.
              | - Managed Identities               |
              +------------------------------------+
                    | trusts for authentication
-       ----------------------|-----------------------------
-      /                      |                            \
-       v                       v                             v
+       --------------------------------|-----------------------------------
+       |                               |                                  |
+       v                               v                                  v
 +---------------------------+  +---------------------------+  +---------------------------+
 | Subscription A            |  | Subscription B            |  | Subscription C            |
 | (Billing boundary)        |  | (Billing boundary)        |  | (Billing boundary)        |
@@ -232,13 +218,13 @@ User origin patterns:
 | On-premises AD                | ----------------------------------> +-------------------------------+
 | (Windows Server AD)           |                                     | Entra ID Tenant               |
 +-------------------------------+                                     | contoso.onmicrosoft.com       |
-                                     +-------------------------------+
+                                                                      +-------------------------------+
 
 +-------------------------------+    B2B invitation (guest user)
 | External tenant               | ----------------------------------> +-------------------------------+
 | (partner organization)        |                                     | Entra ID Tenant               |
 +-------------------------------+                                     | contoso.onmicrosoft.com       |
-                                     +-------------------------------+
+                                                                      +-------------------------------+
 ```
 
 Important attributes:
@@ -276,7 +262,7 @@ Group-based access pattern:
           v
 +------------------------------------------+
 | RBAC Role                                |
-| example: Contributor                      |
+| example: Contributor                     |
 +------------------------------------------+
           |
           | at scope
@@ -439,18 +425,18 @@ Authentication and Authorization flow:
 | Authentication (Entra ID)                | ---------------------> | Token (JWT)               |
 | Verifies credentials, MFA, CA policies   |                        +---------------------------+
 +------------------------------------------+                                   |
-                                        v
-                               +------------------------------------------+
-                               | Authorization (RBAC)                     |
-                               | Checks role assignment, scope, resource  |
-                               +------------------------------------------+
+                                                                               v
+                               +----------------------------------------------------------------+
+                               | Authorization (RBAC)                                           |
+                               | Checks role assignment, scope, resource                        |
+                               +----------------------------------------------------------------+
                                         |
                                         v
                                +---------------------------+
                                | Has permission?           |
                                +---------------------------+
-                                 | Allow        | Deny
-                                 v              v
+                                 | Allow                  | Deny
+                                 v                        v
                         +---------------------------+   +-------------------------------+
                         | Access granted            |   | Access blocked                |
                         | (200 OK)                  |   | (403 Forbidden)               |
@@ -549,13 +535,13 @@ Conditional Access evaluation:
 +------------------------------------------+
           |
           v
-+------------------------------------------+
-| Passed all requirements?                 |
-+------------------------------------------+
++--------------------------------------------------+
+| Passed all requirements?                         |
++--------------------------------------------------+
      | Yes                                      | No
      v                                          v
 +------------------------------------------+   +------------------------------------------+
-| Token issued (access granted)            |   | Access denied (error shown)             |
+| Token issued (access granted)            |   | Access denied (error shown)              |
 +------------------------------------------+   +------------------------------------------+
 ```
 
@@ -635,7 +621,7 @@ Log types and sources:
 ```text
 +------------------------------------------+      +------------------------------------------+
 | Authentication events                    | ---> | Sign-in logs                             |
-| - Sign-in success/failure                |      | Portal: Entra ID > Monitoring > Sign-ins|
+| - Sign-in success/failure                |      | Portal: Entra ID > Monitoring > Sign-ins |
 | - MFA prompts                            |      +------------------------------------------+
 | - CA policy applied                      |
 | - Location/device info                   |
@@ -697,11 +683,11 @@ az ad user create --display-name "Alice Smith" --user-principal-name alice@conto
 az ad group member add --group "RG-App-Contributors" --member-id $(az ad user show --id alice@contoso.com --query id -o tsv)
 
 # 3. Assign RBAC role (group already has Contributor at RG scope)
-# az role assignment create --assignee-object-id <group-object-id> --role "Contributor" --scope "/subscriptions/<sub-id>/resourceGroups/RG-App"
+az role assignment create --assignee-object-id <group-object-id> --role "Contributor" --scope "/subscriptions/<sub-id>/resourceGroups/RG-App"
 
 # 4. User tests access
-# az login --username alice@contoso.com
-# az storage account create --name teststoragealice --resource-group RG-App --location australiaeast --sku Standard_LRS
+az login --username alice@contoso.com
+az storage account create --name teststoragealice --resource-group RG-App --location australiaeast --sku Standard_LRS
 ```
 
 ### Scenario 2: App needs access to Storage without secrets
@@ -721,7 +707,7 @@ az ad group member add --group "RG-App-Contributors" --member-id $(az ad user sh
                              v
                     +------------------------------------------+
                     | 4) Access Storage with token             |
-                    | No secrets required                       |
+                    | No secrets required                      |
                     +------------------------------------------+
 ```
 
@@ -740,7 +726,7 @@ az role assignment create \
   --scope "/subscriptions/<sub-id>/resourceGroups/myRG/providers/Microsoft.Storage/storageAccounts/mystorageacct"
 
 # 4. From within the VM, app code requests token:
-# curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/' -H Metadata:true
+curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/' -H Metadata:true
 ```
 
 ### Scenario 3: External partner access (B2B guest)
@@ -748,7 +734,7 @@ az role assignment create \
 ```text
 +------------------------------------------+    +------------------------------------------+
 | 1) Invite guest user (B2B)               | -> | 2) Add to group                          |
-| partner@external.com                      |    | External-Auditors                        |
+| partner@external.com                     |    | External-Auditors                        |
 +------------------------------------------+    +------------------------------------------+
                              |
                              v

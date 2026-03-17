@@ -1,44 +1,56 @@
 # Prerequisites
 
+## Course Scope
+
+Current training content in this repository:
+- 5 modules
+- 27 lessons
+- 44 lab guides (22 CLI + ARM and 22 Portal)
+
 ## Tools Required
 
-All required tools are automatically installed by running:
+Run the setup script once per environment:
+
 ```bash
 ./shared/scripts/az_login.sh
 ```
 
-This script installs and configures:
-- **Azure CLI** (latest version)
-- **Bicep CLI** (for infrastructure as code)
-- **jq** (for JSON parsing)
-- Authenticates you with Azure
-- Displays your active subscription
+This script installs/configures:
+- Azure CLI
+- Bicep CLI
+- jq
+- Azure authentication session
+- Active subscription check
 
-## Azure Requirements
-- An Azure subscription with permissions to create resources
-- Contributor or Owner role recommended for hands-on labs
+## Azure Permissions Required
+
+Baseline permissions for most labs:
+- Azure subscription access with rights to create resource groups and resources
+- Contributor role (or Owner) on the target subscription/resource group
+
+Additional permissions for identity-focused labs:
+- Permission in Microsoft Entra ID to create users and groups
+- Permission to assign RBAC at resource group scope
 
 ## Optional Tools
-- **VS Code** with Azure extensions for enhanced development experience
-- **Git** for version control and tracking lab progress
+
+- VS Code with Azure extensions
+- Git for version control and progress tracking
 
 ## Lab Conventions
 
 All labs follow consistent patterns:
-- **Default Region**: `australiaeast`
-- **Resource Naming**: `${PREFIX}-${LAB}-rg` (e.g., `az104-m02-vnet-rg`)
-- **Environment Variables**: Stored in `.env` files per lab
-- **Cleanup**: Each lab deletes its `.env` file and resource group
+- Default region: `australiaeast`
+- Environment variables stored in per-lab `.env` files
+- Resource group naming based on `${PREFIX}-${LAB}-rg`
+- Required cleanup of both Azure resources and local `.env`
 
 ## Getting Started
 
-1. Run the setup script once:
+1. Run setup:
    ```bash
    ./shared/scripts/az_login.sh
    ```
-
-2. Navigate to any lab and follow the instructions
-
-3. Each lab creates its own `.env` file with required variables
-
-4. Always run cleanup commands at the end of each lab
+2. Open a lab in either track: `labs/cli-arm/` or `labs/portal/`
+3. Create and source the lab `.env` file as instructed
+4. Complete validation steps, then run cleanup

@@ -22,7 +22,6 @@ This module covers the Azure Storage topics most relevant to AZ-104: storage acc
 
 - **CLI + ARM track**: Fully parameterized with `.env`, explicit validation, and cleanup.
 - **Portal track**: Detailed step-by-step procedures aligned to the same learning outcome as the CLI track.
-- **Architecture diagrams**: Text-only boxes/arrows (no Mermaid).
 - **Safety**: Every lab uses a dedicated resource group and includes cleanup commands.
 
 ## Learning Outcomes

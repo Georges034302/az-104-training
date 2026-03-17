@@ -62,12 +62,7 @@ Nodes:
 +----------------------------------------------------+
 | Example: Compliance baseline Prevent any...        |
 +----------------------------------------------------+
-Flow:
-[Resource Lock] --> [Lock Type]
-[Lock Type] -- CanNotDelete --> [Can modify properties Cannot delete]
-[Lock Type] -- ReadOnly --> [Can view properties Cannot modify...]
-[Can modify properties Cannot delete] --> [Example: Production RG Allow...]
-[Can view properties Cannot modify...] --> [Example: Compliance baseline...]
+
 ```
 
 | Lock Type | Read | Create/Update | Delete | Use Case |
@@ -92,20 +87,15 @@ Nodes:
 | CanNotDelete Lock?                                 |
 +----------------------------------------------------+
 +----------------------------------------------------+
-| 🚫 Deletion Blocked                                 |
+| 🚫 Deletion Blocked                                |
 +----------------------------------------------------+
 +----------------------------------------------------+
 | Modify Resource                                    |
 +----------------------------------------------------+
 +----------------------------------------------------+
-| ✅ Modification Allowed                             |
+| ✅ Modification Allowed                            |
 +----------------------------------------------------+
-Flow:
-[User with Owner role] -- Attempt --> [Delete Resource]
-[Delete Resource] --> [CanNotDelete Lock?]
-[CanNotDelete Lock?] -- Yes --> [🚫 Deletion Blocked]
-[User with Owner role] -- Can --> [Modify Resource]
-[Modify Resource] --> [✅ Modification Allowed]
+
 ```
 
 **ReadOnly Lock:**
@@ -121,20 +111,15 @@ Nodes:
 | ReadOnly Lock?                                     |
 +----------------------------------------------------+
 +----------------------------------------------------+
-| 🚫 Modification Blocked                             |
+| 🚫 Modification Blocked                            |
 +----------------------------------------------------+
 +----------------------------------------------------+
 | View Resource                                      |
 +----------------------------------------------------+
 +----------------------------------------------------+
-| ✅ View Allowed                                     |
+| ✅ View Allowed                                    |
 +----------------------------------------------------+
-Flow:
-[User with Contributor role] -- Attempt --> [Modify Resource]
-[Modify Resource] --> [ReadOnly Lock?]
-[ReadOnly Lock?] -- Yes --> [🚫 Modification Blocked]
-[User with Contributor role] -- Can --> [View Resource]
-[View Resource] --> [✅ View Allowed]
+
 ```
 
 **Key insight:** Locks override RBAC permissions. Even **Owner** role cannot delete a CanNotDelete-locked resource without first removing the lock.
@@ -163,12 +148,7 @@ Nodes:
 +----------------------------------------------------+
 | VNet                                               |
 +----------------------------------------------------+
-Flow:
-[Subscription CanNotDelete Lock] --> [Resource Group 1]
-[Subscription CanNotDelete Lock] --> [Resource Group 2]
-[Resource Group 1] --> [VM]
-[Resource Group 1] --> [Storage Account]
-[Resource Group 2] --> [VNet]
+
 ```
 
 **Inheritance rule:** Locks applied at **parent scope** protect all **child resources**.
@@ -194,26 +174,26 @@ Flow:
 **CLI:**
 ```bash
 # Create CanNotDelete lock on resource group
-# az lock create \
-#   --name "prod-rg-lock" \
-#   --lock-type CanNotDelete \
-#   --resource-group "app-prod-rg" \
-#   --notes "Prevent accidental deletion of production resources"
+az lock create \
+  --name "prod-rg-lock" \
+  --lock-type CanNotDelete \
+  --resource-group "app-prod-rg" \
+  --notes "Prevent accidental deletion of production resources"
 
 # Create ReadOnly lock on specific resource
-# az lock create \
-#   --name "baseline-vm-lock" \
-#   --lock-type ReadOnly \
-#   --resource-group "compliance-rg" \
-#   --resource-name "baseline-vm" \
-#   --resource-type "Microsoft.Compute/virtualMachines" \
-#   --notes "Compliance baseline - do not modify"
+az lock create \
+  --name "baseline-vm-lock" \
+  --lock-type ReadOnly \
+  --resource-group "compliance-rg" \
+  --resource-name "baseline-vm" \
+  --resource-type "Microsoft.Compute/virtualMachines" \
+  --notes "Compliance baseline - do not modify"
 
 # Create lock at subscription level
-# az lock create \
-#   --name "sub-delete-lock" \
-#   --lock-type CanNotDelete \
-#   --notes "Protect all production resources"
+az lock create \
+  --name "sub-delete-lock" \
+  --lock-type CanNotDelete \
+  --notes "Protect all production resources"
 ```
 
 ---
@@ -223,28 +203,28 @@ Flow:
 **List locks:**
 ```bash
 # List all locks at resource group level
-# az lock list --resource-group "app-prod-rg" -o table
+az lock list --resource-group "app-prod-rg" -o table
 
 # List locks at subscription level
-# az lock list -o table
+az lock list -o table
 
 # List locks on specific resource
-# az lock list \
-#   --resource-group "app-prod-rg" \
-#   --resource-name "prod-vm" \
-#   --resource-type "Microsoft.Compute/virtualMachines"
+az lock list \
+  --resource-group "app-prod-rg" \
+  --resource-name "prod-vm" \
+  --resource-type "Microsoft.Compute/virtualMachines"
 ```
 
 **Remove locks:**
 ```bash
 # Delete lock by name and resource group
-# az lock delete \
-#   --name "prod-rg-lock" \
-#   --resource-group "app-prod-rg"
+az lock delete \
+  --name "prod-rg-lock" \
+  --resource-group "app-prod-rg"
 
 # Delete lock by lock ID
 # LOCK_ID=$(az lock show --name "prod-rg-lock" --resource-group "app-prod-rg" --query id -o tsv)
-# az lock delete --ids "$LOCK_ID"
+az lock delete --ids "$LOCK_ID"
 ```
 
 ---
@@ -285,28 +265,19 @@ Nodes:
 +----------------------------------------------------+
 | Retry deletion                                     |
 +----------------------------------------------------+
-Flow:
-[Cannot delete resource] --> [Lock on resource?]
-[Lock on resource?] -- Yes --> [Remove lock from resource]
-[Lock on resource?] -- No --> [Lock on resource group?]
-[Lock on resource group?] -- Yes --> [Remove lock from RG]
-[Lock on resource group?] -- No --> [Lock on subscription?]
-[Lock on subscription?] -- Yes --> [Remove lock from subscription]
-[Remove lock from resource] --> [Retry deletion]
-[Remove lock from RG] --> [Retry deletion]
-[Remove lock from subscription] --> [Retry deletion]
+
 ```
 
 **Solution:**
 ```bash
 # Find all locks affecting the resource
-# az lock list --resource-group "app-prod-rg" -o table
+az lock list --resource-group "app-prod-rg" -o table
 
 # Remove the lock
-# az lock delete --name "<lock-name>" --resource-group "app-prod-rg"
+az lock delete --name "<lock-name>" --resource-group "app-prod-rg"
 
 # Now delete the resource
-# az storage account delete --name "prodStorage" --resource-group "app-prod-rg"
+az storage account delete --name "prodStorage" --resource-group "app-prod-rg"
 ```
 
 ---
@@ -323,13 +294,13 @@ Error: Resource modification blocked by ReadOnly lock.
 **Solution:**
 ```bash
 # Temporarily remove ReadOnly lock
-# az lock delete --name "compliance-lock" --resource-group "baseline-rg"
+az lock delete --name "compliance-lock" --resource-group "baseline-rg"
 
 # Deploy resources
-# az deployment group create --resource-group "baseline-rg" --template-file template.json
+az deployment group create --resource-group "baseline-rg" --template-file template.json
 
 # Re-apply lock after deployment
-# az lock create --name "compliance-lock" --lock-type ReadOnly --resource-group "baseline-rg"
+az lock create --name "compliance-lock" --lock-type ReadOnly --resource-group "baseline-rg"
 ```
 
 ---
@@ -357,11 +328,7 @@ Nodes:
 +----------------------------------------------------+
 | Tag: Project = migration                           |
 +----------------------------------------------------+
-Flow:
-[Azure Resource] --> [Tag: Environment = Production]
-[Azure Resource] --> [Tag: CostCenter = Finance]
-[Azure Resource] --> [Tag: Owner = ops-team]
-[Azure Resource] --> [Tag: Project = migration]
+
 ```
 
 **Structure:**
@@ -392,19 +359,15 @@ Nodes:
 +----------------------------------------------------+
 | Environment prod, staging, dev                     |
 +----------------------------------------------------+
-Flow:
-[Cost Tracking Tags] --> [CostCenter Finance, IT, HR]
-[Cost Tracking Tags] --> [Department Engineering, Sales]
-[Cost Tracking Tags] --> [Project migration, new-app]
-[Cost Tracking Tags] --> [Environment prod, staging, dev]
+
 ```
 
 **Example:**
 ```bash
 # Tag resource for cost tracking
-# az resource tag \
-#   --tags CostCenter=Finance Department=Engineering Project=migration Environment=prod \
-#   --ids /subscriptions/<sub-id>/resourceGroups/app-rg/providers/Microsoft.Compute/virtualMachines/app-vm
+az resource tag \
+  --tags CostCenter=Finance Department=Engineering Project=migration Environment=prod \
+  --ids /subscriptions/<sub-id>/resourceGroups/app-rg/providers/Microsoft.Compute/virtualMachines/app-vm
 ```
 
 **Result:** Azure Cost Management can break down costs by CostCenter, Department, Project, or Environment.
@@ -427,19 +390,19 @@ Flow:
 
 ```bash
 # Tag VM for auto-shutdown
-# az vm update \
-#   --resource-group app-rg \
-#   --name dev-vm \
-#   --set tags.AutoShutdown=true tags.ShutdownTime=19:00
+az vm update \
+  --resource-group app-rg \
+  --name dev-vm \
+  --set tags.AutoShutdown=true tags.ShutdownTime=19:00
 ```
 
 **Automation script:**
 ```bash
 # Shutdown all VMs tagged with AutoShutdown=true at specified time
-# VMs=$(az vm list --query "[?tags.AutoShutdown=='true'].id" -o tsv)
-# for VM in $VMs; do
-#   az vm deallocate --ids "$VM" --no-wait
-# done
+VMs=$(az vm list --query "[?tags.AutoShutdown=='true'].id" -o tsv)
+for VM in $VMs; do
+  az vm deallocate --ids "$VM" --no-wait
+done
 ```
 
 ---
@@ -459,9 +422,7 @@ Nodes:
 +----------------------------------------------------+
 | Storage No tags inherited                          |
 +----------------------------------------------------+
-Flow:
-[Resource Group Tag: Environment=prod] --> [VM No tags inherited]
-[Resource Group Tag: Environment=prod] --> [Storage No tags inherited]
+
 ```
 
 **Solution:** Use Azure Policy to enforce tag inheritance.
@@ -498,41 +459,41 @@ Flow:
 **Add/Update tags:**
 ```bash
 # Add tags to resource group
-# az group update \
-#   --name "app-prod-rg" \
-#   --tags Environment=Production CostCenter=Finance Owner=ops-team
+az group update \
+  --name "app-prod-rg" \
+  --tags Environment=Production CostCenter=Finance Owner=ops-team
 
 # Add tags to specific resource
-# az vm update \
-#   --resource-group "app-prod-rg" \
-#   --name "web-vm" \
-#   --set tags.Role=WebServer tags.Tier=Frontend
+az vm update \
+  --resource-group "app-prod-rg" \
+  --name "web-vm" \
+  --set tags.Role=WebServer tags.Tier=Frontend
 
 # Add tag using resource ID
-# az tag create \
-#   --resource-id "/subscriptions/<sub-id>/resourceGroups/app-rg/providers/Microsoft.Compute/virtualMachines/app-vm" \
-#   --tags Project=migration
+az tag create \
+  --resource-id "/subscriptions/<sub-id>/resourceGroups/app-rg/providers/Microsoft.Compute/virtualMachines/app-vm" \
+  --tags Project=migration
 ```
 
 **List resources by tag:**
 ```bash
 # Find all resources with Environment=Production tag
-# az resource list --tag Environment=Production -o table
+az resource list --tag Environment=Production -o table
 
 # Find all VMs with specific tag
-# az vm list --query "[?tags.Role=='WebServer']" -o table
+az vm list --query "[?tags.Role=='WebServer']" -o table
 ```
 
 **Remove tags:**
 ```bash
 # Remove specific tag from resource
-# az vm update \
-#   --resource-group "app-rg" \
-#   --name "test-vm" \
-#   --remove tags.Temporary
+az vm update \
+  --resource-group "app-rg" \
+  --name "test-vm" \
+  --remove tags.Temporary
 
 # Remove all tags from resource
-# az vm update --resource-group "app-rg" --name "test-vm" --set tags={}
+az vm update --resource-group "app-rg" --name "test-vm" --set tags={}
 ```
 
 ---
@@ -545,11 +506,11 @@ Flow:
 
 ```bash
 # Assign built-in policy "Require a tag on resources"
-# az policy assignment create \
-#   --name "require-costcenter" \
-#   --policy "/providers/Microsoft.Authorization/policyDefinitions/871b6d14-10aa-478d-b590-94f262ecfa99" \
-#   --params '{"tagName":{"value":"CostCenter"}}' \
-#   --scope /subscriptions/<sub-id>
+az policy assignment create \
+  --name "require-costcenter" \
+  --policy "/providers/Microsoft.Authorization/policyDefinitions/871b6d14-10aa-478d-b590-94f262ecfa99" \
+  --params '{"tagName":{"value":"CostCenter"}}' \
+  --scope /subscriptions/<sub-id>
 ```
 
 **Effect:** Resources created without `CostCenter` tag are **denied**.
@@ -562,34 +523,34 @@ Flow:
 
 ```bash
 # Custom policy to append default tag
-# cat > append-env-tag-policy.json << 'EOF'
-# {
-#   "if": {
-#     "allOf": [
-#       {
-#         "field": "type",
-#         "notEquals": "Microsoft.Resources/subscriptions/resourceGroups"
-#       },
-#       {
-#         "field": "tags['Environment']",
-#         "exists": false
-#       }
-#     ]
-#   },
-#   "then": {
-#     "effect": "append",
-#     "details": [
-#       {
-#         "field": "tags['Environment']",
-#         "value": "dev"
-#       }
-#     ]
-#   }
-# }
-# EOF
+cat > append-env-tag-policy.json << 'EOF'
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "notEquals": "Microsoft.Resources/subscriptions/resourceGroups"
+      },
+      {
+        "field": "tags['Environment']",
+        "exists": false
+      }
+    ]
+  },
+  "then": {
+    "effect": "append",
+    "details": [
+      {
+        "field": "tags['Environment']",
+        "value": "dev"
+      }
+    ]
+  }
+}
+EOF
 
-# az policy definition create --name "append-env-tag" --rules append-env-tag-policy.json
-# az policy assignment create --name "auto-env-tag" --policy "append-env-tag" --scope /subscriptions/<sub-id>/resourceGroups/dev-rg
+az policy definition create --name "append-env-tag" --rules append-env-tag-policy.json
+az policy assignment create --name "auto-env-tag" --policy "append-env-tag" --scope /subscriptions/<sub-id>/resourceGroups/dev-rg
 ```
 
 ---
@@ -602,14 +563,14 @@ Flow:
 
 ```bash
 # Apply CanNotDelete lock to production resource group
-# az lock create \
-#   --name "prod-protection" \
-#   --lock-type CanNotDelete \
-#   --resource-group "app-prod-rg" \
-#   --notes "Protect production environment from accidental deletion"
+az lock create \
+  --name "prod-protection" \
+  --lock-type CanNotDelete \
+  --resource-group "app-prod-rg" \
+  --notes "Protect production environment from accidental deletion"
 
 # Tag all resources in production
-# az group update --name "app-prod-rg" --tags Environment=Production SLA=Critical Owner=ops-team
+az group update --name "app-prod-rg" --tags Environment=Production SLA=Critical Owner=ops-team
 ```
 
 **Result:**
@@ -625,16 +586,16 @@ Flow:
 
 ```bash
 # Tag resource groups by department
-# az group update --name "finance-rg" --tags Department=Finance CostCenter=F100
-# az group update --name "engineering-rg" --tags Department=Engineering CostCenter=E200
-# az group update --name "sales-rg" --tags Department=Sales CostCenter=S300
+az group update --name "finance-rg" --tags Department=Finance CostCenter=F100
+az group update --name "engineering-rg" --tags Department=Engineering CostCenter=E200
+az group update --name "sales-rg" --tags Department=Sales CostCenter=S300
 
 # Enforce department tag on all resources (policy)
-# az policy assignment create \
-#   --name "require-department-tag" \
-#   --policy "<require-tag-policy-id>" \
-#   --params '{"tagName":{"value":"Department"}}' \
-#   --scope /subscriptions/<sub-id>
+az policy assignment create \
+  --name "require-department-tag" \
+  --policy "<require-tag-policy-id>" \
+  --params '{"tagName":{"value":"Department"}}' \
+  --scope /subscriptions/<sub-id>
 ```
 
 **Result:** Azure Cost Management can show costs broken down by Department tag.
@@ -647,17 +608,17 @@ Flow:
 
 ```bash
 # Tag dev VMs with schedule
-# az vm update --resource-group "dev-rg" --name "dev-vm1" \
-#   --set tags.AutoStart=08:00 tags.AutoStop=19:00
+az vm update --resource-group "dev-rg" --name "dev-vm1" \
+  --set tags.AutoStart=08:00 tags.AutoStop=19:00
 
 # Automation script (run via Azure Automation or scheduled task)
-# STOP_VMS=$(az vm list --query "[?tags.AutoStop=='19:00' && powerState=='running'].id" -o tsv)
-# for VM in $STOP_VMS; do
-#   CURRENT_HOUR=$(date +%H:%M)
-#   if [ "$CURRENT_HOUR" == "19:00" ]; then
-#     az vm deallocate --ids "$VM" --no-wait
-#   fi
-# done
+STOP_VMS=$(az vm list --query "[?tags.AutoStop=='19:00' && powerState=='running'].id" -o tsv)
+for VM in $STOP_VMS; do
+  CURRENT_HOUR=$(date +%H:%M)
+  if [ "$CURRENT_HOUR" == "19:00" ]; then
+    az vm deallocate --ids "$VM" --no-wait
+  fi
+done
 ```
 
 ---
@@ -695,27 +656,17 @@ Nodes:
 +----------------------------------------------------+
 | Delete resource                                    |
 +----------------------------------------------------+
-Flow:
-[Cannot delete resource] --> [Portal: Check Locks]
-[Portal: Check Locks] --> [Resource → Locks]
-[Portal: Check Locks] --> [RG → Locks]
-[Portal: Check Locks] --> [Subscription → Locks]
-[Resource → Locks] --> [Lock found?]
-[RG → Locks] --> [Lock found?]
-[Subscription → Locks] --> [Lock found?]
-[Lock found?] -- Yes --> [Remove lock]
-[Lock found?] -- No --> [Check RBAC permissions]
-[Remove lock] --> [Delete resource]
+
 ```
 
 **CLI troubleshooting:**
 ```bash
 # List all locks affecting a resource
-# az lock list --resource-group "app-rg" -o table
+az lock list --resource-group "app-rg" -o table
 
 # Check locks at all scopes
-# az lock list -o table  # Subscription level
-# az lock list --resource-group "app-rg" -o table  # RG level
+az lock list -o table  # Subscription level
+az lock list --resource-group "app-rg" -o table  # RG level
 ```
 
 ---
@@ -730,10 +681,10 @@ Flow:
 **Verification:**
 ```bash
 # Check tags on resource
-# az resource show --ids <resource-id> --query tags
+az resource show --ids <resource-id> --query tags
 
 # List all resources and their tags
-# az resource list --query "[].{Name:name, Tags:tags}" -o json
+az resource list --query "[].{Name:name, Tags:tags}" -o json
 ```
 
 ---
@@ -819,38 +770,38 @@ Tags are metadata, not access control.
 
 ---
 
-## CLI Reference (Commented Examples)
+## CLI Reference
 
 ### Locks
 
 ```bash
 # Create CanNotDelete lock on resource group
-# az lock create --name "prod-lock" --lock-type CanNotDelete --resource-group "app-prod-rg"
+az lock create --name "prod-lock" --lock-type CanNotDelete --resource-group "app-prod-rg"
 
 # Create ReadOnly lock on subscription
-# az lock create --name "baseline-lock" --lock-type ReadOnly
+az lock create --name "baseline-lock" --lock-type ReadOnly
 
 # List all locks
-# az lock list -o table
+az lock list -o table
 
 # Delete lock
-# az lock delete --name "prod-lock" --resource-group "app-prod-rg"
+az lock delete --name "prod-lock" --resource-group "app-prod-rg"
 ```
 
 ### Tags
 
 ```bash
 # Add tags to resource group
-# az group update --name "app-rg" --tags Environment=prod CostCenter=IT
+az group update --name "app-rg" --tags Environment=prod CostCenter=IT
 
 # Add tags to resource
-# az vm update --resource-group "app-rg" --name "vm1" --set tags.Role=WebServer
+az vm update --resource-group "app-rg" --name "vm1" --set tags.Role=WebServer
 
 # List resources by tag
-# az resource list --tag Environment=prod -o table
+az resource list --tag Environment=prod -o table
 
 # Remove tag
-# az vm update --resource-group "app-rg" --name "vm1" --remove tags.Temporary
+az vm update --resource-group "app-rg" --name "vm1" --remove tags.Temporary
 ```
 
 ---

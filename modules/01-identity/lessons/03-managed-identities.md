@@ -60,14 +60,7 @@ Nodes:
 +----------------------------------------------------+
 | Access Denied                                      |
 +----------------------------------------------------+
-Flow:
-[Azure Resource VM/App...] -- 1. Request token --> [IMDS Endpoint 169.254.169.254]
-[IMDS Endpoint 169.254.169.254] -- 2. Returns token --> [Microsoft Entra ID]
-[Microsoft Entra ID] -- 3. Validates identity --> [Access Token JWT]
-[Access Token JWT] -- 4. Present token --> [Target Service Storage/Key Vault/SQL]
-[Target Service Storage/Key Vault/SQL] -- 5. Check RBAC --> [Authorized?]
-[Authorized?] -- Yes --> [Access Granted]
-[Authorized?] -- No --> [Access Denied]
+
 ```
 
 **Key insight:** Application **never handles credentials** - Azure manages token acquisition transparently.
@@ -94,10 +87,7 @@ Nodes:
 +----------------------------------------------------+
 | Identity automatically deleted                     |
 +----------------------------------------------------+
-Flow:
-[Virtual Machine] -- Enable MI --> [System-assigned Managed Identity]
-[System-assigned Managed Identity] -- Assign role --> [Storage Account]
-[Virtual Machine] -- Delete VM --> [Identity automatically deleted]
+
 ```
 
 **Characteristics:**
@@ -138,13 +128,7 @@ Nodes:
 +----------------------------------------------------+
 | VM deleted                                         |
 +----------------------------------------------------+
-Flow:
-[User-assigned Managed Identity] -- Assigned to --> [Virtual Machine]
-[User-assigned Managed Identity] -- Assigned to --> [App Service]
-[User-assigned Managed Identity] -- Assigned to --> [Function App]
-[User-assigned Managed Identity] -- Has role --> [Storage Account]
-[Virtual Machine] -- Delete VM --> [VM deleted]
-[VM deleted] -- Identity persists --> [User-assigned Managed Identity]
+
 ```
 
 **Characteristics:**
@@ -188,15 +172,7 @@ Nodes:
 +----------------------------------------------------+
 | System-assigned Managed Identity                   |
 +----------------------------------------------------+
-Flow:
-[Need managed identity?] -- Yes --> [Multiple resources need same...]
-[Need managed identity?] -- No --> [Use service principal with secrets]
-[Multiple resources need same...] -- Yes --> [User-assigned Managed Identity]
-[Multiple resources need same...] -- No --> [Identity must persist beyond...]
-[Identity must persist beyond...] -- Yes --> [User-assigned Managed Identity]
-[Identity must persist beyond...] -- No --> [Simple use case?]
-[Simple use case?] -- Yes --> [System-assigned Managed Identity]
-[Simple use case?] -- No --> [User-assigned Managed Identity]
+
 ```
 
 **Quick guide:**
@@ -236,10 +212,7 @@ Nodes:
 +----------------------------------------------------+
 | Entra ID Token Issuer                              |
 +----------------------------------------------------+
-Flow:
-[Application Code] -- HTTP GET --> [IMDS Endpoint 169.254.169.254:80]
-[IMDS Endpoint 169.254.169.254:80] -- Returns --> [Instance Metadata]
-[IMDS Endpoint 169.254.169.254:80] -- Returns --> [Access Token for requested resource]
+
 ```
 
 ### Token Acquisition Example
@@ -281,26 +254,26 @@ curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-
 **CLI:**
 ```bash
 # Enable system-assigned MI on existing VM
-# az vm identity assign --name <vm-name> --resource-group <rg-name>
+az vm identity assign --name <vm-name> --resource-group <rg-name>
 
 # Create VM with system-assigned MI enabled
-# az vm create \
-#   --name myVM \
-#   --resource-group myRG \
-#   --image UbuntuLTS \
-#   --assign-identity \
-#   --role Contributor \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>
+az vm create \
+  --name myVM \
+  --resource-group myRG \
+  --image UbuntuLTS \
+  --assign-identity \
+  --role Contributor \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>
 ```
 
 **Get principal ID:**
 ```bash
 # Get the managed identity's principal ID (for role assignments)
-# PRINCIPAL_ID=$(az vm identity show \
-#   --name <vm-name> \
-#   --resource-group <rg-name> \
-#   --query principalId -o tsv)
-# echo $PRINCIPAL_ID
+PRINCIPAL_ID=$(az vm identity show \
+  --name <vm-name> \
+  --resource-group <rg-name> \
+  --query principalId -o tsv)
+echo $PRINCIPAL_ID
 ```
 
 ---
@@ -313,15 +286,15 @@ curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-
 **CLI:**
 ```bash
 # Enable system-assigned MI on App Service
-# az webapp identity assign \
-#   --name <app-name> \
-#   --resource-group <rg-name>
+az webapp identity assign \
+  --name <app-name> \
+  --resource-group <rg-name>
 
 # Get principal ID
-# PRINCIPAL_ID=$(az webapp identity show \
-#   --name <app-name> \
-#   --resource-group <rg-name> \
-#   --query principalId -o tsv)
+PRINCIPAL_ID=$(az webapp identity show \
+  --name <app-name> \
+  --resource-group <rg-name> \
+  --query principalId -o tsv)
 ```
 
 ---
@@ -331,38 +304,38 @@ curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-
 **Create user-assigned MI:**
 ```bash
 # Create user-assigned managed identity
-# az identity create \
-#   --name myUserMI \
-#   --resource-group myRG \
-#   --location eastus
+az identity create \
+  --name myUserMI \
+  --resource-group myRG \
+  --location eastus
 
 # Get identity details
-# IDENTITY_ID=$(az identity show \
-#   --name myUserMI \
-#   --resource-group myRG \
-#   --query id -o tsv)
-# PRINCIPAL_ID=$(az identity show \
-#   --name myUserMI \
-#   --resource-group myRG \
-#   --query principalId -o tsv)
+IDENTITY_ID=$(az identity show \
+  --name myUserMI \
+  --resource-group myRG \
+  --query id -o tsv)
+PRINCIPAL_ID=$(az identity show \
+  --name myUserMI \
+  --resource-group myRG \
+  --query principalId -o tsv)
 ```
 
 **Assign to VM:**
 ```bash
 # Assign user-assigned MI to VM
-# az vm identity assign \
-#   --name <vm-name> \
-#   --resource-group <rg-name> \
-#   --identities "$IDENTITY_ID"
+az vm identity assign \
+  --name <vm-name> \
+  --resource-group <rg-name> \
+  --identities "$IDENTITY_ID"
 ```
 
 **Assign to App Service:**
 ```bash
 # Assign user-assigned MI to App Service
-# az webapp identity assign \
-#   --name <app-name> \
-#   --resource-group <rg-name> \
-#   --identities "$IDENTITY_ID"
+az webapp identity assign \
+  --name <app-name> \
+  --resource-group <rg-name> \
+  --identities "$IDENTITY_ID"
 ```
 
 ---
@@ -454,13 +427,7 @@ Nodes:
 +----------------------------------------------------+
 | Access                                             |
 +----------------------------------------------------+
-Flow:
-[Managed Identity VM/App Service] -- Needs --> [RBAC Role Storage Blob Data...]
-[RBAC Role Storage Blob Data...] -- On --> [Storage Account]
-[Managed Identity VM/App Service] -- Gets token for --> [Entra ID]
-[Managed Identity VM/App Service] -- Presents token to --> [Storage Account]
-[Storage Account] -- Validates --> [RBAC Check]
-[RBAC Check] -- Allow/Deny --> [Access]
+
 ```
 
 ### Common Role Assignments
@@ -468,19 +435,19 @@ Flow:
 **Storage Account:**
 ```bash
 # Grant managed identity access to blob storage
-# az role assignment create \
-#   --assignee <principal-id> \
-#   --role "Storage Blob Data Contributor" \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
+az role assignment create \
+  --assignee <principal-id> \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
 ```
 
 **Key Vault:**
 ```bash
 # Grant managed identity access to Key Vault secrets
-# az role assignment create \
-#   --assignee <principal-id> \
-#   --role "Key Vault Secrets User" \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault>
+az role assignment create \
+  --assignee <principal-id> \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault>
 ```
 
 **Azure SQL Database:**
@@ -514,27 +481,22 @@ Nodes:
 +----------------------------------------------------+
 | 169.254.169.254                                    |
 +----------------------------------------------------+
-Flow:
-[Virtual Machine] -- System MI enabled --> [Managed Identity]
-[Managed Identity] -- Assigned role --> [Storage Account]
-[Managed Identity] -- Storage Blob Data... --> [Storage Account]
-[Virtual Machine] -- Get token from IMDS --> [169.254.169.254]
-[Virtual Machine] -- Access blob with token --> [Storage Account]
+
 ```
 
 **Implementation:**
 ```bash
 # 1. Enable system MI on VM
-# az vm identity assign --name myVM --resource-group myRG
+az vm identity assign --name myVM --resource-group myRG
 
 # 2. Get principal ID
-# PRINCIPAL_ID=$(az vm identity show --name myVM --resource-group myRG --query principalId -o tsv)
+PRINCIPAL_ID=$(az vm identity show --name myVM --resource-group myRG --query principalId -o tsv)
 
 # 3. Assign Storage Blob Data Contributor role
-# az role assignment create \
-#   --assignee "$PRINCIPAL_ID" \
-#   --role "Storage Blob Data Contributor" \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
 
 # 4. From VM, get token and access storage (see code examples above)
 ```
@@ -559,27 +521,22 @@ Nodes:
 +----------------------------------------------------+
 | 169.254.169.254                                    |
 +----------------------------------------------------+
-Flow:
-[App Service] -- System MI enabled --> [Managed Identity]
-[Managed Identity] -- Assigned role --> [Key Vault]
-[Managed Identity] -- Key Vault Secrets User --> [Key Vault]
-[App Service] -- Get token from IMDS --> [169.254.169.254]
-[App Service] -- Retrieve secret with token --> [Key Vault]
+
 ```
 
 **Implementation:**
 ```bash
 # 1. Enable system MI on App Service
-# az webapp identity assign --name myApp --resource-group myRG
+az webapp identity assign --name myApp --resource-group myRG
 
 # 2. Get principal ID
-# PRINCIPAL_ID=$(az webapp identity show --name myApp --resource-group myRG --query principalId -o tsv)
+PRINCIPAL_ID=$(az webapp identity show --name myApp --resource-group myRG --query principalId -o tsv)
 
 # 3. Assign Key Vault Secrets User role
-# az role assignment create \
-#   --assignee "$PRINCIPAL_ID" \
-#   --role "Key Vault Secrets User" \
-#   --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault>
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault>
 
 # 4. In app code, use Azure SDK to access Key Vault with managed identity
 ```
@@ -604,17 +561,13 @@ Nodes:
 +----------------------------------------------------+
 | 169.254.169.254                                    |
 +----------------------------------------------------+
-Flow:
-[Azure Function] -- System MI enabled --> [Managed Identity]
-[Managed Identity] -- Database role assigned --> [Azure SQL Database]
-[Azure Function] -- Get token for... --> [169.254.169.254]
-[Azure Function] -- Connect to SQL with token --> [Azure SQL Database]
+
 ```
 
 **Implementation:**
 ```bash
 # 1. Enable system MI on Function
-# az functionapp identity assign --name myFunction --resource-group myRG
+az functionapp identity assign --name myFunction --resource-group myRG
 
 # 2. In SQL, create user for managed identity (see SQL example above)
 ```
@@ -637,10 +590,10 @@ connection.AccessToken = GetAccessToken("https://database.windows.net/");
 
 ```bash
 # Assign MI to storage account in different subscription
-# az role assignment create \
-#   --assignee <principal-id> \
-#   --role "Storage Blob Data Contributor" \
-#   --scope /subscriptions/<other-sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
+az role assignment create \
+  --assignee <principal-id> \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<other-sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage>
 ```
 
 ### Cross-Tenant Access
@@ -693,36 +646,25 @@ Nodes:
 +----------------------------------------------------+
 | Target service supports MI?                        |
 +----------------------------------------------------+
-Flow:
-[Access Denied] --> [MI enabled on resource?]
-[MI enabled on resource?] -- No --> [Enable managed identity]
-[MI enabled on resource?] -- Yes --> [Role assigned to MI?]
-[Role assigned to MI?] -- No --> [Assign appropriate RBAC role]
-[Role assigned to MI?] -- Yes --> [Correct scope?]
-[Correct scope?] -- No --> [Adjust role assignment scope]
-[Correct scope?] -- Yes --> [Propagated?]
-[Propagated?] -- No --> [Wait 5-10 minutes]
-[Propagated?] -- Yes --> [Getting token?]
-[Getting token?] -- No --> [Check IMDS connectivity]
-[Getting token?] -- Yes --> [Target service supports MI?]
+
 ```
 
 ### Validation Commands
 
 ```bash
 # Check if system MI is enabled on VM
-# az vm identity show --name <vm-name> --resource-group <rg-name>
+az vm identity show --name <vm-name> --resource-group <rg-name>
 
 # List role assignments for managed identity
-# az role assignment list --assignee <principal-id> --all -o table
+az role assignment list --assignee <principal-id> --all -o table
 
 # Test IMDS endpoint from within VM/App Service
-# curl -H Metadata:true "http://169.254.169.254/metadata/instance?api-version=2021-02-01" | jq
+curl -H Metadata:true "http://169.254.169.254/metadata/instance?api-version=2021-02-01" | jq
 
 # Get token for specific resource
-# curl -H Metadata:true \
-#   "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/" \
-#   | jq
+curl -H Metadata:true \
+  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/" \
+  | jq
 ```
 
 ### Common Error Messages
@@ -794,62 +736,62 @@ Each service has specific resource URI (https://storage.azure.com/, https://vaul
 
 ---
 
-## CLI Reference (Commented Examples)
+## CLI Reference
 
 ### Enable Managed Identities
 
 ```bash
 # Enable system-assigned MI on VM
-# az vm identity assign --name <vm-name> --resource-group <rg-name>
+az vm identity assign --name <vm-name> --resource-group <rg-name>
 
 # Enable system-assigned MI on App Service
-# az webapp identity assign --name <app-name> --resource-group <rg-name>
+az webapp identity assign --name <app-name> --resource-group <rg-name>
 
 # Create user-assigned MI
-# az identity create --name <identity-name> --resource-group <rg-name>
+az identity create --name <identity-name> --resource-group <rg-name>
 
 # Assign user-assigned MI to VM
-# az vm identity assign --name <vm-name> --resource-group <rg-name> --identities <identity-id>
+az vm identity assign --name <vm-name> --resource-group <rg-name> --identities <identity-id>
 ```
 
 ### Get Identity Information
 
 ```bash
 # Get principal ID from system-assigned MI
-# az vm identity show --name <vm-name> --resource-group <rg-name> --query principalId -o tsv
+az vm identity show --name <vm-name> --resource-group <rg-name> --query principalId -o tsv
 
 # Get user-assigned MI details
-# az identity show --name <identity-name> --resource-group <rg-name>
+az identity show --name <identity-name> --resource-group <rg-name>
 ```
 
 ### Assign Roles to Managed Identity
 
 ```bash
 # Assign Storage Blob Data Contributor
-# az role assignment create \
-#   --assignee <principal-id> \
-#   --role "Storage Blob Data Contributor" \
-#   --scope <storage-account-resource-id>
+az role assignment create \
+  --assignee <principal-id> \
+  --role "Storage Blob Data Contributor" \
+  --scope <storage-account-resource-id>
 
 # Assign Key Vault Secrets User
-# az role assignment create \
-#   --assignee <principal-id> \
-#   --role "Key Vault Secrets User" \
-#   --scope <key-vault-resource-id>
+az role assignment create \
+  --assignee <principal-id> \
+  --role "Key Vault Secrets User" \
+  --scope <key-vault-resource-id>
 ```
 
 ### Test Token Acquisition
 
 ```bash
 # Get token for Azure Storage (from within Azure resource)
-# curl -H Metadata:true \
-#   "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/" \
-#   | jq
+curl -H Metadata:true \
+  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/" \
+  | jq
 
 # Get token for Key Vault
-# curl -H Metadata:true \
-#   "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net/" \
-#   | jq
+curl -H Metadata:true \
+  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net/" \
+  | jq
 ```
 
 ---

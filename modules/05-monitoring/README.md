@@ -6,7 +6,7 @@ This module covers end-to-end monitoring and resilience operations for AZ-104: t
 
 ## Module Standards
 
-- Lessons include text-based architecture views (no Mermaid), operational guidance, and exam-relevant pitfalls.
+- Lessons include operational guidance and exam-relevant pitfalls.
 - CLI + ARM labs are parameterized with `.env`, use reusable variables, and include explicit validation and cleanup.
 - Portal labs are written as detailed step-by-step procedures, not high-level summaries.
 

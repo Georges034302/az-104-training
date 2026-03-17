@@ -86,20 +86,7 @@ Nodes:
 +----------------------------------------------------+
 | Skip Deployment                                    |
 +----------------------------------------------------+
-Flow:
-[Resource Create/Update Request] --> [Azure Resource Manager]
-[Azure Resource Manager] --> [Policy Engine]
-[Policy Engine] --> [Evaluate all assigned policies at...]
-[Evaluate all assigned policies at...] --> [Resource matches policy rules?]
-[Resource matches policy rules?] -- No --> [No match - Allow]
-[Resource matches policy rules?] -- Yes --> [Policy Effect]
-[Policy Effect] -- Deny --> [Request Blocked]
-[Policy Effect] -- Audit --> [Allow + Log Compliance]
-[Policy Effect] -- Append --> [Add Properties + Allow]
-[Policy Effect] -- Modify --> [Change Properties + Allow]
-[Policy Effect] -- DeployIfNotExists --> [Resource exists?]
-[Resource exists?] -- No --> [Deploy Resource]
-[Resource exists?] -- Yes --> [Skip Deployment]
+
 ```
 
 **Key insight:** Policies evaluate **before** resource creation/update, enabling preventative governance.
@@ -378,14 +365,7 @@ Nodes:
 +----------------------------------------------------+
 | Resource 2 EXCLUDED                                |
 +----------------------------------------------------+
-Flow:
-[Management Group Scope: all child...] --> [Subscription 1]
-[Management Group Scope: all child...] --> [Subscription 2]
-[Subscription 1] --> [Resource Group A]
-[Subscription 1] --> [Resource Group B]
-[Subscription 2] --> [Resource Group C]
-[Resource Group A] --> [Resource 1]
-[Resource Group A] --> [Resource 2 EXCLUDED]
+
 ```
 
 **Scope inheritance:**

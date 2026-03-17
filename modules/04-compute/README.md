@@ -24,7 +24,6 @@ This module covers the Azure compute topics most relevant to AZ-104: virtual mac
 
 - **CLI + ARM track**: Fully parameterized with `.env`, explicit validation, and cleanup.
 - **Portal track**: Detailed step-by-step procedures aligned with equivalent CLI outcomes.
-- **Architecture diagrams**: Text-only boxes/arrows (no Mermaid).
 - **Safety**: Every lab uses dedicated resource groups and includes cleanup commands.
 
 ## Learning Outcomes
