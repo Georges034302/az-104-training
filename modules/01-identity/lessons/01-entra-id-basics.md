@@ -123,8 +123,8 @@ Azure identity is easier when you hold this model:
      | Allow                      | Deny
      v                            v
 +---------------------------+   +-------------------------------+
-| Resource provider         |   | Request blocked              |
-| executes                  |   | (403 Forbidden)              |
+| Resource provider         |   | Request blocked               |
+| executes                  |   | (403 Forbidden)               |
 +---------------------------+   +-------------------------------+
 ```
 
@@ -209,7 +209,7 @@ User types you’ll encounter:
 User origin patterns:
 
 ```text
-+-------------------------------+    Created directly in Entra ID    +-------------------------------+
++-------------------------------+    Created directly in Entra ID     +-------------------------------+
 | Cloud-only users              | ----------------------------------> | Entra ID Tenant               |
 | (Azure Portal / CLI)          |                                     | contoso.onmicrosoft.com       |
 +-------------------------------+                                     +-------------------------------+
