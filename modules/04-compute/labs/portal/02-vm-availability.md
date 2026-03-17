@@ -24,21 +24,16 @@ Deploy two VMs in one availability set and verify they are placed under the same
 - Azure subscription with rights to create compute resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m04avail"
-RG_NAME="${PREFIX}-${LAB}-rg"
-AS_NAME="${PREFIX}-${LAB}-as"
-VM1_NAME="${PREFIX}-${LAB}-vm1"
-VM2_NAME="${PREFIX}-${LAB}-vm2"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, AS_NAME=$AS_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m04avail
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- AS_NAME: ${PREFIX}-${LAB}-as
+- VM1_NAME: ${PREFIX}-${LAB}-vm1
+- VM2_NAME: ${PREFIX}-${LAB}-vm2
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -80,11 +75,11 @@ echo "Loaded: RG_NAME=$RG_NAME, AS_NAME=$AS_NAME"
 3. Confirm fault and update domain configuration is visible on the availability set resource.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - A VM cannot be both zonal and in an availability set at the same time.

@@ -29,20 +29,15 @@ Create a VM and Log Analytics workspace, enable VM Insights onboarding, and veri
 - Azure subscription with rights to create compute and monitoring resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m05vminsights"
-RG_NAME="${PREFIX}-${LAB}-rg"
-LAW_NAME="${PREFIX}-${LAB}-law"
-VM_NAME="${PREFIX}-${LAB}-vm"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, LAW_NAME=$LAW_NAME, VM_NAME=$VM_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m05vminsights
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- LAW_NAME: ${PREFIX}-${LAB}-law
+- VM_NAME: ${PREFIX}-${LAB}-vm
 
 ## Portal solution (step-by-step)
 ### 1) Create the resource group
@@ -94,11 +89,11 @@ Heartbeat
 4. Confirm at least one VM heartbeat row appears (allow 5-10 minutes after onboarding if empty initially).
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Empty results immediately after onboarding are normal while data pipeline initializes.

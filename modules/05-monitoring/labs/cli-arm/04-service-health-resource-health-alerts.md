@@ -22,7 +22,7 @@ Create subscription-scoped Activity Log alerts for Service Health and Resource H
 - Azure CLI installed and authenticated with `az login`
 - A valid email inbox for notification tests
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -103,9 +103,13 @@ Use ARM/Bicep in enterprise environments to standardize health alert baselines a
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

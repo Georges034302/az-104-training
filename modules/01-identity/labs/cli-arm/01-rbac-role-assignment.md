@@ -48,7 +48,7 @@ echo "Environment loaded: RG_NAME=$RG_NAME"
 ```
 
 
-## Azure CLI solution (fully parameterised)
+## Azure CLI solution (fully parameterized)
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
@@ -116,12 +116,10 @@ az group delete \
   --yes \
   --no-wait
 echo "Deleted RG: $RG_NAME (async)"
-```
 
-```bash
-# Remove the .env file
+# Remove local lab files
 rm -f .env
-echo "Cleaned up .env file"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

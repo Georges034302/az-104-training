@@ -1,0 +1,17 @@
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "location",
+        "notEquals": "australiaeast"
+      },
+      {
+        "field": "type",
+        "notEquals": "Microsoft.Resources/subscriptions/resourceGroups"
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}

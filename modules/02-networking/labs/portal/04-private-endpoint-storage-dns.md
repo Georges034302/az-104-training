@@ -22,20 +22,15 @@ Create a storage account private endpoint and private DNS integration so blob en
 - Azure Portal access
 - Permission to create storage and private networking resources
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m02-pe-dns"
-RG_NAME="${PREFIX}-${LAB}-rg"
-VNET_NAME="${PREFIX}-${LAB}-vnet"
-STG_NAME_HINT="${PREFIX}${LAB//-/}"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: $RG_NAME, $VNET_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m02-pe-dns
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- VNET_NAME: ${PREFIX}-${LAB}-vnet
+- STG_NAME_HINT: ${PREFIX}${LAB//-/}
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -88,12 +83,11 @@ echo "Loaded: $RG_NAME, $VNET_NAME"
 4. Open private endpoint resource and note private IP address for verification.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
-
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 ## Notes
 - Private endpoint controls network path; storage RBAC/SAS still control data access.
 - DNS integration is required for private endpoint name resolution to private IP.

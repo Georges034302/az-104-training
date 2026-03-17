@@ -29,7 +29,7 @@ Create a storage account and SMB-based Azure file share, upload a test file, con
 - Azure subscription with permission to create storage resources
 - Azure CLI installed and authenticated with `az login`
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -177,9 +177,13 @@ az deployment group create \
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env main.json "$LOCAL_FILE"
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

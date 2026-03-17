@@ -29,19 +29,13 @@ Create a cloud user and security group in Entra ID, add the user to the group, a
 - Azure Portal access
 - Permission to create Entra users and groups in your tenant
 
-## Setup: Create environment file
-```bash
-cat > .env << 'EOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m01-entra-group-rbac"
-RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
-```
-
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m01-entra-group-rbac
+- RG_NAME: ${PREFIX}-${LAB}-rg
 ## Portal solution (step-by-step)
 1. Sign in to the Azure Portal.
 2. In the left menu, select **Resource groups** > **Create**.
@@ -71,12 +65,13 @@ echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
   - In **Microsoft Entra ID** > **Groups** > select your group > **Members** to confirm the user is present.
 
 ## Cleanup (required)
-```bash
-# Delete resource group and local env file
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started."
-```
+- In Azure Portal, open **Resource groups** > `${RG_NAME}` > **Access control (IAM)** > **Role assignments**.
+- Remove the Reader role assignment you created for the lab group.
+- Open **Microsoft Entra ID** > **Groups**, find your lab group, and delete it.
+- Open **Microsoft Entra ID** > **Users**, find your lab user, and delete it.
+- Go to **Resource groups** > `${RG_NAME}` > **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - This lab demonstrates why group-based RBAC is preferred over direct user assignments.

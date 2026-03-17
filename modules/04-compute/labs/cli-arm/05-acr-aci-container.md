@@ -32,7 +32,7 @@ Create an Azure Container Registry, build an image with ACR Tasks, deploy that i
 - Azure subscription with rights to create ACR and ACI resources
 - Azure CLI installed and authenticated with az login
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -128,9 +128,14 @@ Not required for this lab. Building and pushing images with runtime credentials 
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
-rm -rf app .env
-echo "Cleanup started: $RG_NAME"
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
+rm -rf app
+rm -f .env
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

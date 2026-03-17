@@ -26,7 +26,7 @@ Deploy two Linux VMs in one availability set so they are distributed across faul
 - Azure subscription with rights to create compute and network resources
 - Azure CLI installed and authenticated with az login
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -107,9 +107,13 @@ Not required for this lab. Availability concepts are validated through live depl
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

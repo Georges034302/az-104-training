@@ -27,21 +27,16 @@ Create a storage account and private blob container, upload a sample blob, gener
 - Azure Portal access
 - A target user, group, or service principal that can receive the RBAC assignment
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m03sasrbac"
-RG_NAME="${PREFIX}-${LAB}-rg"
-STG_NAME="az104m03sas001"
-CONTAINER_NAME="sasdata"
-ROLE_NAME="Storage Blob Data Reader"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m03sasrbac
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- STG_NAME: az104m03sas001
+- CONTAINER_NAME: sasdata
+- ROLE_NAME: Storage Blob Data Reader
 
 ## Portal solution (step-by-step)
 ### 1) Create the resource group and storage account
@@ -87,11 +82,11 @@ echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NA
   - RBAC is identity-based authorization evaluated at request time
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - If you test RBAC immediately, allow time for propagation before concluding access is missing.

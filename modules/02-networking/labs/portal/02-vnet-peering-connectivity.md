@@ -19,20 +19,15 @@ Create two VNets, configure peering in both directions, and validate peering sta
 - Azure subscription with permission to create VNets and peerings
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m02-peering"
-RG_NAME="${PREFIX}-${LAB}-rg"
-VNET_A="${PREFIX}-${LAB}-vnet-a"
-VNET_B="${PREFIX}-${LAB}-vnet-b"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: $RG_NAME, $VNET_A, $VNET_B"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m02-peering
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- VNET_A: ${PREFIX}-${LAB}-vnet-a
+- VNET_B: ${PREFIX}-${LAB}-vnet-b
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -82,12 +77,11 @@ echo "Loaded: $RG_NAME, $VNET_A, $VNET_B"
 3. Confirm address spaces remain non-overlapping.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
-
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 ## Notes
 - Peering is not transitive by default.
 - Peering provides connectivity, not automatic private DNS integration.

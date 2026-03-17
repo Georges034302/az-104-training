@@ -25,22 +25,17 @@ Create a Linux VM in Azure Portal with dedicated network resources and controlle
 - Azure subscription with rights to create compute and network resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m04vm"
-RG_NAME="${PREFIX}-${LAB}-rg"
-VNET_NAME="${PREFIX}-${LAB}-vnet"
-SUBNET_NAME="vm"
-NSG_NAME="${PREFIX}-${LAB}-nsg"
-VM_NAME="${PREFIX}-${LAB}-vm"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m04vm
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- VNET_NAME: ${PREFIX}-${LAB}-vnet
+- SUBNET_NAME: vm
+- NSG_NAME: ${PREFIX}-${LAB}-nsg
+- VM_NAME: ${PREFIX}-${LAB}-vm
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -106,11 +101,11 @@ echo "Loaded: RG_NAME=$RG_NAME, VM_NAME=$VM_NAME"
 4. Verify subnet NSG association points to ${NSG_NAME}.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Public inbound ports were left as None on VM creation because SSH is controlled through the subnet NSG rule.

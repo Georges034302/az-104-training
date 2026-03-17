@@ -29,24 +29,15 @@ Create a resource group, create a user (optional), and assign a built-in RBAC ro
 
 ## Prerequisites
 - Azure subscription with permission to create resources
-- Azure CLI installed and authenticated (`az login`)
-- (Optional) Azure Portal access
+- Azure Portal access
 
-## Setup: Create environment file
-```bash
-# Create .env file with lab parameters
-cat > .env << 'EOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m01-rbac"
-RG_NAME="${PREFIX}-${LAB}-rg"
-EOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-# Load environment variables
-source .env
-echo "Environment loaded: RG_NAME=$RG_NAME"
-```
-
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m01-rbac
+- RG_NAME: ${PREFIX}-${LAB}-rg
 
 ## Portal solution (step-by-step)
 1. Sign in to the Azure Portal.
@@ -67,20 +58,11 @@ echo "Environment loaded: RG_NAME=$RG_NAME"
 
 
 ## Cleanup (required)
-```bash
-# Delete the resource group and all its resources asynchronously
-az group delete \
-  --name "$RG_NAME" \
-  --yes \
-  --no-wait
-echo "Deleted RG: $RG_NAME (async)"
-```
-
-```bash
-# Remove the .env file
-rm -f .env
-echo "Cleaned up .env file"
-```
+- In Azure Portal, go to **Resource groups** and open `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm the resource group is removed.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Every CLI command that returns an ID/URL is captured into a **variable** and echoed.

@@ -28,20 +28,15 @@ Create an App Service plan and web app, configure app settings, and validate the
 - Azure subscription with rights to create App Service resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m04appsvc"
-RG_NAME="${PREFIX}-${LAB}-rg"
-PLAN_NAME="${PREFIX}-${LAB}-plan"
-APP_NAME="az104m04appsvc001"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, PLAN_NAME=$PLAN_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m04appsvc
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- PLAN_NAME: ${PREFIX}-${LAB}-plan
+- APP_NAME: az104m04appsvc001
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -81,12 +76,11 @@ echo "Loaded: RG_NAME=$RG_NAME, PLAN_NAME=$PLAN_NAME"
 3. In Environment variables/Configuration, confirm both app settings exist.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
-
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 ## Notes
 - App settings are exposed as environment variables to the runtime.
 - Scale actions apply to the App Service plan, which can affect every app in that plan.

@@ -40,7 +40,7 @@ echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
 
 
-## Azure CLI solution (fully parameterised)
+## Azure CLI solution (fully parameterized)
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
@@ -114,6 +114,22 @@ Optional: policy assignments are commonly managed as code, but this lab keeps it
 
 ## Cleanup (required)
 ```bash
+# Rebuild cleanup names used during deployment
+LOCK_NAME="${RG_NAME}-delete-lock"
+POLICY_NAME="${RG_NAME}-allowed-locations"
+RG_ID="$(az group show --name "$RG_NAME" --query id -o tsv)"
+
+# Remove policy assignment first (if present)
+az policy assignment delete \
+  --name "$POLICY_NAME" \
+  --scope "$RG_ID" 2>/dev/null || true
+
+# Remove the delete lock before deleting the RG
+LOCK_ID="$(az lock show --name "$LOCK_NAME" --resource-group "$RG_NAME" --query id -o tsv 2>/dev/null || true)"
+if [ -n "$LOCK_ID" ]; then
+  az lock delete --ids "$LOCK_ID"
+fi
+
 # Delete the resource group and all its resources asynchronously
 az group delete \
   --name "$RG_NAME" \
@@ -121,9 +137,9 @@ az group delete \
   --no-wait
 echo "Deleted RG: $RG_NAME (async)"
 
-# Remove the environment file
+# Remove local lab files
 rm -f .env
-echo "Cleaned up environment file"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

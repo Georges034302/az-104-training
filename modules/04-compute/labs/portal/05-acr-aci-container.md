@@ -33,21 +33,16 @@ Create a private Azure Container Registry, build an image, and deploy it to Azur
 - Azure Portal access
 - Cloud Shell access in portal
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m04acraci"
-RG_NAME="${PREFIX}-${LAB}-rg"
-ACR_NAME="az104m04acr001"
-ACI_NAME="${PREFIX}-${LAB}-aci"
-IMAGE_NAME="nginx-demo:v1"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, ACI_NAME=$ACI_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m04acraci
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- ACR_NAME: az104m04acr001
+- ACI_NAME: ${PREFIX}-${LAB}-aci
+- IMAGE_NAME: nginx-demo:v1
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group and ACR
@@ -99,12 +94,11 @@ az acr build \
 3. Copy FQDN from Overview and open it in browser.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env Dockerfile
-echo "Cleanup started: $RG_NAME"
-```
-
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 ## Notes
 - If ACI fails to pull image, re-check registry/image/tag selection and ACR admin key state.
 - ACR naming must be globally unique and lowercase alphanumeric.

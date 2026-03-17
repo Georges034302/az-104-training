@@ -30,7 +30,7 @@ Create a VM, build an email-based Action Group, configure a CPU metric alert, an
 - Azure CLI installed and authenticated with `az login`
 - A valid email inbox for Action Group receiver testing
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -118,9 +118,13 @@ Use ARM/Bicep for organization-wide alert baselines. This lab focuses on admin o
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

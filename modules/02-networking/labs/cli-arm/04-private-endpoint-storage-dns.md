@@ -22,7 +22,7 @@ Deploy a storage account, private endpoint, private DNS zone, and VNet link so b
 - Azure CLI authenticated (`az login`)
 - Permission to create networking and storage resources
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -129,9 +129,13 @@ Not required for this lab. The CLI workflow is preferred here because private en
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

@@ -42,7 +42,7 @@ source .env
 echo "Environment loaded: RG_NAME=$RG_NAME, LOCATION=$LOCATION"
 ```
 
-## Azure CLI solution (fully parameterised)
+## Azure CLI solution (fully parameterized)
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location
@@ -125,17 +125,25 @@ Not required for this lab.
 
 ## Cleanup (required)
 ```bash
-# Remove role assignment first
-az role assignment delete --ids "$ROLE_ASSIGNMENT_ID"
+# Remove role assignment first (if present)
+if [ -n "$ROLE_ASSIGNMENT_ID" ]; then
+  az role assignment delete --ids "$ROLE_ASSIGNMENT_ID" 2>/dev/null || true
+fi
 
-# Delete Entra group and user
-az ad group delete --group "$GROUP_ID"
-az ad user delete --id "$LAB_USER_UPN"
+# Delete Entra group and user (if present)
+if [ -n "$GROUP_ID" ]; then
+  az ad group delete --group "$GROUP_ID" 2>/dev/null || true
+fi
+if [ -n "$LAB_USER_UPN" ]; then
+  az ad user delete --id "$LAB_USER_UPN" 2>/dev/null || true
+fi
 
-# Delete resource group and local env file
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: role assignment, Entra objects, and RG removed."
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

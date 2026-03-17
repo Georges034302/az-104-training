@@ -28,20 +28,15 @@ Create a storage account, add a private blob container, upload a file, and downl
 - Azure subscription with permission to create storage resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m03blob"
-RG_NAME="${PREFIX}-${LAB}-rg"
-STG_NAME="az104m03blob001"
-CONTAINER_NAME="data"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m03blob
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- STG_NAME: az104m03blob001
+- CONTAINER_NAME: data
 
 ## Portal solution (step-by-step)
 ### 1) Create the resource group
@@ -87,11 +82,11 @@ echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NA
 4. Open **Endpoints** in the storage account and note the blob service endpoint.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Storage account names must be globally unique. If your preferred name is unavailable, adjust the suffix and continue.

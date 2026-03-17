@@ -28,20 +28,15 @@ Create a storage account, upload a sample blob, and configure a lifecycle manage
 - Azure subscription with permission to create storage resources
 - Azure Portal access
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m03life"
-RG_NAME="${PREFIX}-${LAB}-rg"
-STG_NAME="az104m03life001"
-CONTAINER_NAME="data"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m03life
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- STG_NAME: az104m03life001
+- CONTAINER_NAME: data
 
 ## Portal solution (step-by-step)
 ### 1) Create the resource group and storage account
@@ -79,11 +74,11 @@ echo "Loaded: RG_NAME=$RG_NAME, STG_NAME=$STG_NAME, CONTAINER_NAME=$CONTAINER_NA
 3. Open the uploaded blob and note that the blob will not move immediately; Azure processes lifecycle rules asynchronously.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Lifecycle management is configured at the storage account level.

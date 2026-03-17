@@ -26,7 +26,7 @@ Create a virtual network with two subnets, deploy a Network Security Group (NSG)
 - Azure subscription with rights to create networking resources
 - Azure CLI installed and authenticated (`az login`)
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -218,9 +218,13 @@ az deployment group create \
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env main.json
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

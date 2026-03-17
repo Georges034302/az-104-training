@@ -28,20 +28,15 @@ Create a route table, add custom routes, associate the route table to a subnet, 
 - Azure Portal access
 - Permission to create VNets and route tables
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m02-udr"
-RG_NAME="${PREFIX}-${LAB}-rg"
-VNET_NAME="${PREFIX}-${LAB}-vnet"
-RT_NAME="${PREFIX}-${LAB}-rt"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: $RG_NAME, $VNET_NAME, $RT_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m02-udr
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- VNET_NAME: ${PREFIX}-${LAB}-vnet
+- RT_NAME: ${PREFIX}-${LAB}-rt
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group
@@ -93,12 +88,11 @@ echo "Loaded: $RG_NAME, $VNET_NAME, $RT_NAME"
 2. In `${RT_NAME}` > **Subnets**, verify `workload` subnet association exists.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
-
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 ## Notes
 - Longest prefix match is used first in route selection.
 - For equal prefix length, UDR precedence is above BGP and system routes.

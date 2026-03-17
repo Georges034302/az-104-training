@@ -45,7 +45,7 @@ echo "Environment loaded: RG_NAME=$RG_NAME"
 ```
 
 
-## Azure CLI solution (fully parameterised)
+## Azure CLI solution (fully parameterized)
 ### 1) Create Resource Group
 ```bash
 # Create the resource group in the specified location

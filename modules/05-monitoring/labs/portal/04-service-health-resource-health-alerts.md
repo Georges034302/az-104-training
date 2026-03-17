@@ -22,21 +22,16 @@ Create subscription-scoped Activity Log alerts for Service Health and Resource H
 - Azure Portal access
 - Valid email inbox for alert notifications
 
-## Setup: create environment file
-```bash
-cat > .env << 'ENVEOF'
-LOCATION="australiaeast"
-PREFIX="az104"
-LAB="m05healthalerts"
-RG_NAME="${PREFIX}-${LAB}-rg"
-AG_NAME="${PREFIX}-${LAB}-ag"
-SERVICE_ALERT_NAME="${PREFIX}-${LAB}-service"
-RESOURCE_ALERT_NAME="${PREFIX}-${LAB}-resource"
-ENVEOF
+## Setup (Portal values to use)
+Use the following values when entering names and settings in the portal steps:
 
-source .env
-echo "Loaded: RG_NAME=$RG_NAME, AG_NAME=$AG_NAME"
-```
+- LOCATION: australiaeast
+- PREFIX: az104
+- LAB: m05healthalerts
+- RG_NAME: ${PREFIX}-${LAB}-rg
+- AG_NAME: ${PREFIX}-${LAB}-ag
+- SERVICE_ALERT_NAME: ${PREFIX}-${LAB}-service
+- RESOURCE_ALERT_NAME: ${PREFIX}-${LAB}-resource
 
 ## Portal solution (step-by-step)
 ### 1) Create resource group for monitor resources
@@ -93,11 +88,11 @@ echo "Loaded: RG_NAME=$RG_NAME, AG_NAME=$AG_NAME"
   - Action Group ${AG_NAME} is attached.
 
 ## Cleanup (required)
-```bash
-az group delete --name "$RG_NAME" --yes --no-wait
-rm -f .env
-echo "Cleanup started: $RG_NAME"
-```
+- In Azure Portal, open **Resource groups** and select `${RG_NAME}`.
+- Select **Overview** > **Delete resource group**.
+- Enter `${RG_NAME}` to confirm deletion, then select **Delete**.
+- Wait for deployment notifications to confirm cleanup is complete.
+- Delete the local `.env` file from your lab folder.
 
 ## Notes
 - Service/Resource Health alerts fire only when matching platform events occur.

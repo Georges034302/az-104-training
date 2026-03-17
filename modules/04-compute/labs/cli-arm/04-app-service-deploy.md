@@ -29,7 +29,7 @@ Create an App Service plan and web app, configure application settings, deploy a
 - Azure CLI installed and authenticated with az login
 - zip command available in shell
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -111,9 +111,14 @@ Optional. App Service is commonly deployed with ARM/Bicep in production pipeline
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
-rm -rf .env site site.zip
-echo "Cleanup started: $RG_NAME"
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
+rm -f .env site.zip
+rm -rf site
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

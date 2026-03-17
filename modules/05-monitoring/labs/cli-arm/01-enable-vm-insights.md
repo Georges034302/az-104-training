@@ -30,7 +30,7 @@ Create a VM and Log Analytics workspace, onboard the VM to Azure Monitor Agent/V
 - Azure CLI installed and authenticated with `az login`
 - Azure Portal access (required for reliable VM Insights onboarding flow)
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -114,9 +114,13 @@ Use ARM/Bicep in production for repeatable VM + workspace deployment. Keep VM In
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes

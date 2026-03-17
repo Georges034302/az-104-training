@@ -27,7 +27,7 @@ Create a storage account and blob container, upload a sample blob, generate a sh
 - Azure CLI installed and authenticated with `az login`
 - If automatic signed-in user detection does not work in your tenant, have the Microsoft Entra object ID of the target principal available
 
-## Setup: create environment file
+## Setup: Create environment file
 ```bash
 cat > .env << 'ENVEOF'
 LOCATION="australiaeast"
@@ -150,9 +150,13 @@ Not required for this lab. SAS generation and RBAC role assignment are operation
 
 ## Cleanup (required)
 ```bash
+# Delete the resource group and all resources asynchronously
 az group delete --name "$RG_NAME" --yes --no-wait
+echo "Deleted RG: $RG_NAME (async)"
+
+# Remove local lab files
 rm -f .env "$LOCAL_FILE"
-echo "Cleanup started: $RG_NAME"
+echo "Cleaned up local lab files"
 ```
 
 ## Notes
