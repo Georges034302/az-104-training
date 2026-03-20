@@ -8,7 +8,7 @@ This repository provides structured learning paths combining conceptual lessons 
 
 
 **Structure**: Each module contains conceptual lessons and hands-on labs organized by topic
-- **Lessons**: Theory, text-based architecture diagrams (no Mermaid), and best practices
+- **Lessons**: Theory, text-based architecture diagrams, and best practices
 - **Labs**: Two tracks per module: `labs/cli-arm/` and `labs/portal/`
 - **Parameterization**: All labs use variables and `.env` files for portable, reusable configuration
 - **Cleanup**: Every lab includes explicit cleanup steps (e.g., `az group delete`, `rm -f .env`)
