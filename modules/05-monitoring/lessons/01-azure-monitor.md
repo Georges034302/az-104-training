@@ -1,138 +1,182 @@
-# Azure Monitor Foundations (Metrics, Logs, Alerts, and Insights)
+# Azure Monitor Foundations: Metrics, Logs, Alerts, and Insights
+
+> Azure Monitor is the core observability platform in Azure. It collects, stores, and correlates telemetry so administrators can **detect issues, investigate root cause, and automate response**.
+
+---
 
 ## Overview
 
-Azure Monitor is the core observability platform in Azure. It collects and correlates telemetry for infrastructure and platform services so administrators can detect issues, investigate root cause, and automate response.
+In AZ-104, Azure Monitor is a foundational topic because it connects several operational capabilities together:
 
-In AZ-104, you are expected to understand where telemetry comes from, where it is stored, and how it is used for alerting and troubleshooting.
+- platform metrics
+- activity and resource logs
+- Log Analytics investigation
+- alerts and Action Groups
+- backup, health, and service visibility
+
+The goal is not just to “collect data,” but to route the right signals to the right place and make them useful during real incidents.
 
 ---
 
 ## What You Will Learn
 
-- Azure Monitor signal types and data flow
-- Differences between metrics, activity logs, and resource logs
-- Role of Log Analytics workspaces in investigation workflows
-- Alert integration with operational response
-- Common design and operational mistakes to avoid
+- The major Azure Monitor signal types and how they differ
+- How telemetry is routed with diagnostic settings and DCRs
+- How Log Analytics fits into investigation workflows
+- How alerts and insights depend on correct collection design
+- Common exam traps and operational mistakes to avoid
 
 ---
 
-## Architecture View
+## Azure Monitor Mental Model
 
-```
- [Azure Resource]
+```text
+[Azure resource / VM / service]
       |
-      +--> [Platform Metrics] ----> [Metric Alerts]
+      +--> [Platform metrics] -------> [Metric alerts]
       |
-      +--> [Activity Log] --------> [Activity Log Alerts]
+      +--> [Activity Log] -----------> [Activity log alerts]
       |
-      +--> [Resource Logs]
+      +--> [Resource logs]
                  |
                  v
-       [Diagnostic Settings]
-          |      |      |
-          v      v      v
- [Log Analytics] [Storage] [Event Hub]
-          |
-          v
-    [KQL + Workbooks + Log Alerts]
+        [Diagnostic settings / DCRs]
+            |        |        |
+            v        v        v
+   [Log Analytics] [Storage] [Event Hub]
+            |
+            v
+   [KQL queries / Workbooks / Log alerts]
 ```
 
 ---
 
 ## Core Signal Types
 
-- **Platform metrics**:
-  - Numeric time-series data.
-  - Optimized for near-real-time threshold alerting.
-  - Typical examples: CPU percentage, transactions, response time.
+### 1. Platform metrics
 
-- **Activity Log**:
-  - Subscription-level control-plane events.
-  - Useful for auditing operations such as create, update, delete.
-  - Commonly used for governance and security change visibility.
+- numeric time-series data
+- optimized for fast threshold alerting
+- common examples: CPU percentage, transaction count, latency, availability
 
-- **Resource logs**:
-  - Service-specific logs emitted by resource providers.
-  - Often need diagnostic settings to route data to destinations.
-  - Useful for deeper behavioral and access-level analysis.
+Best when you need near-real-time operational monitoring.
 
-- **Guest OS telemetry (VM-level)**:
-  - Collected through Azure Monitor Agent (AMA) and Data Collection Rules (DCRs).
-  - Separate from platform diagnostic settings used by many PaaS resources.
+### 2. Activity Log
 
-Important: Not all telemetry appears automatically in one place without configuration.
+- subscription-level **control-plane** events
+- records operations such as create, update, delete, policy action, and service health events
+- useful for governance, auditing, and change tracking
 
----
+### 3. Resource logs
 
-## Data Routing and Storage
+- service-specific logs from resource providers
+- usually need **diagnostic settings** to send them to destinations
+- useful for detailed behavior, access analysis, and troubleshooting
 
-- **Diagnostic settings** determine where many platform resource logs and exports are sent.
-- **DCRs** determine how guest-level telemetry (for example VM performance/event data through AMA) is collected and routed.
-- Common destinations:
-  - Log Analytics workspace for query and correlation
-  - Storage account for longer-term archival patterns
-  - Event Hub for streaming/integration scenarios
+### 4. Guest OS telemetry
 
-Operational guidance:
+- VM-level telemetry collected using **Azure Monitor Agent (AMA)** and **Data Collection Rules (DCRs)**
+- used for guest performance counters, events, and other machine-level insights
 
-1. Define a standard diagnostic baseline per resource type.
-2. Centralize investigation data in one or few workspaces per operating model.
-3. Keep retention and cost controls aligned with compliance and operations needs.
+> Not all telemetry is collected or routed automatically. Configuration matters.
 
 ---
 
-## Alerts and Operational Response
+## Diagnostic Settings vs DCRs
 
-Azure Monitor supports multiple alert models:
+This distinction is a common AZ-104 point.
 
-- **Metric alerts** for threshold-based numeric conditions.
-- **Log alerts** for KQL-based conditions over workspace data.
-- **Activity log alerts** for control-plane event detection.
+| Feature | Used for | Typical scenario |
+|---|---|---|
+| **Diagnostic settings** | Platform resource logs and export routing | Storage account logs, Key Vault logs, activity exports |
+| **Data Collection Rules (DCRs)** | Guest/agent-based data collection via AMA | VM performance counters, Windows events, syslog |
 
-Action Groups connect alerts to notifications and automation targets.
+### Simple memory aid
 
-Design principle: Alerting is useful only when routed to an action path with clear ownership.
-
----
-
-## Troubleshooting Workflow
-
-1. Check metric trends for service health and saturation signals.
-2. Check Activity Log for recent changes or policy actions.
-3. Query resource logs in Log Analytics for detailed behavior.
-4. Correlate timing across all signal types before concluding root cause.
-
-This sequence helps avoid single-signal bias during incidents.
+- **PaaS/platform logs** → often **diagnostic settings**
+- **VM guest data** → typically **AMA + DCR**
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Data Destinations
 
-- Assuming all required logs are collected by default.
-- Confusing diagnostic settings with DCR-based guest data collection.
-- Building alert rules without action routing ownership.
-- Treating metrics as a full replacement for detailed logs.
-- Ignoring ingestion delay realities for some log scenarios.
-- Over-alerting with low-value thresholds that create noise.
+Azure Monitor data is often sent to one or more of these targets:
+
+- **Log Analytics workspace** for KQL investigation and correlation
+- **Storage account** for longer-term archival patterns
+- **Event Hub** for streaming or integration with external tools
+
+### Operational guidance
+
+1. define a baseline collection pattern for important resource types
+2. centralize investigation data in a manageable workspace strategy
+3. align retention and cost controls with business and compliance needs
 
 ---
 
-## Quick CLI Reference
+## Azure Monitor Insights and Operational Use
+
+Azure Monitor also powers higher-level experiences such as:
+
+- **VM Insights**
+- **Workbooks**
+- **Application and infrastructure dashboards**
+- **Alerting and incident response**
+
+These experiences depend on correct data collection. If the data path is missing, the insight view may look empty or incomplete.
+
+---
+
+## Alert Integration and Response
+
+Azure Monitor supports several alert types:
+
+- **metric alerts** for numeric thresholds
+- **log alerts** for KQL-based conditions
+- **activity log alerts** for control-plane change events
+
+Those alerts are then connected to **Action Groups** for notifications or automation.
+
+Design principle:
+
+> An alert without clear ownership or an action path is only noise.
+
+---
+
+## Example Operational Workflow
+
+When investigating an incident:
+
+1. check **metrics** for health degradation or saturation
+2. review **Activity Log** for recent changes, policy actions, or service events
+3. query **resource logs** in Log Analytics for detailed behavior
+4. correlate timing across these signals before concluding root cause
+
+This avoids jumping to conclusions based on a single data source.
+
+---
+
+## Azure CLI Examples
+
+### List metric definitions for a resource
 
 ```bash
-# List metric definitions for a resource
 az monitor metrics list-definitions \
   --resource <resource-id> \
   -o table
+```
 
-# List diagnostic settings for a resource
+### List diagnostic settings on a resource
+
+```bash
 az monitor diagnostic-settings list \
   --resource <resource-id> \
   -o jsonc
+```
 
-# Show Log Analytics workspace summary
+### Show a Log Analytics workspace
+
+```bash
 az monitor log-analytics workspace show \
   --resource-group <rg> \
   --workspace-name <workspace-name> \
@@ -141,8 +185,39 @@ az monitor log-analytics workspace show \
 
 ---
 
+## Best Practices
+
+1. Collect only the telemetry that supports an operational purpose.
+2. Route important logs to **Log Analytics** for centralized investigation.
+3. Standardize diagnostic settings and DCR use across environments.
+4. Align retention with cost and compliance expectations.
+5. Build alerting around signals that operators can actually act on.
+
+---
+
+## Common Pitfalls and Exam Traps
+
+- Assuming all required logs are collected by default.
+- Confusing **diagnostic settings** with **DCR-based guest collection**.
+- Treating metrics as a full replacement for detailed logs.
+- Building alert rules with no clear action routing.
+- Ignoring ingestion delays in some log-based workflows.
+- Generating too many low-value alerts and training teams to ignore them.
+
+---
+
+## Key Takeaways
+
+- Azure Monitor combines **metrics, logs, alerts, and investigation tools**.
+- Metrics, Activity Log, resource logs, and guest telemetry are different signal types with different purposes.
+- Good observability depends on correct **routing**, not just turning monitoring “on.”
+- Operational maturity comes from being able to **correlate signals**, not only view them separately.
+
+---
+
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/azure-monitor/fundamentals/overview
-- https://learn.microsoft.com/en-us/azure/azure-monitor/platform/data-platform-metrics
-- https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/diagnostic-settings
+- [Azure Monitor overview](https://learn.microsoft.com/en-us/azure/azure-monitor/fundamentals/overview)
+- [Azure Monitor metrics data platform](https://learn.microsoft.com/en-us/azure/azure-monitor/platform/data-platform-metrics)
+- [Diagnostic settings in Azure Monitor](https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/diagnostic-settings)
+- [Azure Monitor Agent overview](https://learn.microsoft.com/en-us/azure/azure-monitor/agents/azure-monitor-agent-overview)

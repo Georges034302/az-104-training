@@ -1,77 +1,141 @@
 # Azure Site Recovery (ASR) for Disaster Recovery
 
+> Azure Site Recovery provides disaster recovery orchestration by replicating workloads and enabling **failover to a target location**. In AZ-104, the key focus is understanding replication, failover models, failback, and the difference between ASR and backup.
+
+---
+
 ## Overview
 
-Azure Site Recovery provides disaster recovery orchestration by replicating workloads and enabling failover to a target location. In AZ-104, the expected depth is strong conceptual and operational understanding of replication and failover workflows.
+ASR supports business continuity when a datacenter, site, or region becomes unavailable.
+
+It helps administrators:
+
+- replicate supported workloads to a recovery site
+- bring services online during major disruption
+- validate disaster recovery readiness through testing
+- return operations to the primary location after recovery
+
+ASR is about **continuity of service**, not long-term point-in-time retention.
 
 ---
 
 ## What You Will Learn
 
-- ASR role in business continuity strategy
-- Replication and failover lifecycle
-- Test failover versus planned/unplanned failover
+- The role of ASR in business continuity strategy
+- Replication and failover lifecycle basics
+- Test failover versus planned and unplanned failover
 - Failback expectations and operational planning
-- Distinction between ASR and backup services
+- How ASR differs from Azure Backup
 
 ---
 
-## Architecture View
+## ASR Mental Model
 
-```
- [Primary Workload]
-        |
-        v
- [Replication Policy + ASR]
-        |
-        v
- [Target Region Replica]
-        |
-        +--> [Test Failover]
-        +--> [Planned Failover]
-        +--> [Unplanned Failover]
-        |
-        v
-      [Failback]
+```text
+[Primary workload]
+       |
+       v
+[Replication policy + ASR]
+       |
+       v
+[Target region replica]
+       |
+       +--> [Test failover]
+       +--> [Planned failover]
+       +--> [Unplanned failover]
+       |
+       v
+    [Failback]
 ```
 
 ---
 
 ## Core Concepts
 
-- **Replication**:
-  - Continuous/periodic data movement to target site per policy.
-  - Designed to reduce recovery time during major incidents.
+### Replication
 
-- **Failover types**:
-  - Test failover for safe validation.
-  - Planned failover for controlled maintenance/migration scenarios.
-  - Unplanned failover for outage response.
+Replication moves workload data and configuration to the target site according to the protection design.
 
-- **Failback**:
-  - Return workflow after primary environment recovery.
-  - Requires operational planning and validation.
+Its purpose is to reduce recovery time and improve continuity during severe incidents.
 
-Important: ASR is not a backup replacement. It addresses service continuity, while backup addresses point-in-time data recovery.
+### Failover types
+
+- **Test failover**: validates DR readiness safely
+- **Planned failover**: used for controlled maintenance or migration events
+- **Unplanned failover**: used during unexpected outage conditions
+
+### Failback
+
+After the primary environment is restored, **failback** returns workloads to the normal operating site.
+
+Important:
+
+> DR planning is incomplete if it only covers failover and ignores failback.
+
+---
+
+## ASR vs Backup
+
+| Capability | Main purpose |
+|---|---|
+| **Azure Site Recovery** | Keep services running or restore them quickly in another location |
+| **Azure Backup** | Recover from an earlier point in time after corruption, deletion, or data loss |
+
+A mature resilience design commonly needs **both**.
 
 ---
 
 ## Operational Workflow
 
-1. Define DR requirements (RPO, RTO, scope).
-2. Configure recovery infrastructure and replication settings.
-3. Run regular test failovers in isolated networks.
-4. Validate application behavior, dependencies, and runbooks.
-5. Refine recovery plans based on test evidence.
+1. define DR requirements such as **RTO**, **RPO**, and workload priority
+2. configure replication and target environment settings
+3. run regular **test failovers** in isolated networks
+4. validate application dependencies, identity, networking, and runbooks
+5. improve the recovery plan based on actual test evidence
 
 ---
 
 ## Design and Governance Guidance
 
-- Prioritize mission-critical workloads for replication scope.
-- Ensure network mapping and identity dependencies are part of DR design.
-- Track replication health and alerts continuously.
-- Treat DR tests as mandatory operational evidence, not optional exercises.
+Good ASR design should:
+
+- prioritize mission-critical workloads
+- include network mapping and dependency awareness
+- track replication health continuously
+- document role ownership and communication steps during failover
+- treat DR exercises as mandatory operational proof
+
+---
+
+## Planned vs Unplanned Failover Considerations
+
+This distinction is important for both real operations and AZ-104 questions.
+
+- **planned failover** is used when the environment is still reachable and the move can be coordinated, which usually improves order and reduces data-loss risk
+- **unplanned failover** is used during real outage conditions, where the priority is restoring service quickly with the best recovery point available
+- **failback** often takes more planning than candidates expect because applications, networking, and data paths must be returned to the primary site safely
+
+> Exam tip: ASR supports continuity during disruption, but it does not replace a backup strategy for point-in-time recovery.
+
+---
+
+## Example Scenario
+
+A regional outage affects the primary application environment:
+
+- ASR helps activate the replicated workload in a secondary region
+- monitoring and alerts confirm service behavior during the event
+- backup remains important if the incident also includes corruption or unwanted data changes
+
+This separation of responsibilities is a common AZ-104 exam theme.
+
+---
+
+## Quick Operational Checks
+
+- replication health state for protected workloads
+- visibility of the latest successful replication point
+- recovery plan readiness and recent test history
 
 ---
 
@@ -80,21 +144,22 @@ Important: ASR is not a backup replacement. It addresses service continuity, whi
 - Treating ASR as identical to backup.
 - Enabling replication without testing failover.
 - Ignoring application dependency mapping during DR planning.
-- Underestimating cost and operational complexity of broad replication scope.
-- Missing runbooks for failover communications and sequencing.
+- Underestimating the cost and complexity of broad replication scope.
+- Missing runbooks for sequencing, communication, and ownership.
 
 ---
 
-## Quick Operational Checks
+## Key Takeaways
 
-- Replication health state per protected workload
-- Last successful replication point visibility
-- Recovery plan readiness and test history
+- ASR provides **disaster recovery orchestration**, not traditional backup retention.
+- Test failover, planned failover, unplanned failover, and failback each serve different purposes.
+- DR readiness depends on documentation, testing, and dependency-aware planning.
+- Backup and ASR solve related but different resilience problems.
 
 ---
 
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-overview
-- https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-failover
-- https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-test-failover-to-azure
+- [Azure Site Recovery overview](https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-overview)
+- [Fail over and fail back workloads](https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-failover)
+- [Run a test failover to Azure](https://learn.microsoft.com/en-us/azure/site-recovery/site-recovery-test-failover-to-azure)

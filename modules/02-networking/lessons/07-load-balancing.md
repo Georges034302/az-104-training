@@ -1,107 +1,239 @@
-# Azure Load Balancing Services: Load Balancer, Application Gateway, and Traffic Manager
+# Azure Load Balancing Services
+
+> Azure does not have a single “load balancer” product for every need. Administrators must choose the right service based on **network layer**, **scope**, **protocol awareness**, and **traffic pattern**.
+
+---
 
 ## Overview
 
-Azure provides multiple traffic distribution services, each operating at different layers and scopes:
+The three core services you must understand for AZ-104 are:
 
-- **Azure Load Balancer**: Layer 4 (TCP/UDP), regional, high-performance network load balancing
-- **Azure Application Gateway**: Layer 7 (HTTP/HTTPS), web traffic routing and optional WAF
-- **Azure Traffic Manager**: DNS-based global traffic distribution and failover
+- **Azure Load Balancer** — regional Layer 4 (TCP/UDP)
+- **Application Gateway** — regional Layer 7 (HTTP/HTTPS)
+- **Traffic Manager** — global DNS-based traffic distribution
 
-Understanding when to use each is a core AZ-104 competency.
+A strong administrator knows **when to use each** and what problem each one actually solves.
 
 ---
 
 ## What You Will Learn
 
-- Service selection by network layer and use case
-- Health probe and backend pool fundamentals
-- Internal vs public load balancing
-- Regional vs global traffic distribution patterns
-- Common configuration and troubleshooting checks
+- How to choose between Azure load-balancing services
+- Health probes, backend pools, and frontend IP concepts
+- Public vs internal load balancing
+- Regional vs global traffic distribution
+- Common admin examples, troubleshooting steps, and exam traps
 
 ---
 
-## Decision Architecture
+## Service Comparison
 
+| Service | Layer / Scope | Best for | Key features |
+|---|---|---|---|
+| **Azure Load Balancer** | Layer 4, regional | TCP/UDP workloads, VM/VMSS distribution | High performance, internal or public frontend, health probes |
+| **Application Gateway** | Layer 7, regional | Web applications | Host/path routing, TLS termination, optional WAF |
+| **Traffic Manager** | DNS-based, global | Cross-region endpoint selection and failover | Priority, weighted, performance, geographic routing |
+
+> In modern Azure deployments, use **Standard Load Balancer**. The older Basic SKU has been retired.
+
+---
+
+## Azure Load Balancer
+
+Azure Load Balancer works at the transport layer.
+
+### Common components
+
+- **Frontend IP**: the address clients connect to
+- **Backend pool**: the VMs or VMSS instances receiving traffic
+- **Health probe**: checks whether backend instances are healthy
+- **Load-balancing rule**: maps frontend traffic to backend targets
+- **Inbound NAT rule**: forwards a specific frontend port to one backend instance
+
+### Typical use cases
+
+- balancing SSH/RDP or custom TCP apps
+- distributing web traffic when Layer 7 features are not needed
+- internal-only balancing between app tiers
+
+---
+
+## Application Gateway
+
+Application Gateway is designed for **HTTP/HTTPS-aware** workloads.
+
+### Key capabilities
+
+- host-based routing
+- path-based routing
+- SSL/TLS termination
+- session affinity options
+- rewrite features
+- optional **Web Application Firewall (WAF)**
+
+### Typical use cases
+
+- route `/api` to one backend and `/portal` to another
+- route `app.contoso.com` and `admin.contoso.com` differently
+- protect web apps with WAF rules
+
+If you need inspection of HTTP headers, URLs, or hostnames, Application Gateway is usually the right choice.
+
+---
+
+## Traffic Manager
+
+Traffic Manager works at the **DNS** layer, not the packet-forwarding layer.
+
+### Important meaning
+It answers the question:
+
+> “Which endpoint should the client try first?”
+
+It does **not** proxy the traffic itself.
+
+### Routing methods
+
+| Method | Use case |
+|---|---|
+| **Priority** | Active/passive failover |
+| **Weighted** | Simple distribution by ratio |
+| **Performance** | Route users to the lowest-latency endpoint |
+| **Geographic** | Direct users by region |
+| **Subnet / MultiValue** | Specialized scenarios |
+
+---
+
+## Internal vs Public Load Balancing
+
+### Public frontend
+Use when clients connect from the internet.
+
+### Internal frontend
+Use when only private Azure or hybrid resources should reach the service.
+
+Example:
+
+- public Application Gateway for internet-facing web tier
+- internal Load Balancer for app servers behind the web tier
+
+---
+
+## Example Architectures
+
+### 1. Regional web app with WAF
+
+```text
+[Internet] -> [Application Gateway + WAF] -> [Web/App backend]
 ```
- [Client]
-    |
-    +--> [Azure Load Balancer (L4)] ---> [VM/VMSS backend pool]
-    |
-    +--> [Application Gateway (L7)] ---> [Web/App backend pool]
 
- [Traffic Manager (DNS)]
-    |
-    +--> [Region A endpoint]
-    +--> [Region B endpoint]
+Best fit: **Application Gateway**
+
+### 2. Internal app tier for private VMs
+
+```text
+[Web tier] -> [Internal Load Balancer] -> [App tier VMs]
+```
+
+Best fit: **Azure Load Balancer**
+
+### 3. Global failover between two regions
+
+```text
+[Client DNS query] -> [Traffic Manager]
+                          |--> [Region A endpoint]
+                          +--> [Region B endpoint]
+```
+
+Best fit: **Traffic Manager**
+
+---
+
+## Health Probes Matter
+
+All these services depend on some form of health checking.
+
+If health probes fail:
+
+- the backend may be marked unhealthy
+- traffic may stop reaching the service
+- the design may look correct but still fail in practice
+
+This is one of the most common operational mistakes.
+
+---
+
+## Azure CLI Examples
+
+### Create a Standard public load balancer
+
+```bash
+az network lb create \
+  --resource-group <rg> \
+  --name web-lb \
+  --sku Standard \
+  --frontend-ip-name web-frontend \
+  --backend-pool-name web-backend \
+  --public-ip-address web-lb-pip
+```
+
+### Create a health probe
+
+```bash
+az network lb probe create \
+  --resource-group <rg> \
+  --lb-name web-lb \
+  --name http-probe \
+  --protocol tcp \
+  --port 80
+```
+
+### Review Traffic Manager profiles
+
+```bash
+az network traffic-manager profile list -o table
 ```
 
 ---
 
-## Core Concepts
+## Best Practices
 
-- **Azure Load Balancer**:
-  - Works at TCP/UDP level.
-  - Uses health probes to determine backend health.
-  - Supports inbound and outbound scenarios.
-  - Can be public or internal.
-- **Application Gateway**:
-  - HTTP/HTTPS-aware routing.
-  - Supports host/path-based routing.
-  - Optional Web Application Firewall (WAF).
-- **Traffic Manager**:
-  - DNS-level routing among endpoints.
-  - Does not proxy or inspect application data-plane traffic.
-  - Supports priorities, weighted routing, performance routing, and failover designs.
+1. Match the service to the **traffic type**: L4 vs L7 vs DNS-level global routing.
+2. Always test **health probes** before production cutover.
+3. Use **internal** frontends for private-only services.
+4. Use **Application Gateway + WAF** for internet-facing web apps that need inspection or protection.
+5. Use **Traffic Manager** when the goal is **global endpoint selection**, not packet-level balancing.
 
 ---
 
-## Design Guidance
+## Troubleshooting Checklist
 
-1. Use **Load Balancer** for non-HTTP workloads or simple L4 balancing.
-2. Use **Application Gateway** for web apps needing URL/host routing or WAF.
-3. Use **Traffic Manager** for cross-region endpoint selection and failover.
-4. Always configure and validate health probes before production rollout.
-5. Choose internal vs public frontends based on exposure requirements.
+If a load-balanced application is unavailable:
 
----
-
-## Troubleshooting Workflow
-
-1. Confirm frontend IP and listener configuration.
-2. Validate backend pool membership and health state.
-3. Check health probe settings (path/port/protocol/threshold).
-4. Review NSG/route rules affecting backend reachability.
-5. For Traffic Manager, validate DNS responses and endpoint health profile.
+1. Confirm the correct **frontend IP / listener** is configured.
+2. Check the **backend pool** membership.
+3. Review **health probe** settings and results.
+4. Check NSGs, UDRs, and backend VM reachability.
+5. For Traffic Manager, verify DNS answers and endpoint monitor status.
 
 ---
 
 ## Common Pitfalls and Exam Traps
 
-- Missing or misconfigured health probes causing zero healthy backends.
-- Choosing L4 load balancer where L7 routing is required.
-- Using public frontend where internal-only access is required.
-- Confusing Traffic Manager (DNS control plane) with packet-level load balancing.
+- Choosing Azure Load Balancer when Layer 7 routing is required.
+- Confusing Traffic Manager with an actual proxy or reverse proxy.
+- Forgetting health probes, resulting in zero healthy backends.
+- Exposing a workload publicly when the requirement was internal-only access.
+- Ignoring Standard SKU guidance and older retired patterns.
 
 ---
 
-## Quick CLI Reference
+## Key Takeaways
 
-```bash
-# List load balancers
-az network lb list -o table
-
-# List backend pool addresses
-az network lb address-pool address list \
-  --resource-group <rg> --lb-name <lb-name> --pool-name <pool-name>
-
-# List application gateways
-az network application-gateway list -o table
-
-# List Traffic Manager profiles
-az network traffic-manager profile list -o table
-```
+- **Azure Load Balancer** = Layer 4 regional balancing.
+- **Application Gateway** = Layer 7 web routing and optional WAF.
+- **Traffic Manager** = global DNS-based endpoint selection.
+- The right choice depends on **protocol awareness, scope, and traffic intent**.
 
 ---
 
@@ -110,4 +242,3 @@ az network traffic-manager profile list -o table
 - [Azure Load Balancer overview](https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-overview)
 - [Application Gateway overview](https://learn.microsoft.com/en-us/azure/application-gateway/overview)
 - [Traffic Manager overview](https://learn.microsoft.com/en-us/azure/traffic-manager/traffic-manager-overview)
-

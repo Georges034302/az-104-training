@@ -1,162 +1,208 @@
 # Containers on Azure: ACR, ACI, and ACA
 
+> Azure provides several container services with different operational models. For AZ-104, the main goal is to understand **where images are stored**, **how they are pulled securely**, and **which runtime fits which scenario**.
+
+---
+
 ## Overview
 
-Azure provides multiple container services with different operational models. AZ-104 focuses on understanding what each service does, how images are stored and pulled securely, and which runtime fits a given requirement.
+Azure container administration usually involves three core services:
+
+- **Azure Container Registry (ACR)** for storing images
+- **Azure Container Instances (ACI)** for simple on-demand container execution
+- **Azure Container Apps (ACA)** for managed containerized applications with built-in scaling and revisions
+
+The most important conceptual rule is:
+
+> **ACR stores images; ACI and ACA run them.**
 
 ---
 
 ## What You Will Learn
 
-- Role of Azure Container Registry (ACR)
-- Runtime differences between Azure Container Instances (ACI) and Azure Container Apps (ACA)
-- Authentication and authorization flow for image pulls
-- Practical service selection guidance for AZ-104-level scenarios
+- The role of Azure Container Registry
+- The difference between ACI and ACA
+- How image pull authentication works securely
+- How to choose the right Azure container service for a workload
+- Common admin mistakes and troubleshooting steps
 
 ---
 
-## Architecture View
+## Container Mental Model
 
-```
- [Source Code]
+```text
+[Source code]
       |
       v
- [Container Image Build]
+[Container image build]
       |
       v
- [Azure Container Registry]
+[Azure Container Registry]
       |                |
       v                v
- [Azure Container Instances]   [Azure Container Apps]
+[Azure Container Instances]   [Azure Container Apps]
 ```
 
 ---
 
-## Core Concepts
+## Service Comparison
 
-- **ACR**: Private registry for storing and managing container images.
-- **ACI**: Serverless container runtime for straightforward, on-demand container execution.
-- **ACA**: Managed container application platform with revision model and built-in scaling behavior.
-
-Key point: ACR is image storage; ACI/ACA are execution environments.
+| Service | Purpose | Best for |
+|---|---|---|
+| **ACR** | Private image registry | Secure image storage, versioned deployment artifacts |
+| **ACI** | Simple serverless container runtime | Short-lived jobs, burst tasks, single-container or small grouped workloads |
+| **ACA** | Managed container app platform | Modern apps, microservices, HTTP/event-driven scale, revisions |
 
 ---
 
 ## Azure Container Registry (ACR)
 
-Operational topics:
+ACR is Azure’s private registry for container images.
 
-- registry naming and login server format
-- repositories, tags, and image version discipline
-- image pull authentication using roles and identities
+### What it provides
 
-Security guidance:
+- private storage for container images
+- repositories and tags for version control
+- integration with Azure identities and role-based access
+- enterprise-friendly image distribution workflows
 
-- prefer role-based pull access (`AcrPull`) over broad registry admin usage in production
-- maintain clear image tag strategy to avoid deploying ambiguous versions
+### Operational guidance
 
-Operational nuance: ACR admin user credentials are useful for simple labs, but production workflows should prefer identity-based pull authorization.
+- keep a clear tagging strategy such as `v1.0.0`, `2026-04`, or environment-labeled releases
+- avoid relying only on `latest` in production deployment logic
+- prefer **`AcrPull`** / **`AcrPush`** role assignments over broad admin credentials
+
+### Important note
+The **admin user** for ACR is useful in simple lab scenarios, but production designs should prefer identity-based authentication where possible.
 
 ---
 
 ## Azure Container Instances (ACI)
 
-ACI characteristics:
+ACI is a fast, lightweight way to run containers without managing VMs or orchestrators.
 
-- quick container startup without VM management
-- suitable for simple jobs, burst workloads, and isolated runtime tasks
-- container group model for one or more containers sharing lifecycle/network context
+### Good use cases
 
-Practical limitations to remember in planning:
+- simple one-off jobs
+- burst or ad-hoc container execution
+- small container groups with shared lifecycle/network context
+- rapid testing of container images
 
-- not a full microservices platform
-- scaling and traffic routing behavior is simpler than app platforms
+### Limitations to remember
+
+- not a full application platform for complex microservice patterns
+- simpler scaling and ingress story than ACA
+- typically better for straightforward execution rather than long-lived app platform needs
 
 ---
 
 ## Azure Container Apps (ACA)
 
-ACA characteristics:
+ACA is a managed platform for running containerized applications with modern app features.
 
-- managed app platform for containerized services
-- revision-based deployment model
-- built-in scaling capabilities (including HTTP and event-driven patterns)
+### Key characteristics
 
-Design implication: ACA is often the better fit for modern app workloads that need managed scaling and app-level deployment control.
+- revision-based deployments
+- built-in scaling behavior
+- support for HTTP and event-driven scale patterns
+- managed environment for app-style container hosting
 
-Operational nuance: If images are private in ACR, ACA deployment must include registry configuration (server and identity/credentials) in addition to the image reference.
+### Good use cases
+
+- APIs and web apps
+- microservices-style workloads
+- apps that need safer rollout behavior and managed scaling
+- teams that want container benefits without managing Kubernetes clusters
+
+If the scenario emphasizes **managed app platform behavior**, **revisions**, or **built-in autoscale**, ACA is often the better fit.
 
 ---
 
 ## Choosing Between ACI and ACA
 
-Choose **ACI** when:
+### Choose **ACI** when:
 
-- you need fast, simple container execution
-- workload is short-lived or operationally straightforward
-- advanced app platform features are not required
+- you need fast and simple container execution
+- the workload is short-lived, isolated, or operationally simple
+- advanced routing and app platform features are not required
 
-Choose **ACA** when:
+### Choose **ACA** when:
 
-- workload needs managed scale behavior and revision-driven releases
-- app-level ingress and modern runtime controls are required
-- you want platform-managed container app operations without Kubernetes cluster management
-
----
-
-## Identity and Access for Image Pulls
-
-Typical secure flow:
-
-1. image stored in ACR
-2. runtime identity or principal granted pull permissions
-3. service pulls image from ACR login server
-
-Operational checks:
-
-- registry name/login server correctness
-- role assignment scope and propagation
-- image tag existence
-- runtime identity or credentials actually configured on the target service
+- the workload needs managed scaling or revision-driven releases
+- you need app-style ingress behavior
+- the service is more than a one-off container task
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Secure Image Pulls and Identity
 
-- Treating ACR as a runtime service rather than image registry.
-- Using weak tag hygiene (for example always deploying `latest` without release control).
-- Confusing ACI and ACA capabilities in scenario selection questions.
-- Assuming pull failures are runtime bugs when permissions or login server naming is wrong.
-- Using invalid naming conventions for registry resources.
-- Referencing a private ACR image in ACA/ACI without configuring registry authentication.
+A typical secure image flow looks like this:
+
+1. build or push the image into **ACR**
+2. grant the runtime identity **pull permission**
+3. configure the runtime to use the ACR login server
+4. deploy the image by tag or version
+
+### Common secure pattern
+
+- store the image in ACR
+- assign `AcrPull` to the consuming identity
+- let ACI or ACA pull the image without exposing registry passwords broadly
 
 ---
 
-## Quick CLI Reference
+## Example Scenarios
+
+### 1. Private image for a quick batch task
+
+Use **ACR + ACI**.
+
+### 2. Containerized web API with autoscaling needs
+
+Use **ACR + ACA**.
+
+### 3. Enterprise image repository for multiple teams
+
+Use **ACR** as the central image store with RBAC-based access control and clear tag/version standards.
+
+---
+
+## Azure CLI Examples
+
+### Create an Azure Container Registry
 
 ```bash
-# Create ACR
 az acr create \
   --resource-group <rg> \
   --name <acr-name> \
   --sku Standard
+```
 
-# List repositories
+### List repositories in ACR
+
+```bash
 az acr repository list \
   --name <acr-name> \
   -o table
+```
 
-# Create ACI container group from ACR image (example)
+### Run a container in ACI from an ACR image
+
+```bash
 az container create \
   --resource-group <rg> \
   --name <aci-name> \
   --image <acr-name>.azurecr.io/<repo>:<tag> \
-  --cpu 1 --memory 1.5 \
+  --cpu 1 \
+  --memory 1.5 \
   --registry-login-server <acr-name>.azurecr.io \
   --registry-username <acr-username> \
   --registry-password <acr-password>
+```
 
-# Create ACA app from container image (example)
+### Create a Container App from a private image
+
+```bash
 az containerapp create \
   --resource-group <rg> \
   --name <app-name> \
@@ -171,8 +217,50 @@ az containerapp create \
 
 ---
 
+## Best Practices
+
+1. Treat **ACR** as the trusted image source and keep tags disciplined.
+2. Prefer **identity-based pull access** over broad registry admin credentials.
+3. Use **ACI** for simple or short-lived container execution.
+4. Use **ACA** for modern, managed application-style container workloads.
+5. Validate registry name, image tag, and pull permissions before assuming a runtime problem.
+
+---
+
+## Troubleshooting Checklist
+
+If a container deployment fails:
+
+1. Confirm the image exists in the expected **repository and tag**.
+2. Check the **ACR login server** name.
+3. Verify the runtime has the correct **pull permissions** or credentials.
+4. Confirm ingress and target port settings for app-style workloads.
+5. Make sure the chosen platform matches the workload complexity.
+
+---
+
+## Common Pitfalls and Exam Traps
+
+- Treating **ACR** as if it were a runtime service.
+- Using weak tag hygiene such as always deploying `latest`.
+- Confusing the capabilities of **ACI** and **ACA**.
+- Assuming image pull failures are app bugs when they are really permission or registry issues.
+- Referencing a private ACR image without configuring authentication correctly.
+
+---
+
+## Key Takeaways
+
+- **ACR** stores container images securely.
+- **ACI** is for simple, fast container execution.
+- **ACA** is for managed container applications with scaling and revision features.
+- Good Azure container administration depends on **service selection, image discipline, and secure pull authorization**.
+
+---
+
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/container-registry/container-registry-intro
-- https://learn.microsoft.com/en-us/azure/container-instances/container-instances-overview
-- https://learn.microsoft.com/en-us/azure/container-apps/overview
+- [Azure Container Registry overview](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-intro)
+- [Azure Container Instances overview](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-overview)
+- [Azure Container Apps overview](https://learn.microsoft.com/en-us/azure/container-apps/overview)
+- [Authenticate with Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-authentication)

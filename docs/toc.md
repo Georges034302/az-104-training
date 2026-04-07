@@ -1,5 +1,7 @@
 # Table of Contents
 
+Use this page as the quick navigation index for the course. Before starting labs, also review [`prerequisites.md`](prerequisites.md) and [`cost-safety.md`](cost-safety.md).
+
 ## Module 1 — Identity & Governance
 ### Lessons
 1. [Entra ID Basics](../modules/01-identity/lessons/01-entra-id-basics.md)

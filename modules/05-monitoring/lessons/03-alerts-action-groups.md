@@ -1,113 +1,189 @@
 # Azure Alerts and Action Groups
 
+> Azure alerting turns monitoring signals into **operational response**. For AZ-104, the critical skill is choosing the right alert type, setting the correct scope, and routing it to a dependable action path.
+
+---
+
 ## Overview
 
-Azure alerting transforms monitoring data into operational response. In AZ-104, the important concepts are the right alert type for the signal, correct scope, and dependable action routing.
+Monitoring without alerting is passive. Alerting without ownership is noise.
+
+A good Azure alerting design answers three questions:
+
+1. **What signal matters?**
+2. **When should it be considered a real issue?**
+3. **Who or what should respond?**
+
+Azure answers this through **alert rules** and **Action Groups**.
 
 ---
 
 ## What You Will Learn
 
-- Alert rule types and when to use each
-- Action Group design and response routing
-- Threshold and suppression strategy
-- Signal-to-noise optimization practices
-- Common misconfiguration patterns
+- The main alert rule types and when to use each
+- How Action Groups route notifications and automation
+- How to set thresholds, severity, and suppression carefully
+- How to reduce alert fatigue and false positives
+- Common exam traps and real-world misconfigurations
 
 ---
 
-## Architecture View
+## Alerting Mental Model
 
-```
- [Signal Source]
-    |      |      |
-    v      v      v
- [Metric] [Log] [Activity Event]
-    |      |      |
-    +------|------+
+```text
+[Signal source]
+   |       |       |
+   v       v       v
+[Metric] [Log] [Activity event]
+   |       |       |
+   +-------|-------+
            v
-      [Alert Rule]
+      [Alert rule]
            |
            v
       [Action Group]
-        |    |    |
-        v    v    v
-     [Email][SMS][Webhook/Automation]
+        |      |       |
+        v      v       v
+     [Email] [SMS] [Webhook / Automation]
 ```
 
 ---
 
 ## Alert Rule Types
 
-- **Metric alert**:
-  - Best for fast threshold detection on numeric signals.
-  - Typical examples: CPU high, availability drop, latency threshold.
+### 1. Metric alert
 
-- **Log alert**:
-  - Uses KQL over Log Analytics data.
-  - Best for pattern-based and correlation-aware detection.
+Best for:
 
-- **Activity Log alert**:
-  - Watches subscription-level control-plane events.
-  - Useful for governance and security-sensitive operations.
+- numeric thresholds
+- near-real-time conditions
+- service health saturation patterns
 
-Important: Choosing the wrong alert type usually creates delayed, noisy, or blind monitoring behavior.
+Examples:
+
+- CPU percentage too high
+- latency too high
+- availability too low
+
+### 2. Log alert
+
+Best for:
+
+- KQL-based detection logic
+- correlation across logs
+- pattern-based operational checks
+
+Examples:
+
+- no heartbeat from a VM for 15 minutes
+- repeated failed sign-in events
+- error pattern found in resource logs
+
+### 3. Activity Log alert
+
+Best for:
+
+- control-plane change detection
+- governance and security-sensitive operations
+- service health or resource health events
+
+Examples:
+
+- resource deletion
+- role assignment changes
+- service health incidents in a subscription
+
+> Choosing the wrong alert type often leads to delayed, noisy, or incomplete monitoring behavior.
 
 ---
 
 ## Action Groups
 
-An Action Group defines what happens when an alert fires.
+An **Action Group** defines what happens when an alert fires.
 
-Common receiver patterns:
+### Common action types
 
-- human notification channels (email/SMS/push)
-- webhook or ITSM integration
-- automation paths for remediation workflows
+- email or SMS notifications
+- push notification
+- webhook integration
+- automation or remediation workflows
+- ITSM or ticketing integration
 
-Design principle: Keep Action Groups reusable and environment-aware (for example production vs non-production routing).
+### Design principle
+Keep Action Groups:
+
+- **reusable**
+- **environment-aware** (production vs non-production)
+- aligned to **clear ownership**
+
+An alert that fires but reaches nobody useful has almost no operational value.
 
 ---
 
 ## Alert Design Guidance
 
-1. Start from service-level risk, not from every available metric.
-2. Use severity levels consistently across teams.
-3. Apply suppression windows and evaluation settings to reduce storms.
-4. Use asymmetric trigger/resolve logic where supported.
-5. Review alert history regularly and tune thresholds.
+A good alert design should:
+
+1. start from a business or service risk
+2. choose the correct signal type
+3. use consistent severity levels
+4. avoid thresholds that are too sensitive
+5. be reviewed and tuned after real observation
+
+### Good threshold example
+
+- CPU > `80%` for 10 minutes → fire alert
+- CPU must stay low for a longer window before resolving or scaling back
+
+This helps avoid “flapping” or alert storms from short spikes.
 
 ---
 
-## Operational Pitfalls
+## Noise Reduction and Signal Quality
 
-- Rules without Action Groups.
-- Thresholds that are too sensitive for workload baseline.
-- Scoping to the wrong resource or subscription.
-- Creating many low-value alerts that train operators to ignore incidents.
-- Never validating end-to-end notification delivery.
+Too many alerts create alert fatigue.
 
----
+### Good practices for signal quality
 
-## Common Pitfalls and Exam Traps
+- alert on meaningful symptoms, not every minor fluctuation
+- use evaluation windows and suppression thoughtfully
+- reuse severity standards across teams
+- periodically disable or tune alerts that do not help operations
 
-- Confusing metric alerts with KQL-based log alerts.
-- Assuming one alert type fits every monitoring requirement.
-- Forgetting to include operational ownership and routing design.
-- Treating alert creation as complete without tuning after observation.
+The goal is **actionable signal**, not maximum volume.
 
 ---
 
-## Quick CLI Reference
+## Example Scenarios
+
+### 1. VM CPU saturation
+
+Use a **metric alert** because CPU is a numeric, near-real-time signal.
+
+### 2. Missing VM agent heartbeat
+
+Use a **log alert** over `Heartbeat` data in Log Analytics.
+
+### 3. Resource group deletion or role assignment change
+
+Use an **Activity Log alert** because it is a subscription-level control-plane event.
+
+---
+
+## Azure CLI Examples
+
+### Create an Action Group
 
 ```bash
-# Create action group (example)
 az monitor action-group create \
   --resource-group <rg> \
   --name <ag-name> \
   --short-name <short>
+```
 
-# List alert rules in a resource group
+### List metric alert rules in a resource group
+
+```bash
 az monitor metrics alert list \
   --resource-group <rg> \
   -o table
@@ -115,8 +191,50 @@ az monitor metrics alert list \
 
 ---
 
+## Best Practices
+
+1. Start from **risk and ownership**, not from “every available metric.”
+2. Use **severity levels** consistently.
+3. Make Action Groups reusable and environment-specific where needed.
+4. Validate end-to-end notification delivery after creation.
+5. Tune thresholds after observing real workload behavior.
+
+---
+
+## Troubleshooting Checklist
+
+If alerts are too noisy, silent, or unreliable:
+
+1. confirm the **correct alert type** was chosen
+2. check the rule **scope** and evaluation settings
+3. verify the threshold and time window match the workload baseline
+4. test whether the **Action Group** actually delivers notifications
+5. review alert history to tune or remove low-value rules
+
+---
+
+## Common Pitfalls and Exam Traps
+
+- Confusing metric alerts with KQL-based log alerts.
+- Assuming one alert type fits every monitoring scenario.
+- Creating rules without useful Action Groups.
+- Scoping the rule to the wrong resource or subscription.
+- Treating alert creation as finished without tuning after observation.
+
+---
+
+## Key Takeaways
+
+- Alerts turn monitoring data into **response**.
+- The correct alert type depends on whether the signal is a **metric**, **log pattern**, or **control-plane event**.
+- Action Groups are the link between alert detection and real operational action.
+- Good alerting is defined by **accuracy, ownership, and low noise**.
+
+---
+
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-overview
-- https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/action-groups
-- https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-types
+- [Azure Monitor alerts overview](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-overview)
+- [Action Groups in Azure Monitor](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/action-groups)
+- [Types of Azure Monitor alerts](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-types)
+- [Create and manage alert rules](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-create-new-alert-rule)

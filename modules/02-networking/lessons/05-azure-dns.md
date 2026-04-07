@@ -1,108 +1,236 @@
 # Azure DNS: Public and Private Name Resolution
 
+> Azure DNS is the name-resolution layer for public internet domains and private Azure networks. In real environments, good DNS design is what makes peering, private endpoints, and hybrid connectivity actually usable.
+
+---
+
 ## Overview
 
-DNS is critical to Azure networking because most service access patterns rely on names rather than raw IP addresses. Azure provides:
+Most applications connect by **name**, not by memorizing IP addresses. Azure DNS services help you publish and resolve those names in two main scopes:
 
-- **Azure DNS Public Zones** for internet-resolvable domains
-- **Azure DNS Private Zones** for internal/private name resolution across linked VNets
+- **Public DNS zones** for internet-facing domains
+- **Private DNS zones** for internal name resolution inside Azure VNets
 
-For AZ-104, you must understand how DNS affects private endpoints, hybrid connectivity, and troubleshooting.
+For AZ-104, DNS becomes especially important when you work with:
+
+- private endpoints
+- hybrid networks
+- custom DNS servers
+- multi-VNet architectures
 
 ---
 
 ## What You Will Learn
 
-- Public vs private DNS zones and use cases
-- VNet links for private DNS
-- Auto-registration behavior in private zones
-- DNS for private endpoints (`privatelink` zones)
-- Hybrid DNS forwarding considerations
-- Validation and troubleshooting methods
+- The difference between public and private DNS zones
+- How Azure-provided and custom DNS behave in VNets
+- How VNet links and auto-registration work
+- Why private endpoints depend heavily on DNS
+- Common admin scenarios, examples, and troubleshooting steps
 
 ---
 
-## Name Resolution Flow
+## DNS Mental Model
 
-```
- [Client VM/App]
-         |
-         v
- [DNS Resolver]
-    (Azure-provided or custom)
-         |
-         +--> [Public DNS Zone] ---> [A/AAAA/CNAME records]
-         |
-         +--> [Private DNS Zone] ---> [privatelink.* or internal records]
+```text
+[Client VM / App]
+        |
+        v
+[DNS Resolver]
+  |             \
+  |              +--> [Public Azure DNS zone] -> public records
+  |
+  +--> [Private DNS zone linked to VNet] -> internal records / privatelink records
 ```
 
----
-
-## Core Concepts
-
-- **Public zone**: Hosts records reachable from the internet.
-- **Private zone**: Resolves names only within linked VNets.
-- **Private DNS zone links**:
-   - Link each VNet that needs resolution.
-   - Optional auto-registration for VM hostnames (only in selected VNets).
-- **Private endpoints**: Typically require `privatelink` private DNS zones for correct internal resolution.
-- **Azure-provided DNS**: By default, Azure VMs can use the platform DNS resolver (`168.63.129.16`) unless a custom DNS server is configured on the VNet.
-- **Custom DNS**: If using custom DNS servers, configure forwarding so private Azure zones resolve correctly.
+If the wrong DNS path is used, a network that looks healthy can still fail from the user’s point of view.
 
 ---
 
-## Design Guidance
+## Public vs Private DNS Zones
 
-1. Use public and private zones intentionally; avoid mixing responsibilities.
-2. Standardize private zone naming and ownership.
-3. Link all relevant VNets to private zones used by shared services.
-4. For hybrid, define conditional forwarding between on-prem DNS and Azure DNS patterns.
-5. Validate name resolution after any network or endpoint change.
+| Zone type | Resolves where | Typical use |
+|---|---|---|
+| **Public DNS zone** | Internet clients | `contoso.com`, `www.contoso.com` |
+| **Private DNS zone** | Linked VNets only | `internal.contoso.local`, `privatelink.blob.core.windows.net` |
+
+### Public zones
+Use a public zone when users or systems on the internet need to resolve the name.
+
+### Private zones
+Use a private zone when the record should resolve **only inside linked Azure VNets**.
 
 ---
 
-## Troubleshooting Workflow
+## Azure-Provided DNS vs Custom DNS
 
-1. Confirm the queried name and expected zone type (public/private).
-2. Verify private zone link exists for the client VNet.
-3. Check record presence and record type.
-4. Validate whether custom DNS forwarding is correctly configured.
-5. Test with `nslookup` or `dig` from the actual client network context.
+### Azure-provided DNS
+By default, VMs in a VNet can use Azure’s built-in resolver:
+
+- IP: `168.63.129.16`
+- easy for default deployments
+- works well for many Azure-native scenarios
+
+### Custom DNS
+Use custom DNS servers when you need:
+
+- on-prem Active Directory integrated DNS
+- custom forwarding rules
+- centralized enterprise name resolution
+- hybrid environments with complex zone ownership
+
+If you switch VNet DNS settings, clients may need to renew DHCP or restart to pick up the new resolver settings.
+
+---
+
+## Private DNS Zone Links
+
+A private zone does nothing until it is linked to one or more VNets.
+
+### Types of link behavior
+
+| Feature | What it does |
+|---|---|
+| **Resolution link** | Allows the VNet to resolve records in the zone |
+| **Auto-registration** | Automatically creates DNS records for Azure VMs in that linked VNet |
+
+### Important note
+Auto-registration is useful for VM hostname registration, but it is not a replacement for full enterprise DNS design.
+
+---
+
+## DNS for Private Endpoints
+
+This is one of the most important practical Azure networking topics.
+
+When you create a **private endpoint**, the service should usually resolve to a **private IP** instead of its normal public endpoint.
+
+Example for Azure Storage:
+
+- public name pattern: `mystorage.blob.core.windows.net`
+- private DNS zone often used: `privatelink.blob.core.windows.net`
+
+If DNS is not configured correctly, the client may still resolve the service to the **public IP**, which breaks the expected private-access design.
+
+---
+
+## Hybrid DNS Considerations
+
+In hybrid environments, you often need Azure and on-premises DNS systems to forward queries to each other.
+
+Common patterns:
+
+- on-premises DNS forwards Azure private zones to Azure
+- Azure workloads forward corporate internal zones to on-premises DNS
+- **Azure DNS Private Resolver** is used to simplify managed inbound/outbound DNS forwarding
+
+This is the modern Azure-friendly approach for large environments.
+
+---
+
+## Example Scenarios
+
+### 1. Public website
+
+- Public DNS zone: `contoso.com`
+- Record: `www.contoso.com` -> public IP of App Gateway or Front Door
+
+### 2. Internal application
+
+- Private DNS zone: `corp.contoso.internal`
+- Record: `app01.corp.contoso.internal` -> private IP of internal load balancer or VM
+
+### 3. Private endpoint for Storage
+
+- Private endpoint created in a subnet
+- Private DNS zone linked to the VNet
+- Storage name resolves privately for Azure VMs
+
+---
+
+## Azure CLI Examples
+
+### Create a private DNS zone
+
+```bash
+az network private-dns zone create \
+  --resource-group <rg> \
+  --name privatelink.blob.core.windows.net
+```
+
+### Link a VNet to the private zone
+
+```bash
+az network private-dns link vnet create \
+  --resource-group <rg> \
+  --zone-name privatelink.blob.core.windows.net \
+  --name storage-zone-link \
+  --virtual-network <vnet-id> \
+  --registration-enabled false
+```
+
+### Add an A record manually
+
+```bash
+az network private-dns record-set a add-record \
+  --resource-group <rg> \
+  --zone-name privatelink.blob.core.windows.net \
+  --record-set-name mystorage \
+  --ipv4-address 10.20.10.4
+```
+
+### Validate name resolution from a VM
+
+```bash
+nslookup mystorage.blob.core.windows.net
+```
+
+---
+
+## Best Practices
+
+1. Keep **public** and **private** DNS responsibilities clearly separated.
+2. Link every relevant VNet to the private zone that serves shared private services.
+3. Standardize private DNS naming and ownership.
+4. Use **Azure DNS Private Resolver** or well-planned forwarding in hybrid environments.
+5. Always test from the **actual client network context**, not just from your laptop.
+
+---
+
+## Troubleshooting Checklist
+
+If name resolution fails:
+
+1. Verify whether the name should resolve in a **public** or **private** zone.
+2. Confirm the record exists in the expected zone.
+3. Confirm the **VNet link** exists for private zones.
+4. Check whether the client uses **Azure-provided** or **custom DNS**.
+5. Validate forwarding rules if the environment is hybrid.
+6. Test with `nslookup` or `dig` from the Azure VM itself.
 
 ---
 
 ## Common Pitfalls and Exam Traps
 
-- Creating a private zone but forgetting VNet links.
-- Assuming private endpoint DNS works without zone integration.
-- Using custom DNS without forwarding `privatelink` namespaces.
-- Expecting public DNS records to resolve to private endpoint IPs automatically.
+- Creating a private zone but forgetting to link the VNet.
+- Assuming private endpoint DNS is automatic without the correct `privatelink` zone setup.
+- Using custom DNS but not forwarding private Azure namespaces.
+- Expecting a public zone to return private endpoint IPs.
+- Troubleshooting connectivity only at the network layer when the issue is actually DNS.
 
 ---
 
-## Quick CLI Reference
+## Key Takeaways
 
-```bash
-# Create private DNS zone
-az network private-dns zone create --resource-group <rg> --name <zone-name>
-
-# Link VNet to private DNS zone
-az network private-dns link vnet create \
-   --resource-group <rg> \
-   --zone-name <zone-name> \
-   --name <link-name> \
-   --virtual-network <vnet-id> \
-   --registration-enabled false
-
-# Add A record
-az network private-dns record-set a add-record \
-   --resource-group <rg> --zone-name <zone-name> --record-set-name <name> --ipv4-address <ip>
-```
+- DNS is a critical part of Azure networking, not an optional add-on.
+- Use **public zones** for internet records and **private zones** for internal/private Azure resolution.
+- Private endpoints depend on correct DNS integration.
+- In hybrid environments, good **forwarding design** is essential.
 
 ---
 
 ## Further Reading
 
-- [What is Azure DNS?](https://learn.microsoft.com/en-us/azure/dns/dns-overview)
+- [Azure DNS overview](https://learn.microsoft.com/en-us/azure/dns/dns-overview)
 - [Azure Private DNS overview](https://learn.microsoft.com/en-us/azure/dns/private-dns-overview)
-
+- [Azure DNS Private Resolver overview](https://learn.microsoft.com/en-us/azure/dns/dns-private-resolver-overview)

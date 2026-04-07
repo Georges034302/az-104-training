@@ -1,8 +1,8 @@
 # Lab: Enable VM Insights and Query Logs (CLI + ARM)
-> Variant: CLI + ARM lab track (Portal walkthrough included only for the VM Insights onboarding step).
+> Variant: CLI + ARM lab track with one **portal-assisted onboarding step** for VM Insights, because Azure changes the underlying DCR workflow over time.
 
 ## Objective
-Create a VM and Log Analytics workspace, onboard the VM to Azure Monitor Agent/VM Insights, and confirm log visibility with KQL.
+Create a VM and Log Analytics workspace, complete VM Insights onboarding using the most reliable admin path, and confirm log visibility with KQL.
 
 ## What you will build
 
@@ -86,13 +86,17 @@ az vm extension set \
 echo "VM_ID=$VM_ID"
 ```
 
-### 3) Onboard VM to VM Insights (Portal step for consistency)
+### 3) Complete VM Insights onboarding (portal-assisted step)
 ```bash
-echo "Portal step required: open VM > Insights > Enable."
-echo "Select workspace $LAW_NAME and accept creation/association of Data Collection Rule if prompted."
+echo "Open Azure Portal > Virtual machines > $VM_NAME > Insights"
+echo "Choose Enable and select Log Analytics workspace: $LAW_NAME"
+echo "Accept creation or association of the required Data Collection Rule if prompted"
+echo "After onboarding completes, return to CLI for validation"
 ```
 
-Why this portal step is included: VM Insights onboarding UX and API wiring (DCR associations) changes over time; portal is the most stable AZ-104 practice path.
+Why this step is portal-assisted: Azure frequently changes the underlying VM Insights onboarding experience and DCR wiring. This lab keeps **deployment, validation, and cleanup** in CLI, while using the most reliable current admin path for the enablement action itself.
+
+If you want a fully click-by-click experience, use the matching `labs/portal/` version of this lab.
 
 ### 4) Validate monitoring pipeline
 ```bash

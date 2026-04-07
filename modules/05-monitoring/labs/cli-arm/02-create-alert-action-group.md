@@ -41,6 +41,7 @@ VM_NAME="${PREFIX}-${LAB}-vm"
 AG_NAME="${PREFIX}-${LAB}-ag"
 ALERT_NAME="${PREFIX}-${LAB}-cpu-high"
 ADMIN_USER="azureuser"
+# Replace with an email address you can access for notification testing
 ALERT_EMAIL="you@example.com"
 ENVEOF
 

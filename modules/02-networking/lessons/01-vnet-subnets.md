@@ -1,86 +1,270 @@
+# Azure Virtual Networks and Subnets
 
-# Azure Virtual Networks (VNets) and Subnets: Planning, Isolation, and Best Practices
+> **Azure Virtual Network (VNet)** is the core private networking service in Azure. It gives Azure resources private IP connectivity, isolation boundaries, routing control, and security integration.
+
+---
 
 ## Overview
 
-An **Azure Virtual Network (VNet)** is the fundamental building block for private networking in Azure. VNets enable Azure resources—such as VMs, containers, and PaaS services—to securely communicate with each other, with on-premises networks, and with the internet. Each VNet is an isolated, logical network boundary within Azure.
+A VNet is the Azure equivalent of a private network in a datacenter. You define an address space, split it into **subnets**, and place resources such as VMs, Azure Bastion, VPN gateways, private endpoints, and firewalls into the appropriate network segments.
 
-**Subnets** divide a VNet's address space into segments, allowing you to isolate workloads, apply security policies, and control routing.
+For AZ-104, this topic matters because most other networking features build on the VNet:
+
+- **NSGs** filter traffic at subnet or NIC level
+- **UDRs** change where traffic goes next
+- **Peering** connects VNets together
+- **Private endpoints** bring PaaS services into private IP space
+- **DNS** controls how resources resolve names inside and outside the network
 
 ---
 
 ## What You Will Learn
 
-- The purpose and structure of VNets
-- How to design and plan address spaces and subnets (CIDR)
-- Subnet isolation and workload separation
-- Best practices for subnet sizing and growth
-- How subnets interact with NSGs, route tables, and private endpoints
-- Common pitfalls and troubleshooting tips
+- How VNets and subnets are structured in Azure
+- How to plan IP address spaces with CIDR notation
+- How subnetting supports isolation and security boundaries
+- How VNets integrate with NSGs, route tables, DNS, and private access
+- Common design patterns, examples, and exam pitfalls
 
 ---
 
-## VNet and Subnet Architecture
+## Mental Model
 
+```text
+[Region: Australia East]
+        |
+        v
+[VNet: prod-vnet 10.20.0.0/16]
+        |
+        +--> [web-subnet 10.20.1.0/24] -> web VMs / web tier
+        +--> [app-subnet 10.20.2.0/24] -> app services / API VMs
+        +--> [data-subnet 10.20.3.0/24] -> database tier / managed services
+        +--> [private-endpoints 10.20.10.0/24] -> private link NICs
+        +--> [AzureBastionSubnet 10.20.250.0/26] -> Azure Bastion
 ```
- [Azure VNet: 10.10.0.0/16]
-            |
-            +--> [Subnet: App 10.10.1.0/24] ---> [App Servers]
-            |
-            +--> [Subnet: VM 10.10.2.0/24] ---> [Virtual Machines]
-            |
-            +--> [Subnet: Private Endpoints 10.10.3.0/24] ---> [Private Endpoints]
-```
+
+A VNet is **regional**, but it can span **multiple availability zones** inside that region.
 
 ---
 
-## Key Concepts
+## Core Building Blocks
 
-- **VNet**: A private, isolated network boundary in Azure. Each VNet has a defined IP address space (CIDR block), is scoped to a single Azure region, and contains one or more subnets. Multi-region designs use multiple VNets connected with services such as global VNet peering, VPN Gateway, or ExpressRoute.
-- **Subnet**: A segment of a VNet's address space. Subnets allow you to group resources, apply security policies (NSGs), and control routing.
-- **Address Planning**: Choose non-overlapping, RFC1918 address ranges (e.g., 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). Plan for future growth—avoid small subnets that limit scaling.
-- **Subnet Isolation**: Use separate subnets for different workloads (e.g., web, app, database, private endpoints) to enforce security boundaries and simplify management.
-- **Integration**: Subnets are the scope for NSGs (firewall rules), route tables (custom routing), and private endpoints (secure PaaS access).
+| Component | Purpose | Key Notes |
+|---|---|---|
+| **VNet** | Private network boundary | Scoped to one Azure region |
+| **Address space** | Overall IP range for the VNet | Example: `10.20.0.0/16` |
+| **Subnet** | Segment inside the VNet | Used for workload separation and policy application |
+| **NIC** | Network interface on a VM | Gets a private IP from a subnet |
+| **NSG** | Layer 3/4 traffic filtering | Can be attached to subnet or NIC |
+| **Route table** | Custom routing logic | Associated to subnets |
+| **DNS settings** | Name resolution behavior | Azure-provided or custom DNS servers |
+| **Private endpoint** | Private IP access to PaaS | Usually placed in a dedicated subnet |
+
+---
+
+## Address Planning and CIDR
+
+### Use RFC1918 Private Address Ranges
+
+Azure VNets typically use these private ranges:
+
+- `10.0.0.0/8`
+- `172.16.0.0/12`
+- `192.168.0.0/16`
+
+The most important rule is: **do not overlap address spaces** with:
+
+- other Azure VNets you may peer later
+- on-premises networks connected by VPN or ExpressRoute
+- lab or DR environments that may need connectivity
+
+### CIDR Example
+
+| Prefix | Total IPs | Usable in Azure* | Typical Use |
+|---|---:|---:|---|
+| `/24` | 256 | 251 | medium subnet for VMs or app tier |
+| `/26` | 64 | 59 | Azure Bastion or smaller app tier |
+| `/27` | 32 | 27 | management or utility subnet |
+| `/28` | 16 | 11 | very small dedicated subnet |
+
+> *Azure reserves the **first four IP addresses** and the **last IP address** in every subnet.
+
+### Example Plan
+
+```text
+VNet: 10.20.0.0/16
+- web-subnet:            10.20.1.0/24
+- app-subnet:            10.20.2.0/24
+- data-subnet:           10.20.3.0/24
+- private-endpoints:     10.20.10.0/24
+- management-subnet:     10.20.20.0/27
+```
+
+This layout leaves large unused space for growth while keeping each workload isolated.
+
+---
+
+## Subnet Design Patterns
+
+### 1. Separate by workload role
+
+Use different subnets for different trust levels or traffic patterns:
+
+- **Web tier**: internet-facing workloads
+- **App tier**: internal APIs or business logic
+- **Data tier**: databases or restricted services
+- **Management**: jump hosts, Bastion, admin tools
+- **Private endpoints**: private access to Storage, SQL, Key Vault, and other PaaS services
+
+### 2. Keep room for managed services
+
+Some Azure services require specific subnet behavior or names:
+
+| Special subnet | Used for | Important note |
+|---|---|---|
+| `GatewaySubnet` | VPN Gateway / ExpressRoute Gateway | Reserved for the gateway service |
+| `AzureBastionSubnet` | Azure Bastion | Must be named exactly `AzureBastionSubnet`; use `/26` or larger |
+| `AzureFirewallSubnet` | Azure Firewall | Required reserved subnet name |
+| `AzureFirewallManagementSubnet` | Azure Firewall management | Needed in specific forced-tunnel scenarios |
+
+### 3. Use subnet-level policy as the default
+
+Most network policy is applied at the **subnet**:
+
+- NSGs for security filtering
+- Route tables for custom routing
+- Service endpoints or private endpoints for PaaS connectivity
+
+This keeps policy easier to manage than configuring each VM individually.
+
+---
+
+## Example Scenario
+
+A company is moving a three-tier application to Azure.
+
+### Good design
+
+- One VNet: `10.20.0.0/16`
+- Three core subnets: `web`, `app`, `data`
+- NSG on each subnet with least-privilege rules
+- Private endpoint subnet for storage and Key Vault
+- Optional hub VNet later for centralized firewall or VPN
+
+### Poor design
+
+- One flat subnet for everything
+- Overlapping address space with on-prem network
+- No room for future growth or private endpoints
+
+The first design is easier to secure, troubleshoot, and extend.
+
+---
+
+## How VNets Interact with Other Azure Features
+
+### NSGs
+NSGs filter traffic to and from subnets or NICs.
+
+### Route tables
+UDRs let you send traffic to a firewall, NVA, or other next hop.
+
+### DNS
+You can use Azure-provided DNS or custom DNS servers. DNS design becomes especially important for hybrid networks and private endpoints.
+
+### Private endpoints and service endpoints
+These control secure access from a subnet to Azure PaaS services.
+
+### Peering and gateways
+When the environment grows, you often connect multiple VNets using peering or hybrid gateways.
+
+---
+
+## Azure CLI Examples
+
+### Create a VNet with an initial subnet
+
+```bash
+az network vnet create \
+  --resource-group <rg> \
+  --name prod-vnet \
+  --location australiaeast \
+  --address-prefixes 10.20.0.0/16 \
+  --subnet-name web-subnet \
+  --subnet-prefixes 10.20.1.0/24
+```
+
+### Add more subnets
+
+```bash
+az network vnet subnet create \
+  --resource-group <rg> \
+  --vnet-name prod-vnet \
+  --name app-subnet \
+  --address-prefixes 10.20.2.0/24
+
+az network vnet subnet create \
+  --resource-group <rg> \
+  --vnet-name prod-vnet \
+  --name private-endpoints \
+  --address-prefixes 10.20.10.0/24
+```
+
+### Review configuration
+
+```bash
+az network vnet show --resource-group <rg> --name prod-vnet
+az network vnet subnet list --resource-group <rg> --vnet-name prod-vnet -o table
+```
 
 ---
 
 ## Best Practices
 
-1. **Plan for Growth**: Allocate larger address spaces than you need today. Changing subnet ranges later can be constrained and disruptive, especially after resources are deployed.
-2. **Avoid Overlap**: Ensure VNet and subnet ranges do not overlap with on-premises networks or other VNets (critical for peering and VPNs).
-3. **Subnet for Function**: Use dedicated subnets for private endpoints, DMZ, application tiers, and management resources.
-4. **Document Your Design**: Keep a record of all address spaces and subnet purposes to avoid confusion and future conflicts.
-5. **Security First**: Apply NSGs at the subnet level for broad policy, and at the NIC level only for exceptions.
+1. **Plan address space early** and leave room for expansion.
+2. **Avoid overlap** with current and future connected networks.
+3. **Subnet by function**, not randomly by team name.
+4. **Keep private endpoints separate** from general-purpose workloads when possible.
+5. **Document subnet purpose** and expected traffic flows.
+6. **Use NSGs and route tables intentionally**; do not rely on a flat open network.
 
 ---
 
 ## Common Pitfalls and Exam Traps
 
-- Overlapping address spaces prevent peering and VPN connections.
-- Placing private endpoints in the same subnet as workloads can complicate routing and security.
-- VNets do not automatically configure DNS for private zones—you must link private DNS zones to VNets.
-- Changing subnet ranges later can be constrained and disruptive when subnets already host resources.
+- Thinking a VNet can span multiple regions — it cannot.
+- Forgetting that overlapping address ranges block peering and hybrid connectivity.
+- Creating subnets too small and then running out of IP addresses.
+- Forgetting that Azure reserves 5 IPs in each subnet.
+- Assuming DNS for private services works automatically without proper private DNS configuration.
+- Placing everything in one subnet and then struggling with segmentation later.
 
 ---
 
-## Quick Reference: Azure CLI
+## Troubleshooting Checklist
 
-```bash
-# List VNets in a subscription
-az network vnet list -o table
+If a VM or service cannot communicate as expected:
 
-# Show subnets in a VNet
-az network vnet subnet list --resource-group <rg> --vnet-name <vnet>
+1. Verify the resource is in the expected **subnet**.
+2. Confirm the **VNet address space** and **subnet range** are correct.
+3. Check whether an **NSG** blocks traffic.
+4. Check whether a **route table** changes the path.
+5. Validate **DNS resolution** if the issue is name-based rather than IP-based.
+6. Review whether the design requires **peering**, a **VPN**, or a **private endpoint**.
 
-# Create a VNet and subnets
-az network vnet create --resource-group <rg> --name <vnet> --address-prefix 10.10.0.0/16 \
-    --subnet-name app --subnet-prefix 10.10.1.0/24
-az network vnet subnet create --resource-group <rg> --vnet-name <vnet> --name private-endpoints --address-prefix 10.10.3.0/24
-```
+---
+
+## Key Takeaways
+
+- A **VNet** is Azure’s private network boundary within a region.
+- **Subnets** create isolation, enable policy, and make traffic easier to control.
+- Good **IP planning** prevents major future connectivity problems.
+- Most Azure networking features build on top of VNet and subnet design.
 
 ---
 
 ## Further Reading
 
-- [What is Azure Virtual Network? (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview)
+- [What is Azure Virtual Network?](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview)
 - [Virtual network planning and design](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-vnet-plan-design-arm)
+- [Create, change, or delete a subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-manage-subnet)

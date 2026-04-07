@@ -1,109 +1,251 @@
-# Private Endpoints and Service Endpoints: Choosing the Right PaaS Access Model
+# Private Endpoints and Service Endpoints
+
+> Azure offers two major ways to secure VNet-to-PaaS access: **Private Endpoints** for truly private IP connectivity, and **Service Endpoints** for subnet-based access to a still-public service endpoint.
+
+---
 
 ## Overview
 
-Azure offers two common patterns for securing access from VNets to PaaS services:
+When Azure VMs or applications need to reach services such as Storage, SQL Database, or Key Vault, you should avoid leaving access wide open from any network.
 
-- **Private Endpoint (Azure Private Link)**: Maps a service to a private IP in your VNet.
-- **Service Endpoint**: Extends subnet identity to Azure services while service endpoints remain public.
+Two common controls are:
 
-For AZ-104, you must clearly differentiate these models and know when each is appropriate.
+- **Private Endpoint (Private Link)**
+- **Service Endpoint**
+
+They sound similar, but they solve the problem in different ways.
 
 ---
 
 ## What You Will Learn
 
-- How private endpoints work and why DNS is critical
-- How service endpoints differ in network path and exposure
-- Security and governance implications of each model
-- Selection criteria for real-world scenarios
-- Validation and troubleshooting steps
+- How private endpoints work
+- How service endpoints differ from private endpoints
+- When to choose one over the other
+- Why DNS and authorization still matter
+- Common scenarios, examples, and exam traps
 
 ---
 
-## Connectivity Model
+## Quick Comparison
 
-```
- [Client in VNet]
+| Feature | Private Endpoint | Service Endpoint |
+|---|---|---|
+| Network path | Private IP in your VNet | Service public endpoint |
+| Exposure model | Can reduce or disable public access | Service still has a public endpoint |
+| DNS impact | Critical; usually requires `privatelink` DNS | Usually less DNS change |
+| Security model | Stronger private isolation | Subnet-based restriction to public service |
+| Typical use | Highly secure access to PaaS | Simpler trusted-subnet access |
+
+---
+
+## How a Private Endpoint Works
+
+A private endpoint creates a **network interface** in your subnet with a **private IP address**. Your workload then connects to the PaaS service using that private path.
+
+```text
+[VM / App in VNet]
         |
-        +--> [Private Endpoint NIC (private IP)] ---> [Azure PaaS Service]
+        v
+[Private Endpoint NIC: 10.20.10.4]
         |
-        +--> [Service Endpoint-enabled subnet] -----> [Azure PaaS Service (public endpoint)]
+        v
+[Azure Storage / SQL / Key Vault over Private Link]
+```
+
+### Key points
+
+- The service appears reachable through a private IP inside your VNet.
+- It is commonly paired with a **private DNS zone**.
+- You can often disable **public network access** on the service after validation.
+- Private endpoint approval can be automatic or manual depending on the scenario and permissions.
+
+---
+
+## How a Service Endpoint Works
+
+A service endpoint does **not** place the service on a private IP in your VNet.
+
+Instead, it extends the subnet’s identity to supported Azure services so the service firewall can trust that subnet.
+
+```text
+[VM / App in subnet with service endpoint enabled]
+        |
+        v
+[Public endpoint of Azure service]
+        |
+        v
+[Access allowed because subnet identity is trusted]
+```
+
+### Key points
+
+- Simpler to configure than Private Link in many cases
+- Still uses the service’s public endpoint
+- Useful when private IP connectivity is not mandatory
+- Commonly used with Storage or SQL firewall restrictions
+
+---
+
+## Important Difference: Network Privacy vs Network Restriction
+
+- **Private Endpoint** = private IP path to the service
+- **Service Endpoint** = public endpoint remains, but access can be limited to trusted subnets
+
+This distinction appears frequently in AZ-104 questions.
+
+---
+
+## Authorization Still Matters
+
+Neither feature replaces service-level permissions.
+
+Even if the network path is correct, the user or application may still need:
+
+- Azure RBAC
+- SAS token
+- access key
+- Key Vault access policy / RBAC
+- database login or app authorization
+
+### Exam reminder
+**Network access and identity authorization are separate controls.**
+
+---
+
+## DNS Considerations for Private Endpoints
+
+Private endpoints depend heavily on DNS.
+
+Without correct DNS:
+
+- the client may still resolve the service name to its **public** IP
+- traffic may bypass the intended private path
+- the service may appear unreachable or misconfigured
+
+Typical example:
+
+- private DNS zone: `privatelink.blob.core.windows.net`
+- storage account record resolves to the private endpoint IP
+
+---
+
+## When to Choose Which Option
+
+### Choose **Private Endpoint** when:
+
+- you need **private IP-based connectivity**
+- you want to **minimize or disable public exposure**
+- the workload is security-sensitive
+- the exam scenario emphasizes **private access**, **isolation**, or **Private Link**
+
+### Choose **Service Endpoint** when:
+
+- you want a simpler configuration
+- the service can still use a public endpoint
+- subnet-based restriction is enough
+- the requirement is “allow access only from this subnet or VNet” without full private-link design
+
+---
+
+## Example Scenarios
+
+### 1. Secure storage access for production app
+
+Best choice: **Private Endpoint**
+
+Reason: traffic stays private, DNS can point to a private IP, and public access can be disabled.
+
+### 2. Quick restriction of a storage account to one app subnet
+
+Best choice: **Service Endpoint**
+
+Reason: simpler and fast when public endpoint use is acceptable.
+
+### 3. Key Vault used by internal workloads only
+
+Best choice: usually **Private Endpoint** for stronger isolation.
+
+---
+
+## Azure CLI Examples
+
+### Create a private endpoint
+
+```bash
+az network private-endpoint create \
+  --resource-group <rg> \
+  --name storage-pe \
+  --vnet-name prod-vnet \
+  --subnet private-endpoints \
+  --private-connection-resource-id <storage-resource-id> \
+  --group-id blob \
+  --connection-name storage-pe-conn
+```
+
+### Enable a service endpoint on a subnet
+
+```bash
+az network vnet subnet update \
+  --resource-group <rg> \
+  --vnet-name prod-vnet \
+  --name app-subnet \
+  --service-endpoints Microsoft.Storage
+```
+
+### Check private endpoint details
+
+```bash
+az network private-endpoint show \
+  --resource-group <rg> \
+  --name storage-pe
 ```
 
 ---
 
-## Private Endpoint: Key Points
+## Best Practices
 
-- Creates a NIC with a private IP in your subnet.
-- Traffic stays private from client to service entry point.
-- Typically paired with `privatelink` private DNS zones.
-- Supports strong isolation patterns and reduced public exposure.
-
-Important: Private networking does not replace service authorization controls. RBAC/SAS/keys/policies still apply.
-
----
-
-## Service Endpoint: Key Points
-
-- Extends subnet identity to supported Azure services.
-- Access is still to service public endpoint, but source identity/policy is subnet-aware.
-- Service endpoints are available only for supported Azure service types.
-- Simpler for some scenarios, but less private than Private Link.
+1. Prefer **Private Endpoint** for high-security or compliance-sensitive workloads.
+2. Place private endpoints in a **dedicated subnet** where practical.
+3. Configure **private DNS zones** as part of the same change.
+4. Disable public network access on the service when the design supports it.
+5. Remember that network access does not replace **RBAC or data-plane authorization**.
 
 ---
 
-## Selection Guidance
+## Troubleshooting Checklist
 
-- Choose **Private Endpoint** when:
-    - You need private IP-based access.
-    - You want to minimize or disable public access.
-    - You require stronger isolation and private DNS control.
-- Choose **Service Endpoint** when:
-    - Private Link isn’t required.
-    - You need simpler subnet-based access restrictions.
-    - Public endpoint path is acceptable.
+If the private access design fails:
 
----
-
-## Troubleshooting Workflow
-
-1. Confirm endpoint type configured (private vs service endpoint).
-2. For private endpoints, validate DNS resolves to private IP.
-3. Check subnet policies and endpoint status.
-4. Verify service firewall/network access settings.
-5. Validate authorization separately (RBAC, key/SAS, ACL).
+1. Confirm whether the resource uses a **private endpoint** or **service endpoint**.
+2. For private endpoints, verify the DNS name resolves to the **private IP**.
+3. Confirm the private endpoint is **Approved** and in a healthy state.
+4. Check the service firewall or network access settings.
+5. Validate RBAC, SAS, keys, or service authorization separately.
 
 ---
 
 ## Common Pitfalls and Exam Traps
 
-- Creating a private endpoint but leaving DNS unresolved to public endpoint.
-- Assuming private endpoint alone grants data access permissions.
 - Confusing service endpoints with private IP connectivity.
-- Forgetting to align service firewall settings with endpoint model.
+- Creating a private endpoint but forgetting the DNS integration.
+- Assuming private network access automatically grants data access.
+- Leaving public network access enabled when the goal was strict private-only access.
+- Treating “endpoint” terminology as if both services work the same way.
 
 ---
 
-## Quick CLI Reference
+## Key Takeaways
 
-```bash
-# Create private endpoint (example skeleton)
-az network private-endpoint create \
-    --resource-group <rg> --name <pe-name> --vnet-name <vnet> --subnet <subnet> \
-    --private-connection-resource-id <service-resource-id> \
-    --group-id <group-id> --connection-name <conn-name>
-
-# Enable service endpoint on subnet
-az network vnet subnet update \
-    --resource-group <rg> --vnet-name <vnet> --name <subnet> \
-    --service-endpoints Microsoft.Storage
-```
+- **Private Endpoint** provides a **private IP path** to a supported Azure service.
+- **Service Endpoint** restricts a **public endpoint** to trusted subnets.
+- Private endpoints are more secure, but they are also more DNS-dependent.
+- In Azure administration, always think about **network path + DNS + authorization** together.
 
 ---
 
 ## Further Reading
 
-- [What is a private endpoint?](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-overview)
-- [Virtual network service endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)
-
+- [Private endpoint overview](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-overview)
+- [Private Link service and private endpoint DNS](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
+- [Virtual network service endpoints overview](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)

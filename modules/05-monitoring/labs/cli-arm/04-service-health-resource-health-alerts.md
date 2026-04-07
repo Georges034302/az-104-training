@@ -30,6 +30,7 @@ PREFIX="az104"
 LAB="m05healthalerts"
 RG_NAME="${PREFIX}-${LAB}-rg"
 AG_NAME="${PREFIX}-${LAB}-ag"
+# Replace with an email address you can access for notification testing
 ALERT_EMAIL="you@example.com"
 SERVICE_ALERT_NAME="${PREFIX}-${LAB}-service"
 RESOURCE_ALERT_NAME="${PREFIX}-${LAB}-resource"

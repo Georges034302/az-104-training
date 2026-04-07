@@ -1,175 +1,319 @@
-# Azure Virtual Machines Essentials (Deploy, Configure, Operate)
+# Azure Virtual Machines: Deployment, Operations, and Troubleshooting
+
+> Azure Virtual Machines (VMs) provide **infrastructure-as-a-service compute** where you manage the guest operating system, patching, software stack, security posture, and operational lifecycle.
+
+---
 
 ## Overview
 
-Azure Virtual Machines provide infrastructure-as-a-service compute where you manage the guest OS, runtime, and application stack. In AZ-104, VM topics are core because they combine compute, networking, storage, identity, monitoring, and operational troubleshooting.
+VMs remain one of the most important AZ-104 topics because they connect several Azure administration areas together:
+
+- compute sizing and cost control
+- networking and secure remote access
+- managed disks and storage performance
+- backup, monitoring, and patching
+- RBAC, identities, and troubleshooting
+
+An Azure VM is never truly “just one resource.” A working design includes the VM plus its NIC, subnet, NSG, disks, identity model, and operational tooling.
 
 ---
 
 ## What You Will Learn
 
-- VM resource model and dependencies
-- VM sizing and image selection principles
-- OS disk and data disk planning basics
-- Day-2 administration and troubleshooting workflow
-- Security and operations practices expected in AZ-104 scenarios
+- The Azure VM resource model and key dependencies
+- How to choose the right VM image and size
+- OS disk, data disk, and storage planning basics
+- Secure access and day-2 administrative operations
+- Common troubleshooting workflows, examples, and exam traps
 
 ---
 
-## Architecture View
+## VM Mental Model
 
+```text
+[Admin / Automation / Portal / CLI]
+              |
+              v
+      [Virtual Machine resource]
+         |        |         |
+         v        v         v
+      [NIC]   [OS disk] [Extensions]
+         |        |
+         v        v
+ [VNet / Subnet / NSG]   [Data disks / Backup / Snapshots]
 ```
- [Admin/Automation]
-        |
-        v
- [Virtual Machine Resource]
-     |         |         |
-     v         v         v
- [NIC]     [OS/Data]  [Extensions]
-   |         [Disks]      |
-   v                      v
- [VNet/Subnet/NSG]   [Guest Configuration]
+
+---
+
+## When to Choose a VM
+
+Use an Azure VM when you need:
+
+- full OS-level control
+- custom software installation or legacy app support
+- administrator access to the guest OS
+- workloads that do not fit a PaaS hosting model like App Service
+
+Avoid VMs when a managed platform can reduce operational overhead significantly.
+
+---
+
+## Core Components of a VM
+
+| Component | Purpose | Notes |
+|---|---|---|
+| **VM resource** | Main compute definition | Size, image, availability settings |
+| **Image** | OS source | Marketplace, custom image, or Azure Compute Gallery |
+| **Size / SKU** | CPU, memory, network, disk profile | Example: `Standard_B2s`, `D-series`, `E-series` |
+| **NIC** | Network connectivity | Private IP, subnet, NSG interaction |
+| **OS disk** | Boot disk | Required for the operating system |
+| **Data disks** | Additional storage | App data, logs, DB files, shared workload separation |
+| **Extensions** | Post-deployment configuration | Monitoring agents, scripts, security tooling |
+| **Managed identity** | App/service authentication | Avoids storing credentials in the VM |
+
+---
+
+## Provisioning State vs Power State
+
+This distinction appears frequently in AZ-104 questions.
+
+- **Provisioning state** = whether the Azure deployment action succeeded
+- **Power state** = whether the VM is running, stopped, or deallocated
+
+### Important billing point
+
+| State | Meaning | Billing impact |
+|---|---|---|
+| **Running** | VM is active | Compute billed |
+| **Stopped (allocated)** | Guest OS is off, host still reserved | Compute can still be billed |
+| **Stopped (deallocated)** | VM is released from the host | Compute billing stops |
+
+> **Stopped** is not the same as **deallocated**. This is one of the most common AZ-104 exam traps.
+
+---
+
+## Choosing a VM Size
+
+When choosing a VM size, do not focus only on vCPU count.
+
+### Evaluate:
+
+- CPU and memory requirements
+- disk throughput and IOPS needs
+- number of supported NICs and data disks
+- region or zone availability for the SKU
+- expected growth and cost boundary
+
+### Simple workload guidance
+
+| Workload type | Common pattern |
+|---|---|
+| Lab VM / jump box | Smaller `B-series` or entry-level general purpose |
+| General app server | `D-series` general-purpose instance |
+| Memory-heavy app | `E-series` memory-optimized instance |
+| Batch / interruption-tolerant workload | Consider **Spot VMs** if eviction risk is acceptable |
+
+Always validate SKU availability in the target region before standardizing.
+
+---
+
+## Image Selection
+
+Azure VMs can be deployed from:
+
+- **Marketplace images** such as Ubuntu, Windows Server, SQL-enabled images
+- **Custom images** captured from a prepared source VM
+- **Azure Compute Gallery images** for enterprise image standardization and version control
+
+Good image selection affects:
+
+- security baseline
+- patching approach
+- licensing cost
+- extension compatibility
+- deployment consistency across environments
+
+---
+
+## Disk and Storage Planning
+
+### OS disk
+The OS disk contains system files and is required for boot.
+
+### Data disks
+Use data disks for:
+
+- application data
+- logs
+- databases
+- anything that should survive OS rebuilds more cleanly
+
+### Practical guidance
+
+- keep app data off the OS disk when possible
+- choose the right disk performance tier for the workload
+- use managed disks for simpler, production-ready operations
+
+This separation improves backup, maintenance, and recovery workflows.
+
+---
+
+## Networking and Secure Access
+
+A professional VM design usually includes:
+
+- subnet placement in the correct VNet segment
+- NSG rules with least privilege
+- restricted or no public IP exposure
+- **Azure Bastion** or tightly scoped source IP rules for admin access
+- private DNS or outbound access design where the workload depends on internal services
+
+### Better admin access pattern
+
+Instead of exposing SSH or RDP to the full internet:
+
+- use **Azure Bastion**
+- allow only trusted IP ranges
+- use **SSH keys** for Linux
+- combine with just-in-time or tightly scoped admin access
+
+---
+
+## Day-2 VM Operations You Must Know
+
+| Operation | Meaning |
+|---|---|
+| **Start** | Power on the VM |
+| **Stop** | Guest OS stop; may still remain allocated |
+| **Deallocate** | Stops the VM and releases compute allocation |
+| **Restart** | Reboots the guest OS |
+| **Resize** | Changes the VM size if supported/capacity is available |
+| **Redeploy** | Moves the VM to a new Azure host |
+| **Reapply** | Re-applies Azure platform/model configuration |
+| **Reset credentials** | Recovery option for admin password or SSH issues |
+
+For access failures, **boot diagnostics**, **serial console**, and **Run Command** are valuable troubleshooting tools.
+
+---
+
+## Monitoring, Backup, and Continuity
+
+For production VMs, plan more than just deployment:
+
+- enable diagnostic visibility and Azure Monitor integration
+- configure Azure Backup for recoverability
+- track guest health, disk pressure, and extension failures
+- document restart, redeploy, and restore procedures
+
+A VM without monitoring and backup is only partially managed.
+
+---
+
+## Example Scenarios
+
+### 1. Internal Linux admin tool
+
+Good design:
+
+- `Standard_B2s` or similar low-cost VM
+- private subnet with restricted NSG
+- SSH key access only
+- Azure Backup and monitoring enabled
+
+### 2. Legacy line-of-business application
+
+Good design:
+
+- marketplace or custom Windows image
+- separate data disks for app and logs
+- availability design if uptime matters
+- least-privilege admin access and patching process
+
+### 3. Poor design example
+
+- public IP with `0.0.0.0/0` RDP or SSH access
+- all workload data on the OS disk
+- no monitoring, no backup, and no recovery plan
+
+---
+
+## Azure CLI Examples
+
+### Create a Linux VM
+
+```bash
+az vm create \
+  --resource-group <rg> \
+  --name vm01 \
+  --image Ubuntu2204 \
+  --size Standard_B2s \
+  --admin-username azureadmin \
+  --generate-ssh-keys
+```
+
+### Show the VM power state
+
+```bash
+az vm get-instance-view \
+  --resource-group <rg> \
+  --name vm01 \
+  --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus" \
+  -o tsv
+```
+
+### Deallocate a VM
+
+```bash
+az vm deallocate \
+  --resource-group <rg> \
+  --name vm01
+```
+
+### Redeploy a VM to a new host
+
+```bash
+az vm redeploy \
+  --resource-group <rg> \
+  --name vm01
 ```
 
 ---
 
-## Core Concepts
+## Troubleshooting Checklist
 
-- **VM resource**: Control-plane object that defines size, image, and attached resources.
-- **Image**: Source template for VM OS (publisher image or custom image).
-- **Size**: Defines vCPU, memory, temporary storage profile, and max network/disk characteristics.
-- **OS disk**: Boot/system disk for the VM.
-- **Data disks**: Additional managed disks for application or data workloads.
-- **NIC**: Connects VM to subnet, private IP, optional public IP.
-- **NSG**: Filters traffic at subnet and/or NIC level.
-- **Extensions**: Post-deploy configuration agents for tasks like scripting and monitoring bootstrap.
-- **Provisioning state vs power state**: Provisioning state describes control-plane deployment status, while power state describes runtime state (for example running or deallocated).
+If a VM is unavailable or inaccessible:
 
-Important: A VM deployment always creates or references several dependent resources, so troubleshooting often starts by checking dependencies, not only the VM object.
+1. Check **provisioning state** and **power state** first.
+2. Verify the NIC, subnet, NSG, and effective routes.
+3. Confirm DNS and outbound dependency access.
+4. Review disk health and extension state.
+5. Use boot diagnostics, serial console, or Run Command for guest-level issues.
 
----
-
-## VM Lifecycle and State Precision
-
-- **Stopped (allocated)** can still incur compute charges.
-- **Stopped (deallocated)** releases compute allocation and stops compute billing.
-- **Restart** is a guest-level reboot path.
-- **Redeploy** moves VM to a new host in-region to address host-level issues.
-
-Operational implication: Incident triage and cost optimization decisions require checking both provisioning and power state, not one or the other.
-
----
-
-## Sizing and Image Selection
-
-When choosing a VM configuration, evaluate:
-
-- workload CPU/memory profile
-- disk throughput/IOPS requirements
-- region and zone availability for the chosen SKU
-- cost and scaling strategy
-
-Practical guidance:
-
-- use small SKUs for labs and admin jump hosts
-- validate SKU availability in the target region before finalizing design
-- avoid selecting by vCPU only; memory and disk/network limits matter too
-
----
-
-## Disk and Storage Considerations
-
-- Managed disks are the standard model in modern Azure VM designs.
-- OS and data disk performance tiers affect workload behavior.
-- Separate data from OS disk for maintainability and easier lifecycle operations.
-- Snapshots and backup are separate protection mechanisms from redundancy settings.
-
-Design implication: VM resilience planning is incomplete without explicit disk protection strategy.
-
----
-
-## Identity, Access, and Security
-
-- Prefer SSH keys (Linux) and controlled admin access methods over broad password exposure.
-- Limit management ports (SSH/RDP) with restrictive NSG source rules.
-- Use Microsoft Entra and RBAC for control-plane governance.
-- Use managed identities for workload-to-service authentication when supported.
-- Enable VM security posture features supported by the selected image/size (for example Trusted Launch in supported scenarios).
-
-Operational baseline:
-
-1. least-privilege RBAC for operators
-2. restricted inbound management access
-3. logging/monitoring enabled for change and health visibility
-
----
-
-## Day-2 Operations You Must Know
-
-- **Start/stop/deallocate**: Deallocate releases compute billing state.
-- **Restart**: Guest OS restart without changing host placement intent.
-- **Redeploy**: Moves VM to a new host within region to recover host-level issues.
-- **Reapply**: Re-pushes platform state to the VM model when drift/troubleshooting requires it.
-- **Reset password/SSH config**: Recovery actions when access fails.
-
-Use boot diagnostics and serial console when network access is broken or guest boot is failing.
-
----
-
-## Troubleshooting Workflow
-
-1. Confirm VM power and provisioning state.
-2. Confirm NIC/subnet/NSG effective configuration.
-3. Validate route and DNS behavior for outbound dependency access.
-4. Check disk attachment and extension provisioning status.
-5. Use boot diagnostics and serial console for guest-level failure analysis.
-
-This sequence prevents jumping to guest-level conclusions when the issue is actually network policy or platform placement.
+This sequence helps isolate **platform**, **network**, and **guest OS** problems in the right order.
 
 ---
 
 ## Common Pitfalls and Exam Traps
 
-- Assuming VM delete always removes all dependent resources automatically.
-- Opening SSH/RDP to all sources and treating it as acceptable baseline.
-- Ignoring subnet NSG and route effects while troubleshooting VM connectivity.
-- Choosing VM size without checking region/zone availability.
-- Confusing VM stop with deallocate when reasoning about cost.
-- Troubleshooting runtime access issues without checking whether provisioning state actually failed.
-- Assuming security hardening is complete with NSGs alone while ignoring identity and guest-level controls.
+- Confusing **stop** with **deallocate**.
+- Assuming deleting a VM removes every dependent resource automatically.
+- Exposing SSH or RDP broadly to the internet.
+- Troubleshooting guest access before checking NSGs, routes, or provisioning status.
+- Choosing a size without validating regional or zonal availability.
 
 ---
 
-## Quick CLI Reference
+## Key Takeaways
 
-```bash
-# Create VM (example)
-az vm create \
-  --resource-group <rg> \
-  --name <vm-name> \
-  --image Ubuntu2204 \
-  --size Standard_B2s \
-  --admin-username <admin-user> \
-  --generate-ssh-keys
-
-# Show VM power state
-az vm get-instance-view \
-  --resource-group <rg> \
-  --name <vm-name> \
-  --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus" \
-  -o tsv
-
-# Deallocate VM
-az vm deallocate --resource-group <rg> --name <vm-name>
-
-# Redeploy VM
-az vm redeploy --resource-group <rg> --name <vm-name>
-```
+- An Azure VM is part of a larger design involving **networking, storage, identity, and operations**.
+- Good administration requires understanding **lifecycle state**, **cost state**, and **recovery options**.
+- Secure access, monitoring, backup, and disciplined day-2 operations are essential to production VM management.
 
 ---
 
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/virtual-machines/overview
-- https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview
-- https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/overview
+- [Azure Virtual Machines overview](https://learn.microsoft.com/en-us/azure/virtual-machines/overview)
+- [Virtual machine sizes in Azure](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview)
+- [Virtual machine extensions overview](https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/overview)
+- [Boot diagnostics for Azure VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/boot-diagnostics)

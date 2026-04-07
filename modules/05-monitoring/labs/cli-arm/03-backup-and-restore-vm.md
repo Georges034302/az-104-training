@@ -1,8 +1,8 @@
 # Lab: Backup a VM and Validate Restore Path (CLI + ARM)
-> Variant: CLI + ARM lab track (Portal walkthrough included for restore validation step).
+> Variant: CLI + ARM lab track with one **portal-assisted restore validation** step to keep the recovery test safe and easy to verify.
 
 ## Objective
-Create a VM and Recovery Services vault, enable VM backup using policy-based protection, and verify recoverability with a controlled restore test path.
+Create a VM and Recovery Services vault, enable VM backup using policy-based protection, and verify recoverability with a controlled restore-validation workflow.
 
 ## What you will build
 
@@ -77,13 +77,15 @@ az backup vault backup-properties set \
   --vault-name "$VAULT_NAME" \
   --backup-storage-redundancy LocallyRedundant
 
+# DefaultPolicy is the built-in daily VM backup policy created with a new Recovery Services vault.
+# It is suitable for this lab unless you are intentionally testing a custom policy.
 az backup protection enable-for-vm \
   --resource-group "$RG_NAME" \
   --vault-name "$VAULT_NAME" \
   --vm "$VM_NAME" \
   --policy-name DefaultPolicy
 
-echo "Backup protection enabled for VM: $VM_NAME"
+echo "Backup protection enabled for VM: $VM_NAME using DefaultPolicy"
 ```
 
 ### 3) Validate backup registration
@@ -99,13 +101,21 @@ az backup item list \
   --backup-management-type AzureIaasVM \
   --workload-type VM \
   -o table
+
+# Backup jobs are asynchronous. If the first recovery point is not visible yet,
+# wait a few minutes and check the job state again.
+az backup job list \
+  --resource-group "$RG_NAME" \
+  --vault-name "$VAULT_NAME" \
+  -o table
 ```
 
-### 4) Restore-path validation (Portal step)
+### 4) Restore-path validation (portal-assisted, safest verification path)
 ```bash
-echo "Portal step required: Recovery Services vault > Backup items > Azure Virtual Machine > $VM_NAME"
-echo "Run Restore VM or Restore Disks to validate recoverability workflow."
-echo "Use a new target name/resource to avoid impacting source VM."
+echo "Open Azure Portal > Recovery Services vaults > $VAULT_NAME"
+echo "Select Backup items > Azure Virtual Machine > $VM_NAME"
+echo "Choose Restore VM or Restore Disks to validate the recoverability workflow"
+echo "Use a new target name or alternate resource placement to avoid impacting the source VM"
 ```
 
 ## ARM template solution (optional)

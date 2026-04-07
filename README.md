@@ -20,6 +20,22 @@ This repository provides structured learning paths combining conceptual lessons 
 
 ---
 
+## ✅ How to Use This Repository
+
+For the best learning flow, use the repository in this order:
+
+1. Read [`docs/prerequisites.md`](docs/prerequisites.md) and [`docs/cost-safety.md`](docs/cost-safety.md).
+2. Review the module `README.md` to understand scope and outcomes.
+3. Study the lesson content before starting the matching lab.
+4. Choose **one primary lab track per exercise**:
+   - `labs/cli-arm/` for CLI-driven execution
+   - `labs/portal/` for click-by-click Azure Portal practice
+5. Complete the validation steps, then run cleanup immediately.
+
+> **Operational note**: Monitoring, backup, and some control-plane actions can take several minutes to appear. Always allow time for Azure to finish provisioning or ingesting data before assuming a step failed.
+
+---
+
 ## 🎓 Training Modules
 
 <details>
@@ -171,13 +187,14 @@ Run this script to install all required tools and authenticate with Azure:
 
 ### Best Practices
 
-✅ **Before starting**: Run [`./shared/scripts/az_login.sh`](shared/scripts/az_login.sh) to set up your environment  
-✅ **Read first**: Review Portal instructions before running CLI commands  
-✅ **Understand**: Know what each command does before executing  
-✅ **Monitor costs**: Check Azure Portal regularly to avoid unexpected charges
-✅ Use `.env` files for portable lab configuration (add .env to .gitignore)
-✅ **Clean up**: Always delete lab resources after completion (including the .env files)
-> **Tip**: To see all your lab resource groups, run:
+- ✅ **Run setup first**: Use [`./shared/scripts/az_login.sh`](shared/scripts/az_login.sh) before starting a lab.
+- ✅ **Read the guide before execution**: Understand the objective, prerequisites, validation, and cleanup steps.
+- ✅ **Choose the correct lab track**: Use either the `CLI + ARM` or `Portal` workflow for the same learning outcome.
+- ✅ **Use `.env` files consistently**: Keep variables portable and do not commit local lab state.
+- ✅ **Expect Azure timing delays**: Monitoring ingestion, backup jobs, and some control-plane actions can take time.
+- ✅ **Watch spend and clean up immediately**: Delete the lab resource group and remove the local `.env` file when finished.
+
+> **Tip**: To list remaining AZ-104 lab resource groups, run:
 > ```bash
 > az group list --query "[?starts_with(name,'az104-')].{Name:name,Location:location}" -o table
 > ```

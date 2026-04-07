@@ -1,146 +1,265 @@
-# Azure Files: Managed SMB/NFS File Shares
+# Azure Files: Managed SMB and NFS File Shares
+
+> Azure Files provides fully managed cloud file shares that can be mounted from Azure VMs and, in supported scenarios, from on-premises systems. It is a core service for shared folders, lift-and-shift applications, and hybrid file environments.
+
+---
 
 ## Overview
 
-Azure Files provides fully managed file shares in Azure that can be mounted by cloud and on-premises clients. It is commonly used for lift-and-shift shared drives, application shared content, and hybrid file scenarios.
+Azure Files is different from Blob Storage because it provides a **file share** experience rather than an object store. That makes it suitable for:
 
-AZ-104 expects you to understand service purpose, protocol options, authentication choices, quotas, and common operational constraints.
+- shared application content
+- user or team shared drives
+- lift-and-shift workloads that expect SMB shares
+- hybrid branch office file access with Azure File Sync
+
+For AZ-104, you should understand protocols, performance tiers, security choices, and when Azure Files is the right tool.
 
 ---
 
 ## What You Will Learn
 
-- What Azure Files is and where it fits
-- SMB/NFS protocol considerations
-- Share tiers and account choices
-- Identity and key-based access patterns
-- Hybrid extension with Azure File Sync
-- Security and troubleshooting essentials
+- What Azure Files is and when to use it
+- SMB vs NFS considerations
+- Standard vs premium file share decisions
+- Authentication and authorization options
+- Hybrid scenarios with Azure File Sync
+- Operational best practices and troubleshooting steps
 
 ---
 
-## Architecture View
+## Azure Files Mental Model
 
+```text
+[Client VM / User / App]
+        |
+        +--> [SMB access]
+        +--> [NFS access in supported scenarios]
+                    |
+                    v
+             [Azure File Share]
+                    |
+                    v
+             [Storage Account]
+                    |
+                    +--> [Snapshots / Backup]
+                    +--> [Firewall / Private Endpoint]
+                    +--> [Monitoring / Quotas]
 ```
- [Client VM / App / User]
-      |
-      +--> [SMB]
-      +--> [NFS (supported scenarios)]
-             |
-             v
-        [Azure File Share]
-             |
-             v
-        [Storage Account]
-             |
-             v
-        [Snapshots / Backup / Monitoring]
-```
+
+---
+
+## When to Choose Azure Files
+
+| Service | Best for | Avoid when |
+|---|---|---|
+| **Azure Files** | Shared folders, SMB/NFS-compatible apps, hybrid file shares | Workload is object-based rather than file-share based |
+| **Blob Storage** | Object storage, backups, media, logs | App expects a mounted file system share |
+| **Managed Disks** | VM operating systems and attached disks | Multiple systems need shared file access |
 
 ---
 
 ## Core Concepts
 
-- **Azure File Share**: Managed file share resource inside a storage account.
-- **Protocols**:
-  - SMB: Broad Windows/Linux support for enterprise file sharing patterns.
-  - NFS: Supported in specific Azure Files configurations and commonly associated with premium file share scenarios; verify feature compatibility before design decisions.
-- **Share sizing and performance**: Depends on account/share tier and selected performance model.
-- **Quota**: Share-level capacity controls available for governance/cost.
-- **Snapshots**: Share snapshots support point-in-time recovery patterns and should be considered in operational protection design.
+### Azure File Share
+A file share lives inside a storage account and is accessed using SMB or NFS depending on the design.
+
+### Protocol options
+
+| Protocol | Common use | Important notes |
+|---|---|---|
+| **SMB** | Windows file shares, many lift-and-shift apps | Broadest compatibility; identity-based access is available |
+| **NFS 4.1** | Linux and high-performance file scenarios | Supported in specific Azure Files configurations, commonly premium-focused |
+
+### Share capabilities
+
+- **Quota** controls capacity at share level
+- **Snapshots** support point-in-time recovery
+- **Backup integration** helps protect critical shares
+- **Private networking** can be used for secure access paths
 
 ---
 
-## Share Tiers and Performance Model
+## Standard vs Premium File Shares
 
-- **Standard file shares** are HDD-backed and typically used for general-purpose shared storage.
-- **Premium file shares** are SSD-backed and intended for performance-sensitive workloads.
-- Standard share tiers can differ in pricing/performance characteristics, while premium shares follow a different provisioning model.
+| Tier | Backing | Best for |
+|---|---|---|
+| **Standard** | HDD-backed | General-purpose file shares, lower-cost workloads |
+| **Premium** | SSD-backed | Performance-sensitive workloads with higher IOPS/throughput needs |
 
-Design implication: choose Azure Files tier based on workload IO, latency expectations, and protocol requirements rather than on capacity alone.
+Design choice should be based on:
 
----
+- latency expectations
+- IO profile
+- protocol requirements
+- business importance of the workload
 
-## Access and Identity
-
-- Key-based access is simple but broad and should be tightly controlled.
-- Identity-based access options exist for SMB scenarios and enterprise integration.
-- SAS can be used for delegated, time-bound access patterns.
-
-Important: Identity-based integration is primarily an SMB topic; protocol and authentication choices are not interchangeable across all Azure Files scenarios.
-
-Operationally, SMB identity design and NFS access design should be treated as separate planning concerns.
-
-Design principle: Prefer least privilege and avoid long-lived broad credentials.
+Do not choose a tier based only on storage size.
 
 ---
 
-## Hybrid Scenario: Azure File Sync
+## Authentication and Access Models
 
-Azure File Sync can synchronize Azure file shares with Windows Server endpoints, enabling local caching and centralized cloud-backed namespace.
+### SMB access models
 
-Use cases:
-- branch office file access with local performance
-- central cloud-backed storage with on-prem cache
+For SMB-based Azure Files, common access approaches include:
 
-Operational note: Azure File Sync is a hybrid caching/synchronization design, not a replacement for understanding share security, quota, and backup behavior.
+- **storage account keys**
+- **SAS tokens**
+- **identity-based SMB authentication** for supported enterprise scenarios
 
-Cloud tiering in File Sync can keep colder data in Azure while frequently used files remain cached locally, but it must be planned with recall behavior and on-prem capacity in mind.
+Identity-based access can integrate with:
 
----
+- **Active Directory Domain Services (AD DS)**
+- **Microsoft Entra Domain Services**
+- **Microsoft Entra Kerberos** for supported scenarios
 
-## Operational Guidance
+### NFS access model
 
-1. Pick account/share tier based on workload IO profile.
-2. Define quotas and monitoring alerts early.
-3. Restrict network exposure using firewall rules/private endpoints.
-4. Plan backups/snapshots before onboarding critical data.
-5. Rotate keys and avoid embedding them in scripts where possible.
-6. Validate client protocol requirements before choosing account/share tier.
-7. Confirm whether private connectivity, DNS, and firewall rules are required before production rollout.
+NFS access is typically designed around **network path controls** and service configuration rather than the same identity model used by SMB.
+
+> SMB and NFS should be treated as different security and operational designs.
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Hybrid Use Case: Azure File Sync
 
-- Confusing blob containers with file shares.
-- Ignoring SMB network prerequisites (for example, outbound port 445 restrictions in some environments).
-- Overusing storage account keys instead of scoped/identity-based models.
-- Skipping backup/snapshot strategy before production cutover.
-- Assuming SMB and NFS use the same identity and connectivity model.
-- Choosing standard vs premium without validating workload performance profile.
+Azure File Sync extends Azure Files to Windows Server environments.
+
+### What it does
+
+- synchronizes Azure file shares with Windows Servers
+- keeps frequently used files cached locally
+- stores colder data centrally in Azure
+
+### Good use cases
+
+- branch office file servers
+- central file share with local office cache
+- gradual migration of on-premises file infrastructure to Azure
+
+Azure File Sync is a hybrid solution, not a replacement for planning security, quota, backup, and monitoring.
 
 ---
 
-## Quick CLI Reference
+## Networking and Security Considerations
+
+For production use, Azure Files is often combined with:
+
+- **storage firewalls**
+- **private endpoints**
+- **RBAC and least privilege**
+- **backups and snapshots**
+
+### Important operational note
+SMB access commonly depends on outbound **port 445** being allowed. Some corporate or ISP environments block it, which is a classic troubleshooting point.
+
+---
+
+## Example Scenarios
+
+### 1. Lift-and-shift application share
+
+Use **SMB-based Azure Files** when the application already expects a Windows-style shared folder.
+
+### 2. Shared content for Azure VMs
+
+Use Azure Files when multiple VMs need the same shared application files.
+
+### 3. Branch office hybrid file server
+
+Use **Azure File Sync** so frequently used files stay cached locally while the authoritative copy is in Azure.
+
+---
+
+## Azure CLI Examples
+
+### Create a file share
 
 ```bash
-# Create file share
 az storage share-rm create \
   --resource-group <rg> \
   --storage-account <storage-account> \
-  --name <share-name> \
-  --quota <gb>
+  --name teamshare \
+  --quota 512
+```
 
-# List file shares
+### List file shares
+
+```bash
 az storage share-rm list \
   --resource-group <rg> \
   --storage-account <storage-account> \
   -o table
+```
 
-# Create directory in share (data plane)
+### Create a directory in the share
+
+```bash
 az storage directory create \
   --account-name <storage-account> \
-  --share-name <share-name> \
-  --name <directory-path> \
+  --share-name teamshare \
+  --name projects/app1 \
+  --auth-mode login
+```
+
+### Upload a file
+
+```bash
+az storage file upload \
+  --account-name <storage-account> \
+  --share-name teamshare \
+  --source ./readme.txt \
+  --path docs/readme.txt \
   --auth-mode login
 ```
 
 ---
 
+## Best Practices
+
+1. Choose **standard vs premium** based on real IO and latency needs.
+2. Prefer **identity-based access** where supported instead of broadly sharing account keys.
+3. Use **private endpoints** or firewall restrictions for sensitive shares.
+4. Define **quotas**, snapshots, and backup strategy before production use.
+5. Validate protocol compatibility and client requirements early.
+
+---
+
+## Troubleshooting Checklist
+
+If Azure Files access fails:
+
+1. Confirm the correct **share name**, **storage account**, and **protocol** are being used.
+2. Check whether **port 445** is allowed for SMB scenarios.
+3. Verify firewall, private endpoint, and DNS settings.
+4. Confirm whether the issue is **authentication** or **network** related.
+5. Check share quota, performance tier, and snapshot/backup expectations.
+
+---
+
+## Common Pitfalls and Exam Traps
+
+- Confusing **file shares** with **blob containers**.
+- Assuming SMB and NFS use the same identity model.
+- Using storage account keys everywhere instead of least-privilege access.
+- Forgetting SMB port 445 requirements.
+- Choosing standard or premium without checking the workload’s IO profile.
+
+---
+
+## Key Takeaways
+
+- Azure Files provides managed **shared file storage** over SMB or NFS.
+- It is ideal for shared-folder and hybrid file-server scenarios.
+- Security planning must consider **protocol**, **network path**, and **authentication model** together.
+- Azure File Sync is a strong hybrid extension for Windows Server environments.
+
+---
+
 ## Further Reading
 
-- https://learn.microsoft.com/en-us/azure/storage/files/storage-files-introduction
-- https://learn.microsoft.com/en-us/azure/storage/files/storage-files-identity-overview
-- https://learn.microsoft.com/en-us/azure/storage/file-sync/file-sync-introduction
-
+- [Azure Files introduction](https://learn.microsoft.com/en-us/azure/storage/files/storage-files-introduction)
+- [Identity-based authentication for Azure Files](https://learn.microsoft.com/en-us/azure/storage/files/storage-files-identity-overview)
+- [Azure File Sync introduction](https://learn.microsoft.com/en-us/azure/storage/file-sync/file-sync-introduction)
+- [Plan for an Azure Files deployment](https://learn.microsoft.com/en-us/azure/storage/files/storage-files-planning)
