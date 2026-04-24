@@ -168,7 +168,7 @@ A single VM, even on premium storage, is still a single compute failure point.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create an availability set
 
@@ -224,7 +224,7 @@ If a supposedly resilient workload is still fragile:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Thinking an availability set protects against a complete datacenter outage.
 - Deploying only one VM and assuming high availability benefits still apply.
@@ -240,6 +240,47 @@ If a supposedly resilient workload is still fragile:
 - **Availability Zones** spread workloads across separate datacenter locations within a region.
 - Zones usually provide stronger resilience, but they require regional and SKU support.
 - High availability needs **multiple instances, traffic distribution, and operational validation**.
+
+---
+
+## Advanced: Availability Architecture Decisions
+
+### Fault Domain Awareness
+
+- Availability sets protect against host/rack-level failures within a datacenter
+- Availability zones protect against datacenter-level failures in a region
+- Design must align to actual fault isolation required by workload
+
+### Quorum and State Considerations
+
+- Stateful workloads need replication and quorum-aware topology
+- Stateless tiers can scale across zones more easily
+- Ensure dependency services share compatible availability design
+
+### SLA to Implementation Traceability
+
+- SLA targets must map to concrete architecture choices
+- Validate that zone/region dependencies are redundant
+- Include operational practices such as patch sequencing and failover drills
+
+## Extended Troubleshooting Matrix (Availability Sets and Zones)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| No resilience gain after deployment | Instances not distributed as intended | Inspect placement and topology | Redeploy/resize with correct availability configuration |
+| Maintenance causes full outage | Single fault domain pattern | Review VM placement and update domain spread | Re-architect into set/zone distribution |
+| App unavailable during zone event | Dependencies not zone-redundant | Map dependency availability by zone | Add redundant dependencies across zones |
+| SLA expectations not met | Architecture does not match SLA assumptions | Compare design to provider SLA conditions | Adjust architecture and operational controls |
+
+## Production Readiness Checklist (Availability Design)
+
+- Availability objective documented per application tier
+- Placement strategy validated (set vs zone vs region)
+- Dependency resilience reviewed and remediated
+- Failover and recovery drills performed regularly
+- Maintenance and patch windows coordinated safely
+- SLA assumptions documented with architecture evidence
+
 
 ---
 

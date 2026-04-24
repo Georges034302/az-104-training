@@ -689,7 +689,7 @@ az resource list --query "[].{Name:name, Tags:tags}" -o json
 
 ---
 
-## Best Practices (AZ-104 Aligned)
+## Best Practices
 
 ### Locks
 
@@ -712,7 +712,7 @@ az resource list --query "[].{Name:name, Tags:tags}" -o json
 
 ---
 
-## Common Pitfalls & Exam Traps
+## Common Pitfalls
 
 ### Locks
 
@@ -750,7 +750,7 @@ Tags are metadata, not access control.
 
 ---
 
-## Key Takeaways for AZ-104
+## Key Takeaways
 
 ### Locks
 
@@ -803,5 +803,134 @@ az resource list --tag Environment=prod -o table
 # Remove tag
 az vm update --resource-group "app-rg" --name "vm1" --remove tags.Temporary
 ```
+
+---
+
+## Advanced: Governance Control Layering
+
+Locks and tags solve different governance problems and should be layered with RBAC and Policy.
+
+Control interaction model:
+
+- RBAC controls who is authorized to perform actions
+- Policy controls what configurations are allowed
+- Locks control whether delete/modify operations are blocked
+- Tags provide metadata for reporting, automation, and ownership
+
+Operational takeaway:
+
+- Use tags and policy for standards
+- Use locks selectively for high-impact resource protection
+- Do not use locks as a substitute for proper RBAC design
+
+---
+
+## Advanced: Lock Scope Design Patterns
+
+### Pattern A: Production Resource Group Protection
+
+- Apply `CanNotDelete` lock at production resource group scope
+- Keep CI/CD update paths available
+- Require change process for lock removal during decommission
+
+This is the most common pattern because it balances safety and operability.
+
+### Pattern B: Short-Lived ReadOnly Freeze Window
+
+- Apply `ReadOnly` temporarily during critical cutover/freeze periods
+- Remove after change window closes
+- Communicate impact broadly before applying
+
+This avoids long-term operational friction while protecting high-risk windows.
+
+### Pattern C: Tiered Locking by Criticality
+
+- Tier 0 shared platform resources: stronger controls, possible ReadOnly windows
+- Tier 1 production app resources: CanNotDelete baseline
+- Lower environments: minimal or no locks
+
+This keeps governance proportional to business impact.
+
+---
+
+## Advanced: Tag Taxonomy Engineering
+
+Tag strategy should be designed as a controlled taxonomy, not ad hoc labels.
+
+Recommended mandatory core tags:
+
+- `Environment`
+- `CostCenter`
+- `Owner`
+- `Application`
+- `DataClassification`
+
+Good taxonomy rules:
+
+- Controlled value sets for key tags (for example `prod|stage|dev`)
+- Explicit casing standard (for example PascalCase keys)
+- Stable semantics over time (avoid renaming tags frequently)
+- Clear ownership for schema updates
+
+Why this matters:
+
+- Cost and compliance reporting quality depends on consistent tag keys and values.
+
+---
+
+## Advanced: Policy + Tag Remediation Operating Model
+
+To scale tagging standards, combine deny and modify policies intentionally.
+
+Rollout pattern:
+
+1. Audit existing tag coverage
+2. Use `modify`/`append` to remediate missing tags where safe
+3. Enforce critical tags with `deny` after teams are ready
+4. Track exceptions with expiration and owner
+
+Important dependency:
+
+- `modify` effects require managed identity and correct RBAC permissions at assignment scope.
+
+---
+
+## Advanced: FinOps and Chargeback Alignment
+
+Tags are a primary FinOps signal for cost allocation and accountability.
+
+Practical model:
+
+- `CostCenter` and `Application` for chargeback/showback views
+- `Environment` for spend segmentation
+- `Owner` for accountability and cleanup workflows
+
+Reporting caution:
+
+- Newly applied tags may take time to appear in downstream cost reporting pipelines.
+- Inconsistent tag values create fragmented reports and weak trend analysis.
+
+---
+
+## Extended Troubleshooting Matrix (Locks and Tags)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Cannot delete resource despite Owner role | Inherited `CanNotDelete` lock | Check locks at resource, RG, and subscription scopes | Remove/adjust parent lock, then retry |
+| Deployment fails with write operation blocked | `ReadOnly` lock at parent scope | Inspect lock type and assignment scope | Temporarily remove lock for change window |
+| Required tags still missing after policy assignment | `modify` policy identity lacks permissions | Review policy assignment identity and role assignments | Grant required role and rerun remediation |
+| Cost report shows unallocated resources | Missing/inconsistent cost tags | Query resources for tag coverage and value consistency | Backfill tags and enforce schema via policy |
+
+---
+
+## Production Readiness Checklist (Locks and Tags)
+
+- Lock policy defined by environment criticality (prod vs non-prod)
+- `CanNotDelete` baseline applied to critical production resource groups
+- ReadOnly lock usage restricted to controlled windows
+- Enterprise tag taxonomy documented and versioned
+- Required tags enforced via policy with exception process
+- Modify/remediation identities have least-privilege required roles
+- Periodic review in place for stale locks and low-quality tag values
 
 ---

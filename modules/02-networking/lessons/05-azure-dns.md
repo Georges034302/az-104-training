@@ -148,7 +148,7 @@ This is the modern Azure-friendly approach for large environments.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a private DNS zone
 
@@ -210,7 +210,7 @@ If name resolution fails:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Creating a private zone but forgetting to link the VNet.
 - Assuming private endpoint DNS is automatic without the correct `privatelink` zone setup.
@@ -226,6 +226,51 @@ If name resolution fails:
 - Use **public zones** for internet records and **private zones** for internal/private Azure resolution.
 - Private endpoints depend on correct DNS integration.
 - In hybrid environments, good **forwarding design** is essential.
+
+---
+
+## Advanced: DNS Architecture for Hybrid and Private Access
+
+### Namespace Strategy
+
+Design DNS zones with long-term operability in mind:
+
+- Public zones for internet-facing records
+- Private DNS zones for internal service discovery
+- Clear naming standards to avoid collisions and ambiguity
+
+### Private Endpoint Resolution Pattern
+
+For private endpoints:
+
+- Workloads must resolve service FQDN to private IP
+- Private DNS zone links must exist for participating VNets
+- Hybrid resolvers need forwarding rules for private zones
+
+### Reliability and Change Safety
+
+- Use low TTLs during migrations and cutovers
+- Avoid frequent record churn without change tracking
+- Validate both forward and reverse lookups where required
+
+## Extended Troubleshooting Matrix (Azure DNS)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Name resolves to wrong IP | Stale cache or incorrect zone record | Query authoritative source and client resolver | Correct record and flush caches |
+| Private endpoint uses public IP | Missing private zone link or record | Resolve FQDN from workload subnet | Link private zone and validate records |
+| Hybrid clients cannot resolve private names | DNS forwarding not configured | Trace query path from on-prem resolver | Add conditional forwarder rules |
+| Intermittent resolution behavior | Multiple resolvers with inconsistent data | Compare responses across resolvers | Align zone data and forwarding paths |
+
+## Production Readiness Checklist (Azure DNS)
+
+- DNS zone ownership and naming standards defined
+- Private zone links validated for all required VNets
+- Hybrid forwarding architecture documented and tested
+- TTL strategy aligned to change and failover requirements
+- Monitoring in place for resolver and query failures
+- DNS changes tracked through change management
+
 
 ---
 

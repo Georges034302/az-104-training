@@ -162,7 +162,7 @@ A design can fail not because the storage account exists, but because the select
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a general-purpose v2 storage account
 
@@ -218,7 +218,7 @@ If a storage account design is not behaving as expected:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing **durability** with **availability**.
 - Assuming geo-replication is synchronous.
@@ -235,6 +235,49 @@ If a storage account design is not behaving as expected:
 - **`StorageV2`** is the default choice for most AZ-104 scenarios.
 - Redundancy choices trade off **cost**, **zone resilience**, and **regional DR capability**.
 - Good storage design combines **redundancy + security + operational recovery planning**.
+
+---
+
+## Advanced: Redundancy Strategy and Recovery Objectives
+
+### Align Redundancy to Business Requirements
+
+Redundancy choice should map to explicit objectives:
+
+- RPO: acceptable data loss window
+- RTO: acceptable restoration time
+- Compliance: geographic and sovereignty constraints
+
+### Replication Trade-offs
+
+- LRS offers local durability at lowest complexity and cost
+- ZRS improves zone-level resilience in-region
+- GRS/GZRS add regional recovery capabilities with higher cost and operational planning requirements
+
+### Failover and Application Readiness
+
+- Geo-redundancy does not remove need for application failover planning
+- Validate client retry, DNS, and dependency recovery behavior
+- Document operational runbooks for incident scenarios
+
+## Extended Troubleshooting Matrix (Storage Redundancy)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Unexpected durability gap in design review | Redundancy type mismatched to requirement | Compare selected SKU to RPO/RTO targets | Reprovision with appropriate redundancy |
+| Application latency increase | Cross-region access pattern or network bottleneck | Measure client path and storage metrics | Optimize region placement and client behavior |
+| Feature unavailable after account creation | Selected redundancy/performance combo unsupported for feature | Review account capability matrix | Adjust account type or architecture |
+| DR drill fails operationally | Runbook incomplete for failover path | Execute controlled failover simulation | Update runbook and automation steps |
+
+## Production Readiness Checklist (Storage Accounts and Redundancy)
+
+- RPO and RTO objectives mapped to storage redundancy type
+- Data residency and compliance constraints validated
+- Client retry and failover behavior tested
+- Monitoring in place for replication and availability signals
+- DR runbook documented and periodically exercised
+- Cost impact of redundancy choice reviewed and approved
+
 
 ---
 

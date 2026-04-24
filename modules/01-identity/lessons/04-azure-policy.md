@@ -581,7 +581,7 @@ az policy event list --query "[?complianceState=='NonCompliant']" -o table
 
 ---
 
-## Key Takeaways for AZ-104
+## Key Takeaways
 
 1. **Policy = what can be deployed** (RBAC = who can deploy)
 2. **Effects**: Deny (block), Audit (log), Append/Modify (fix), DINE (deploy)
@@ -596,7 +596,7 @@ az policy event list --query "[?complianceState=='NonCompliant']" -o table
 
 ---
 
-## Best Practices (AZ-104 Aligned)
+## Best Practices
 
 ✅ **Start with Audit** before enforcing Deny (assess impact first)  
 ✅ **Use built-in policies** when available (tested and maintained)  
@@ -613,7 +613,7 @@ az policy event list --query "[?complianceState=='NonCompliant']" -o table
 
 ---
 
-## Common Pitfalls & Exam Traps
+## Common Pitfalls
 
 ❌ **Confusing Policy with RBAC**  
 Policy controls **what** can be deployed; RBAC controls **who** can deploy. You can have Contributor rights but still be blocked by a Deny policy.
@@ -647,7 +647,7 @@ Append only affects **new** resources; use Modify or remediation tasks for exist
 
 ---
 
-## CLI Reference (Commented Examples)
+## CLI Reference
 
 ### Policy Definitions
 
@@ -754,5 +754,137 @@ az policy exemption delete --name "exemption-legacy-vm"
 ---
 
 **Final Note:** Azure Policy is the **enforcement layer** for governance. Combine it with RBAC (authorization), locks (deletion protection), and tags (organization) for comprehensive Azure resource governance.
+
+---
+
+## Advanced: Policy Rule Authoring Concepts
+
+Policy rules rely on aliases and logical operators.
+
+Core rule structure:
+
+- `if`: matching condition
+- `then`: effect to apply
+
+Common operators used in rules:
+
+- `equals`, `notEquals`
+- `in`, `notIn`
+- `exists`
+- `like`, `match`
+- logical wrappers: `allOf`, `anyOf`, `not`
+
+Authoring guidance:
+
+- Start with smallest possible condition
+- Validate aliases against actual resource properties
+- Avoid overly broad wildcards that create unexpected denials
+
+---
+
+## Advanced: Initiative Design Strategy
+
+Initiatives should be structured by governance objective, not by random policy accumulation.
+
+Recommended initiative families:
+
+- Security baseline initiative
+- Cost optimization initiative
+- Operational observability initiative
+- Platform standards initiative (locations, SKUs, naming)
+
+Advantages:
+
+- clearer ownership per governance domain
+- cleaner rollout and staged enforcement
+- easier reporting to stakeholders
+
+---
+
+## Advanced: Enforcement Rollout Model
+
+Use phased enforcement for production-safe policy adoption.
+
+Phase 1: Discover
+
+- Assign policy in Audit mode
+- Collect violations and identify legitimate exceptions
+
+Phase 2: Stabilize
+
+- Remediate existing violations
+- Formalize exemption process
+
+Phase 3: Enforce
+
+- Switch critical controls to Deny or Modify/DINE
+- Monitor deployment failures and support teams
+
+Phase 4: Optimize
+
+- Refine assignments and reduce exemption footprint
+
+---
+
+## Advanced: Exemption Governance
+
+Exemptions are risk acceptance artifacts and should be controlled like change records.
+
+Required exemption metadata:
+
+- business justification
+- owner/accountable team
+- scope of exemption
+- expiration date
+- review cadence
+
+Anti-patterns:
+
+- permanent exemptions without renewal
+- broad-scope exemptions to avoid fixing root cause
+
+---
+
+## Advanced: Policy-as-Code Operating Pattern
+
+Treat policy definitions and assignments as code in version control.
+
+Suggested repository structure:
+
+- `definitions/` for custom policy JSON
+- `initiatives/` for policy set definitions
+- `assignments/` for scope-specific assignment files
+- `parameters/` for environment-specific values
+
+Pipeline controls:
+
+- lint/validate policy files
+- deploy to test subscription first
+- run compliance verification
+- promote to production with approval
+
+This improves auditability and rollback safety.
+
+---
+
+## Extended Troubleshooting Matrix (Policy)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Deny not triggered | Assignment scope mismatch or disabled enforcement | Check assignment scope and enforcement mode | Correct scope / enable enforcement |
+| Too many false positives | Rule logic too broad | Inspect evaluated resource fields and aliases | Tighten `if` conditions |
+| Remediation fails repeatedly | Identity lacks permissions | Check assignment identity and RBAC role | Grant required role and rerun task |
+| Conflicting compliance state | Overlapping contradictory policies | Review inherited assignments across scopes | Consolidate policies or add scoped exclusions |
+
+---
+
+## Production Readiness Checklist (Policy)
+
+- Policy lifecycle documented (audit to enforce)
+- Initiative taxonomy aligned to governance domains
+- Exemption process includes owner and expiration
+- DINE/Modify assignments include managed identity and RBAC permissions
+- Policy artifacts version-controlled and tested in lower environments
+- Compliance reporting cadence defined for security and platform teams
 
 ---

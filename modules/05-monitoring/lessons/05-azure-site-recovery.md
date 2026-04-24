@@ -139,7 +139,7 @@ This separation of responsibilities is a common AZ-104 exam theme.
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Treating ASR as identical to backup.
 - Enabling replication without testing failover.
@@ -155,6 +155,47 @@ This separation of responsibilities is a common AZ-104 exam theme.
 - Test failover, planned failover, unplanned failover, and failback each serve different purposes.
 - DR readiness depends on documentation, testing, and dependency-aware planning.
 - Backup and ASR solve related but different resilience problems.
+
+---
+
+## Advanced: Disaster Recovery Operating Model
+
+### DR Scope and Prioritization
+
+- Prioritize replication for business-critical workloads first
+- Group systems by dependency to preserve application integrity
+- Define failover sequence and ownership explicitly
+
+### Replication and Failover Discipline
+
+- Validate replication health continuously
+- Use recovery plans to orchestrate service start order
+- Regularly test planned and unplanned failover scenarios
+
+### Post-Failover Operations
+
+- Document failback prerequisites and timing
+- Validate data consistency and application state after failover
+- Capture lessons learned from each DR exercise
+
+## Extended Troubleshooting Matrix (Azure Site Recovery)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Replication unhealthy | Connectivity, agent, or capacity issue | Check replication health and event logs | Resolve connectivity/agent issues and re-sync |
+| Failover test incomplete | Recovery plan misses dependencies | Validate boot order and dependency mapping | Update recovery plan and retest |
+| Application starts but is unusable | Data or service dependency not ready | Run post-failover validation checklist | Add dependency sequencing and readiness checks |
+| Failback delayed | Missing reverse replication readiness | Review failback prerequisites | Prepare target environment and execute controlled failback |
+
+## Production Readiness Checklist (Azure Site Recovery)
+
+- Critical workloads prioritized with documented DR tiers
+- Recovery plans include dependency-aware sequencing
+- Regular failover drills executed and reviewed
+- RPO/RTO performance measured during exercises
+- Failback process documented and tested
+- DR governance integrated with change management
+
 
 ---
 

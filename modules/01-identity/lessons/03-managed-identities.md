@@ -679,7 +679,7 @@ curl -H Metadata:true \
 
 ---
 
-## Best Practices (AZ-104 Aligned)
+## Best Practices
 
 ✅ **Prefer managed identities** over service principals with secrets  
 ✅ **Use system-assigned MI** as default (simpler)  
@@ -693,7 +693,7 @@ curl -H Metadata:true \
 
 ---
 
-## Common Pitfalls & Exam Traps
+## Common Pitfalls
 
 ❌ **Enabling MI but forgetting role assignment**  
 MI provides identity, not permissions. Must assign RBAC role.
@@ -721,7 +721,7 @@ Each service has specific resource URI (https://storage.azure.com/, https://vaul
 
 ---
 
-## Key Takeaways for AZ-104
+## Key Takeaways
 
 1. **Managed identities = credential-free authentication** for Azure resources
 2. **System-assigned** = 1:1 with resource (default choice)
@@ -793,5 +793,125 @@ curl -H Metadata:true \
   "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net/" \
   | jq
 ```
+
+---
+
+## Advanced: Token Request Semantics
+
+Managed identity authentication still follows OAuth token audience rules.
+
+Critical requirement:
+
+- Request token for the correct target resource URI
+
+Examples:
+
+- Storage data plane: `https://storage.azure.com/`
+- Key Vault: `https://vault.azure.net`
+- Azure SQL: `https://database.windows.net/`
+- ARM management plane: `https://management.azure.com/`
+
+Wrong audience is a common reason for authorization failure even when role assignment is correct.
+
+---
+
+## Advanced: User-Assigned Identity Selection
+
+If multiple user-assigned managed identities are attached to a resource, token requests must specify which identity to use.
+
+Selection options commonly include:
+
+- client ID
+- object ID
+- resource ID
+
+Operational risk:
+
+- If identity selector is omitted in multi-identity scenarios, application may use unintended identity or fail token acquisition.
+
+---
+
+## Advanced: Azure SDK Authentication Chain
+
+In production-grade code, prefer Azure SDK credential abstractions rather than raw IMDS calls.
+
+Typical `DefaultAzureCredential` behavior:
+
+1. Local development credentials (CLI, VS Code, etc.)
+2. Environment credentials (if configured)
+3. Managed identity credential in Azure runtime
+
+Benefits:
+
+- Same code path across local dev and cloud runtime
+- Better token caching and retry behavior
+- Less custom authentication code to maintain
+
+---
+
+## Advanced: Performance and Reliability Considerations
+
+### Token Caching
+
+Best practice:
+
+- Reuse SDK clients and credential instances
+- Do not request a new token for every single operation
+
+Reason:
+
+- Excessive token calls add latency and can create avoidable throttling pressure.
+
+### Transient Failures
+
+Implement resilient retries for:
+
+- temporary network interruptions
+- short-lived IMDS timeouts
+- brief service-side throttling
+
+Use bounded exponential backoff and idempotent request patterns.
+
+---
+
+## Advanced: Security Hardening with Managed Identities
+
+Managed identity removes secrets, but least privilege is still mandatory.
+
+Hardening controls:
+
+- Narrow role scopes to specific resource IDs where possible
+- Use data-plane roles instead of broad Contributor where appropriate
+- Separate identities by workload trust level
+- Monitor sign-ins and role assignments for managed identities
+- Remove unused user-assigned identities
+
+Anti-patterns to avoid:
+
+- Reusing one user-assigned identity for unrelated high/low trust workloads
+- Granting subscription-wide Contributor to MI that only needs one storage account
+
+---
+
+## Advanced: Incident Troubleshooting Matrix
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| `MSI not available` | MI disabled or runtime startup issue | Check identity blade / CLI identity show | Enable MI and restart workload |
+| Token retrieval timeout | Network/runtime transient | Test IMDS metadata endpoint | Add retries and verify runtime health |
+| `403 Forbidden` on target service | Missing role or wrong scope | List MI role assignments | Assign correct role at correct scope |
+| Works after delay only | Propagation/token cache delay | Check assignment timestamp | Wait, refresh token path, retry |
+| Wrong data access behavior | Wrong audience/token target | Verify requested resource URI | Request token for correct audience |
+
+---
+
+## Production Readiness Checklist (Managed Identities)
+
+- System-assigned MI used by default for single-resource workloads
+- User-assigned MI used only when reuse/persistence is required
+- Role assignments scoped to minimum required resources
+- Applications use SDK credentials rather than hand-built auth logic
+- Retry and timeout strategy defined for token and target calls
+- Monitoring in place for MI sign-ins and privilege changes
 
 ---

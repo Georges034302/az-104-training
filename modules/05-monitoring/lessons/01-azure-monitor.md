@@ -156,7 +156,7 @@ This avoids jumping to conclusions based on a single data source.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### List metric definitions for a resource
 
@@ -195,7 +195,7 @@ az monitor log-analytics workspace show \
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Assuming all required logs are collected by default.
 - Confusing **diagnostic settings** with **DCR-based guest collection**.
@@ -212,6 +212,47 @@ az monitor log-analytics workspace show \
 - Metrics, Activity Log, resource logs, and guest telemetry are different signal types with different purposes.
 - Good observability depends on correct **routing**, not just turning monitoring “on.”
 - Operational maturity comes from being able to **correlate signals**, not only view them separately.
+
+---
+
+## Advanced: Monitoring Architecture and Signal Quality
+
+### Telemetry Design Principles
+
+- Collect only actionable signals tied to operational decisions
+- Standardize dimensions/tags for consistent correlation
+- Balance verbosity with cost and retention goals
+
+### Control Plane and Workload Correlation
+
+- Correlate platform metrics, logs, and activity events
+- Build investigative workflows from alert to root cause
+- Ensure critical services emit both health and dependency signals
+
+### Governance and Retention
+
+- Define retention and archive strategy by data class
+- Restrict access to sensitive logs with least privilege
+- Review monitoring coverage as architecture evolves
+
+## Extended Troubleshooting Matrix (Azure Monitor)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Missing logs from resource | Diagnostic settings/DCR not configured correctly | Check data collection configuration | Correct destination and collection rules |
+| Alert triggered but no useful context | Poor signal design or sparse dimensions | Review query and alert payload | Enrich telemetry and alert context |
+| Monitoring cost spikes | Excessive ingestion or verbose logging | Analyze ingestion by table/resource | Reduce noise and tune collection scope |
+| Investigation takes too long | No correlation path between signals | Test incident workflow end-to-end | Add correlated dashboards and query templates |
+
+## Production Readiness Checklist (Azure Monitor)
+
+- Monitoring objectives mapped to service SLOs
+- Data collection rules/diagnostic settings standardized
+- Alert-to-incident workflow tested and documented
+- Retention and cost controls implemented
+- Access controls for log data validated
+- Coverage review cadence established
+
 
 ---
 

@@ -163,7 +163,7 @@ This is one of the most common operational mistakes.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a Standard public load balancer
 
@@ -218,7 +218,7 @@ If a load-balanced application is unavailable:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Choosing Azure Load Balancer when Layer 7 routing is required.
 - Confusing Traffic Manager with an actual proxy or reverse proxy.
@@ -234,6 +234,49 @@ If a load-balanced application is unavailable:
 - **Application Gateway** = Layer 7 web routing and optional WAF.
 - **Traffic Manager** = global DNS-based endpoint selection.
 - The right choice depends on **protocol awareness, scope, and traffic intent**.
+
+---
+
+## Advanced: Traffic Distribution Strategy
+
+### Layer Selection by Workload
+
+- Azure Load Balancer for L4 TCP/UDP distribution
+- Application Gateway for L7 HTTP(S), WAF, and path-based routing
+- Traffic Manager for DNS-based global endpoint selection
+
+### Health and Failover Semantics
+
+Health probes define service availability from the balancer perspective:
+
+- Probe design must reflect true application health
+- False-positive health checks cause user-visible failures
+- Probe intervals and thresholds influence failover speed
+
+### Session and Routing Behavior
+
+- Understand source IP affinity impact on scale and fault domains
+- Validate backend pool behavior during rolling upgrades
+- Plan for TLS termination points and certificate lifecycle
+
+## Extended Troubleshooting Matrix (Load Balancing)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Backend never receives traffic | Probe failing or backend not in pool | Check probe status and pool membership | Correct probe path/port and backend registration |
+| Intermittent user failures | Uneven backend health or app-level dependency | Correlate probe and app logs per backend | Fix unhealthy instance and dependencies |
+| TLS errors at edge | Certificate mismatch or expired cert | Verify listener cert and hostname binding | Renew/replace certificate and binding |
+| Region failover not occurring | Traffic Manager endpoint state unhealthy logic mis-set | Review TM routing method and endpoint monitor config | Correct monitor settings and test failover |
+
+## Production Readiness Checklist (Load Balancing)
+
+- Service selected by protocol and routing requirements
+- Health probes validated against real application health
+- Backend scale and drain behavior tested
+- TLS termination model documented and monitored
+- Regional failover tests executed and recorded
+- Alerting configured for probe failure and backend degradation
+
 
 ---
 

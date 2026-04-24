@@ -150,7 +150,7 @@ Design principle:
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### List Recovery Services vaults in a resource group
 
@@ -181,7 +181,7 @@ az backup job list \
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Assuming backup enablement guarantees immediate recoverability.
 - Ignoring first successful backup status before relying on restore.
@@ -197,6 +197,47 @@ az backup job list \
 - The restore path matters as much as the backup job itself.
 - Backup solves recoverability, not necessarily uptime.
 - Administrators should treat backup as both an **operations** and **security** responsibility.
+
+---
+
+## Advanced: Backup Governance and Recovery Confidence
+
+### Policy Design
+
+- Classify workloads by criticality and retention obligations
+- Define backup frequency and retention by data change profile
+- Include immutable and secure backup options where required
+
+### Recovery-Centric Validation
+
+- Backup success is not equivalent to recovery success
+- Perform periodic restore drills for representative systems
+- Measure actual RTO and data consistency outcomes
+
+### Security Posture
+
+- Protect backup vault access with least privilege and MFA
+- Monitor and alert on backup policy changes
+- Include ransomware-resilience controls in design
+
+## Extended Troubleshooting Matrix (Azure Backup)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Backup job fails repeatedly | Agent/extension or policy configuration issue | Review job logs and policy assignment | Correct config and rerun backup |
+| Restore takes longer than expected | Recovery plan not optimized | Measure restore path and bottlenecks | Refine restore process and pre-stage dependencies |
+| Missing restore points | Schedule or retention misconfiguration | Audit backup schedule and retention settings | Correct policy and validate future points |
+| Unauthorized backup change risk | Excessive permissions on vault | Review RBAC and audit logs | Reduce privileges and enforce controls |
+
+## Production Readiness Checklist (Azure Backup)
+
+- Backup policies aligned to workload RPO/RTO requirements
+- Restore drills executed and documented
+- Vault access governance and MFA enforced
+- Monitoring configured for backup job failures
+- Retention and compliance requirements verified
+- Incident runbooks include backup and restore procedures
+
 
 ---
 

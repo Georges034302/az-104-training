@@ -167,7 +167,7 @@ Use **ACR** as the central image store with RBAC-based access control and clear 
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create an Azure Container Registry
 
@@ -239,7 +239,7 @@ If a container deployment fails:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Treating **ACR** as if it were a runtime service.
 - Using weak tag hygiene such as always deploying `latest`.
@@ -255,6 +255,47 @@ If a container deployment fails:
 - **ACI** is for simple, fast container execution.
 - **ACA** is for managed container applications with scaling and revision features.
 - Good Azure container administration depends on **service selection, image discipline, and secure pull authorization**.
+
+---
+
+## Advanced: Container Platform Decision and Governance
+
+### Runtime Selection Criteria
+
+- ACI for fast, simple, short-lived or single workload containers
+- ACA for microservices/event-driven apps with autoscaling and revisions
+- Escalate to orchestrators when workload complexity outgrows platform capabilities
+
+### Supply Chain Security
+
+- Enforce image scanning and signed artifact policies
+- Limit registry pull rights via managed identity and least privilege
+- Track image provenance from build to runtime deployment
+
+### Operational Reliability
+
+- Define probe/readiness semantics and failure handling
+- Use revision and rollback strategy for safe releases
+- Monitor cold-start, scaling latency, and dependency health
+
+## Extended Troubleshooting Matrix (ACR, ACI, ACA)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Image pull fails | Missing auth or network access to registry | Check identity permissions and registry firewall | Grant pull role and allow network path |
+| Container crashes repeatedly | Bad startup command or missing env config | Inspect container logs and revision settings | Correct startup/env settings and redeploy |
+| Scale behavior does not match demand | Incorrect scale rule configuration | Review scaler metrics and thresholds | Tune scale rules and cooldown settings |
+| New revision receives errors | Dependency mismatch or config drift | Compare revision config and dependency status | Roll back revision and remediate config |
+
+## Production Readiness Checklist (Containers on Azure)
+
+- Runtime platform chosen based on workload characteristics
+- Registry security, scanning, and identity controls enforced
+- Deployment rollback and revision strategy documented
+- Health probes and observability configured end-to-end
+- Scale rules validated with load tests
+- Incident playbooks defined for image/runtime failures
+
 
 ---
 

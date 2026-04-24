@@ -170,7 +170,7 @@ Use an **Activity Log alert** because it is a subscription-level control-plane e
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create an Action Group
 
@@ -213,7 +213,7 @@ If alerts are too noisy, silent, or unreliable:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing metric alerts with KQL-based log alerts.
 - Assuming one alert type fits every monitoring scenario.
@@ -229,6 +229,47 @@ If alerts are too noisy, silent, or unreliable:
 - The correct alert type depends on whether the signal is a **metric**, **log pattern**, or **control-plane event**.
 - Action Groups are the link between alert detection and real operational action.
 - Good alerting is defined by **accuracy, ownership, and low noise**.
+
+---
+
+## Advanced: Alerting Strategy and Response Engineering
+
+### Alert Fidelity
+
+- Alert on symptoms that matter to users and service objectives
+- Use dynamic thresholds where workload baselines vary
+- Include context fields that speed triage decisions
+
+### Routing and Escalation
+
+- Align action groups to support ownership boundaries
+- Use severity-based channels and escalation timelines
+- Validate on-call coverage and redundancy
+
+### Noise Governance
+
+- Suppress duplicate and low-value alerts
+- Implement maintenance windows and alert processing rules
+- Review alert quality metrics regularly
+
+## Extended Troubleshooting Matrix (Alerts and Action Groups)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Alert not firing | Rule scope or condition mismatch | Check evaluated resources and criteria | Correct scope and thresholds |
+| Alert floods team | Threshold too sensitive or no suppression | Analyze alert frequency and context | Tune thresholds and add suppression rules |
+| Notifications not delivered | Action group endpoint failure | Validate action history and endpoint health | Fix receiver config and retry path |
+| Slow response to critical incidents | Missing escalation workflow | Review incident timeline and routing | Implement escalation and ownership mapping |
+
+## Production Readiness Checklist (Alerts and Action Groups)
+
+- Alert inventory mapped to service criticality
+- Action groups validated for all severity levels
+- Alert noise reduction controls in place
+- Test alerts executed and response verified
+- Escalation paths documented and rehearsed
+- Periodic alert quality review process active
+
 
 ---
 

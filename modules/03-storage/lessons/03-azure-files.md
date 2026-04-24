@@ -172,7 +172,7 @@ Use **Azure File Sync** so frequently used files stay cached locally while the a
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a file share
 
@@ -238,7 +238,7 @@ If Azure Files access fails:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing **file shares** with **blob containers**.
 - Assuming SMB and NFS use the same identity model.
@@ -254,6 +254,49 @@ If Azure Files access fails:
 - It is ideal for shared-folder and hybrid file-server scenarios.
 - Security planning must consider **protocol**, **network path**, and **authentication model** together.
 - Azure File Sync is a strong hybrid extension for Windows Server environments.
+
+---
+
+## Advanced: Enterprise File Service Design
+
+### Access Model Selection
+
+Choose authentication model per environment:
+
+- Entra Kerberos/AD DS for identity-integrated SMB access
+- Shared key or SAS for controlled non-domain scenarios
+- RBAC and share-level permissions designed together
+
+### Performance and Throughput Planning
+
+- Match standard or premium shares to IOPS/latency targets
+- Account for burst and sustained workload behavior
+- Validate client-side caching and protocol configuration
+
+### Hybrid Operations with File Sync
+
+- File Sync introduces tiering and edge-cache benefits
+- Endpoint health and sync policies must be monitored continuously
+- Plan server replacement and disaster scenarios in advance
+
+## Extended Troubleshooting Matrix (Azure Files)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Share mount fails | Network path, firewall, or auth mismatch | Test port connectivity and credential method | Correct network/auth configuration |
+| Access denied on share | NTFS/share permissions misaligned | Review effective permissions at both layers | Adjust ACL and share permissions |
+| Poor throughput | Share tier or client path bottleneck | Inspect storage metrics and client profile | Move to premium or optimize client path |
+| File Sync conflicts | Multiple writers or sync policy mismatch | Review sync health and conflict logs | Resolve conflicts and adjust sync policy |
+
+## Production Readiness Checklist (Azure Files)
+
+- Authentication and authorization model standardized
+- Share tier and capacity sized to workload profile
+- Network requirements validated for all client locations
+- Backup and snapshot strategy tested for restore outcomes
+- File Sync monitoring and alerting enabled where applicable
+- Permission governance and audit process documented
+
 
 ---
 

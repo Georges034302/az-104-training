@@ -237,7 +237,7 @@ Good design:
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a Linux VM
 
@@ -293,7 +293,7 @@ This sequence helps isolate **platform**, **network**, and **guest OS** problems
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing **stop** with **deallocate**.
 - Assuming deleting a VM removes every dependent resource automatically.
@@ -308,6 +308,47 @@ This sequence helps isolate **platform**, **network**, and **guest OS** problems
 - An Azure VM is part of a larger design involving **networking, storage, identity, and operations**.
 - Good administration requires understanding **lifecycle state**, **cost state**, and **recovery options**.
 - Secure access, monitoring, backup, and disciplined day-2 operations are essential to production VM management.
+
+---
+
+## Advanced: VM Operations and Lifecycle Governance
+
+### Image and Patch Strategy
+
+- Use curated golden images for baseline consistency
+- Define patch cadence by workload criticality
+- Validate rollback strategy for failed updates
+
+### Access and Hardening
+
+- Prefer Just-In-Time access and Bastion over open management ports
+- Apply endpoint protection, vulnerability scanning, and baseline policies
+- Separate admin access paths from application traffic
+
+### Capacity and Cost Controls
+
+- Right-size continuously using utilization and performance metrics
+- Use reservations/savings plans where predictable
+- Deallocate non-production VMs outside business windows
+
+## Extended Troubleshooting Matrix (Virtual Machines)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| VM not reachable | NSG, routing, or guest firewall block | Test effective rules and boot diagnostics | Correct network path and guest firewall |
+| High CPU or memory pressure | Undersized VM or workload spike | Review metrics and process utilization | Resize VM or optimize workload |
+| Extension provisioning failure | Dependency or permission issue | Inspect extension logs and status | Reapply extension with corrected prerequisites |
+| Disk performance bottleneck | Inadequate disk tier/caching configuration | Check IOPS/throughput metrics | Upgrade disk tier and tune caching |
+
+## Production Readiness Checklist (Virtual Machines)
+
+- Golden image, patching, and vulnerability process defined
+- Access hardened with JIT/Bastion and least privilege
+- Backup and recovery tested for critical VMs
+- Monitoring and alerting configured for key VM signals
+- Capacity and cost optimization cadence established
+- Operational runbooks documented for common incidents
+
 
 ---
 

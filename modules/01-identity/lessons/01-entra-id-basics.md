@@ -771,7 +771,7 @@ az role assignment create --assignee-object-id <group-object-id> \
 
 ---
 
-## Best Practices (AZ-104 aligned)
+## Best Practices
 
 - ✅ Use **groups** for RBAC assignments (not individuals)
 - ✅ Apply **least privilege** and scope roles as low as possible (RG > subscription)
@@ -876,7 +876,7 @@ az role assignment list --assignee "$ASSIGNEE_ID" --all --output table
 
 ---
 
-## Common Pitfalls & Exam Traps
+## Common Pitfalls
 
 - ❌ **Confusing directory roles with Azure RBAC roles**  
   Entra roles manage the directory; RBAC manages Azure resources.
@@ -896,7 +896,7 @@ az role assignment list --assignee "$ASSIGNEE_ID" --all --output table
 
 ---
 
-## Key Takeaways for AZ-104
+## Key Takeaways
 
 1. **Entra ID answers WHO** and issues tokens  
 2. **Azure RBAC answers WHAT** and at which scope  
@@ -904,6 +904,118 @@ az role assignment list --assignee "$ASSIGNEE_ID" --all --output table
 4. **Managed identities** remove secrets and reduce risk  
 5. **Groups** are the scalable access pattern  
 6. Logs are essential for troubleshooting and compliance
+
+---
+
+## Advanced: Token Anatomy and Claim Interpretation
+
+When Entra ID issues an access token (JWT), Azure services evaluate claims inside the token.
+
+Important claims you should understand:
+
+- `iss` (issuer): which tenant issued the token
+- `aud` (audience): which service the token is intended for
+- `tid` (tenant ID): directory boundary of the identity
+- `oid` (object ID): unique identity object in Entra ID
+- `upn` / `preferred_username`: user sign-in identifier (user tokens)
+- `groups`: group memberships (or overage indicator)
+- `appid`: app client ID (application tokens)
+- `exp`, `nbf`, `iat`: token lifetime controls
+
+Why this matters operationally:
+
+- Wrong `aud` means the token is rejected even if identity is valid
+- Wrong `tid` means cross-tenant assumptions fail
+- Missing expected group claims can break app-side authorization logic
+- Expired token causes failures even when RBAC assignments are correct
+
+### Group Claim Overage (Large Group Membership)
+
+If a user belongs to many groups, token group claims can be replaced by an overage indicator. Services may need to query Microsoft Graph for full group expansion.
+
+Symptoms:
+
+- User appears correctly grouped in portal
+- Application-side checks fail because groups are not all in token
+
+Admin action:
+
+- Verify group count and token claims
+- Use app patterns that can resolve group memberships through Graph
+
+---
+
+## Advanced: Identity Administration Model for Enterprises
+
+### Administrative Account Separation
+
+Use separate identities for:
+
+- Daily productivity account
+- Privileged admin account
+
+Benefits:
+
+- Limits blast radius from phishing on day-to-day account
+- Improves auditing clarity for privileged actions
+
+### Break-Glass Accounts
+
+Create a minimal number of emergency cloud-only accounts for tenant recovery.
+
+Controls:
+
+- Long, unique passwords stored in controlled vault process
+- Excluded from conditional access policies that might lock out all admins
+- Strict monitoring on all sign-ins
+- Use only during incidents, then rotate credentials immediately
+
+### Privileged Identity Management (PIM) Concept
+
+Even if your exam focus is foundational, understand the model:
+
+- Standing access: role permanently active (higher risk)
+- Eligible access: role activated just-in-time for limited duration
+
+Just-in-time access reduces long-lived privilege exposure.
+
+---
+
+## Advanced: Federation and Authentication Protocols
+
+You should distinguish common sign-in protocols:
+
+- OAuth 2.0: delegated/app authorization framework
+- OpenID Connect (OIDC): identity layer on top of OAuth 2.0
+- SAML 2.0: XML-based federation commonly used by enterprise SaaS
+
+Practical interpretation:
+
+- Modern cloud-native apps commonly use OAuth/OIDC
+- Legacy enterprise integrations often use SAML
+- Protocol choice affects troubleshooting artifacts and claim formats
+
+---
+
+## Operational Troubleshooting Matrix (Identity Layer)
+
+| Symptom | Most likely layer | First checks | Typical fix |
+|--------|-------------------|-------------|-------------|
+| User cannot sign in at all | Entra authentication | Sign-in logs, CA result, MFA method | Fix credentials, CA condition, MFA registration |
+| Sign-in succeeds but portal action fails | RBAC authorization | Role assignment, scope, propagation | Correct role/scope, refresh token |
+| App works in dev but not prod tenant | Tenant/app config | Service principal presence, consent, audience | Create SP in tenant, grant consent, correct audience |
+| Guest user blocked unexpectedly | B2B + CA | External user policy, CA targeting guests | Adjust guest access/CA policy conditions |
+
+---
+
+## Production Readiness Checklist (Identity)
+
+- All privileged roles protected by MFA and conditional access
+- Group-based RBAC used instead of individual role sprawl
+- Guest access model documented (who invites, who approves, expiration)
+- Sign-in and audit logs exported to long-term store
+- Break-glass process tested and documented
+- Privileged changes reviewed periodically
 
 ---
 

@@ -168,7 +168,7 @@ Best choice: usually **Private Endpoint** for stronger isolation.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a private endpoint
 
@@ -225,7 +225,7 @@ If the private access design fails:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing service endpoints with private IP connectivity.
 - Creating a private endpoint but forgetting the DNS integration.
@@ -241,6 +241,49 @@ If the private access design fails:
 - **Service Endpoint** restricts a **public endpoint** to trusted subnets.
 - Private endpoints are more secure, but they are also more DNS-dependent.
 - In Azure administration, always think about **network path + DNS + authorization** together.
+
+---
+
+## Advanced: Private Access Design Decisions
+
+### Data Exfiltration Control
+
+Private endpoints reduce exposure by anchoring access to private IPs:
+
+- Traffic stays within private network paths
+- Public network access can be disabled on target services
+- DNS becomes a critical security dependency
+
+### Endpoint Selection Framework
+
+- Use private endpoints for strict private connectivity and exfiltration control
+- Use service endpoints for simpler network restriction when private IP mapping is not required
+- Reassess choice when compliance requirements change
+
+### Multi-VNet and Hybrid Patterns
+
+- Centralize private DNS where possible
+- Validate access from each consuming VNet
+- Ensure on-prem DNS forwarders can resolve private endpoint zones
+
+## Extended Troubleshooting Matrix (Private/Service Endpoints)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Access denied after endpoint deployment | Resource firewall or authorization mismatch | Check service firewall mode and identity permissions | Correct firewall and RBAC/SAS configuration |
+| Private endpoint unreachable | NSG/UDR or DNS misconfiguration | Validate private IP reachability and name resolution | Fix route/security rules and DNS records |
+| Service endpoint not taking effect | Subnet not enabled for endpoint service | Inspect subnet service endpoint settings | Enable endpoint and re-test |
+| Mixed public/private behavior | Public access still enabled and clients use public DNS | Verify target resolution path per client | Enforce private DNS and disable public path if required |
+
+## Production Readiness Checklist (Private Endpoints and Service Endpoints)
+
+- Endpoint model selected per data sensitivity requirements
+- DNS resolution path validated from every consumer network
+- Public network access settings explicitly defined
+- RBAC/data authorization controls tested after network changes
+- Route/NSG policies reviewed for endpoint subnets
+- Endpoint inventory and ownership documented
+
 
 ---
 

@@ -182,7 +182,7 @@ Autoscale is evaluation-based, not immediate. There is always a small reaction d
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a VM Scale Set
 
@@ -241,7 +241,7 @@ If scaling is not behaving as expected:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Confusing **scale out** with **scale up**.
 - Assuming App Service scales per app rather than per plan.
@@ -257,6 +257,49 @@ If scaling is not behaving as expected:
 - **VMSS** is Azure’s main platform for elastic VM-based horizontal scaling.
 - **App Service Plan** is the actual scaling boundary for App Service workloads.
 - Good autoscale design balances **performance, resilience, and cost**.
+
+---
+
+## Advanced: Scaling Policy Engineering
+
+### Trigger Design
+
+Autoscale triggers should reflect user experience and system health:
+
+- Combine resource metrics with workload indicators where possible
+- Use different thresholds for scale-out and scale-in to prevent oscillation
+- Define cooldown periods based on startup characteristics
+
+### Capacity Envelope
+
+- Establish minimum, default, and maximum instance bounds
+- Reserve headroom for burst patterns
+- Validate regional quota limits before production events
+
+### Economic Efficiency
+
+- Evaluate cost per transaction under scale scenarios
+- Use schedule-based scaling for predictable workloads
+- Continuously tune rules based on real telemetry
+
+## Extended Troubleshooting Matrix (Scaling)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Autoscale never triggers | Wrong metric namespace or threshold | Review autoscale rule evaluation history | Correct metric and threshold configuration |
+| Frequent scale flapping | No hysteresis/cooldown tuning | Analyze rapid in/out events | Increase cooldown and separate thresholds |
+| Scale-out occurs but errors persist | Downstream bottleneck unchanged | Trace dependency saturation | Scale dependent tiers or optimize bottleneck |
+| Quota blocks scaling | Subscription/regional limits reached | Check quota usage and failed scale actions | Request quota increase and adjust capacity plan |
+
+## Production Readiness Checklist (Scaling)
+
+- Autoscale policy tied to validated performance indicators
+- Min/max bounds align to SLA and budget constraints
+- Dependency tiers tested under scale conditions
+- Quota and capacity planning documented
+- Scale event monitoring and alerting enabled
+- Post-incident rule tuning process defined
+
 
 ---
 

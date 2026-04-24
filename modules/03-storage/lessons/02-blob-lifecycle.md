@@ -174,7 +174,7 @@ A good design uses **lifecycle rules** for cost control and **soft delete/versio
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a private container
 
@@ -241,7 +241,7 @@ If blob access or lifecycle behavior looks wrong:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Moving active data to Cool or Archive too early.
 - Assuming Archive data is instantly readable.
@@ -257,6 +257,49 @@ If blob access or lifecycle behavior looks wrong:
 - Access tiers help balance **cost** against **retrieval speed and frequency**.
 - Lifecycle management automates tiering and cleanup, but it must be designed carefully.
 - Protection features like **soft delete** and **versioning** are essential safety controls.
+
+---
+
+## Advanced: Lifecycle Governance and Data Retention
+
+### Retention Policy Design
+
+Lifecycle policies must align to legal and operational requirements:
+
+- Distinguish hot, warm, and archive access patterns
+- Define minimum retention windows per data class
+- Coordinate deletion behavior with compliance controls
+
+### Cost Optimization Without Data Risk
+
+- Transition data based on verified access patterns
+- Avoid aggressive archive transitions for frequently accessed data
+- Include retrieval and rehydration costs in forecasting
+
+### Data Protection Interlocks
+
+- Soft delete, versioning, and immutability should be designed together
+- Lifecycle delete actions must not conflict with retention obligations
+- Recovery workflows should be tested, not only configured
+
+## Extended Troubleshooting Matrix (Blob Lifecycle)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Blobs not moving tiers | Rule filters do not match blob scope | Review lifecycle rule conditions and prefixes | Correct filters and re-evaluate next run |
+| Unexpected storage cost increase | Data remains in hot tier longer than planned | Analyze blob access and tier distribution | Tune lifecycle thresholds |
+| Data deleted unexpectedly | Rule too broad or insufficient retention guardrails | Audit lifecycle policies and deletion settings | Narrow rule scope and enable protective controls |
+| Restore not possible in incident | Missing versioning/soft delete configuration | Validate protection settings per container | Enable protections and retest restore process |
+
+## Production Readiness Checklist (Blob Lifecycle and Data Protection)
+
+- Lifecycle policy documented per data class
+- Access pattern analysis validated before tier transitions
+- Delete actions aligned to legal retention requirements
+- Versioning, soft delete, and immutability configured as needed
+- Cost monitoring tracks tier movement effectiveness
+- Recovery tests executed for representative data sets
+
 
 ---
 

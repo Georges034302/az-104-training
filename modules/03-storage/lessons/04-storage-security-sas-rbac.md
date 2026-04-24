@@ -142,7 +142,7 @@ Network controls reduce exposure, but they do **not** replace RBAC or SAS.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Assign a blob data role
 
@@ -202,7 +202,7 @@ If storage access is denied unexpectedly:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Assigning `Contributor` and expecting blob data access.
 - Issuing long-lived, over-permissive SAS tokens.
@@ -218,6 +218,51 @@ If storage access is denied unexpectedly:
 - **SAS** is best for temporary, delegated access.
 - Management-plane roles and data-plane roles are not the same thing.
 - Strong storage security combines **identity + least privilege + network restriction**.
+
+---
+
+## Advanced: Authorization Model Hardening
+
+### Plane-Aware Access Control
+
+Separate governance by control plane and data plane:
+
+- Management actions handled through Azure RBAC scope assignments
+- Data operations controlled by storage data roles, SAS, and ACLs where applicable
+- Avoid broad Contributor roles when data-specific roles are sufficient
+
+### SAS Governance
+
+SAS should be constrained and auditable:
+
+- Short lifetimes and least privilege permissions
+- Prefer user delegation SAS when possible
+- Rotation and revocation procedures documented
+
+### Defense in Depth
+
+- Restrict network access with private endpoints/firewalls
+- Enforce secure transfer and encryption settings
+- Monitor anomalous data operations and token use patterns
+
+## Extended Troubleshooting Matrix (Storage Security)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| User can manage account but not read blob data | Data plane role missing | Check assigned storage data roles | Grant required data role at correct scope |
+| SAS works for some operations only | Token permissions or resource type too narrow | Decode SAS parameters and operation intent | Regenerate SAS with minimum required scope |
+| Access denied from approved identity | Token audience/credential path mismatch | Validate auth method and token context | Use correct credential flow and scope |
+| Authorized identity still blocked | Network restrictions override identity permissions | Review firewall/private endpoint settings | Align network policy with access design |
+
+## Production Readiness Checklist (Storage Security)
+
+- Data-plane and management-plane roles clearly separated
+- SAS issuance policy with expiry and approval workflow enforced
+- Network restrictions and private access controls validated
+- Encryption, secure transfer, and audit logging enabled
+- Regular access reviews performed for principals and tokens
+- Incident response runbook includes token revocation steps
+
 
 ---
 

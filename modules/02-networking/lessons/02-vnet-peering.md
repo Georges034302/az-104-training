@@ -151,7 +151,7 @@ If the network path works by private IP but not by hostname, DNS is usually the 
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create peering from VNet A to VNet B
 
@@ -208,7 +208,7 @@ If peered VNets cannot communicate:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Assuming peering is transitive.
 - Creating only one side and forgetting the return peering configuration.
@@ -224,6 +224,52 @@ If peered VNets cannot communicate:
 - It is fast and common, but **not transitive**.
 - Gateway sharing, forwarded traffic, and DNS design are where most mistakes happen.
 - In enterprise Azure environments, peering is often the foundation for **hub-and-spoke networking**.
+
+---
+
+## Advanced: Peering Architecture and Governance
+
+### Transitivity and Route Intent
+
+VNet peering is non-transitive:
+
+- A peered with B and B peered with C does not mean A can reach C
+- Additional peerings or a routed hub design are required
+
+### Gateway Transit Patterns
+
+Use gateway transit intentionally:
+
+- Hub provides VPN/ExpressRoute gateway
+- Spokes consume transit to avoid per-spoke gateways
+- Validate route propagation and failover paths
+
+### Cross-Region Considerations
+
+Global peering reduces latency compared to internet-based paths, but still requires:
+
+- Thoughtful address planning
+- NSG policy parity across regions
+- Tested recovery patterns during regional incidents
+
+## Extended Troubleshooting Matrix (VNet Peering)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Peered VNets cannot communicate | Peering state not connected or blocked by NSG | Inspect peering status and flow rules | Fix peering config and NSG rules |
+| On-prem access unavailable from spoke | Missing gateway transit settings | Review allow gateway transit/use remote gateway flags | Correct peering settings and revalidate routes |
+| Name resolution fails across VNets | DNS servers not reachable or no forwarding | Test DNS queries from each VNet | Configure DNS forwarding and conditional rules |
+| Unexpected asymmetric path | Custom routes override expected peering path | Review effective routes on NICs | Adjust route tables for symmetry |
+
+## Production Readiness Checklist (VNet Peering)
+
+- Peering topology documented (hub-spoke, mesh, hybrid)
+- Address spaces validated for non-overlap
+- Required peering flags configured per scenario
+- NSG and UDR policies verified end-to-end
+- Cross-region and failover behavior tested
+- DNS strategy documented for all peered VNets
+
 
 ---
 

@@ -180,7 +180,7 @@ When the environment grows, you often connect multiple VNets using peering or hy
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a VNet with an initial subnet
 
@@ -230,7 +230,7 @@ az network vnet subnet list --resource-group <rg> --vnet-name prod-vnet -o table
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Thinking a VNet can span multiple regions — it cannot.
 - Forgetting that overlapping address ranges block peering and hybrid connectivity.
@@ -260,6 +260,51 @@ If a VM or service cannot communicate as expected:
 - **Subnets** create isolation, enable policy, and make traffic easier to control.
 - Good **IP planning** prevents major future connectivity problems.
 - Most Azure networking features build on top of VNet and subnet design.
+
+---
+
+## Advanced: VNet and Subnet Design at Scale
+
+### Hub-Spoke and Shared Services
+
+Large environments typically use a hub-spoke model:
+
+- Hub VNet hosts shared services (firewall, DNS forwarders, VPN/ExpressRoute gateways)
+- Spoke VNets host application workloads
+- Centralized controls reduce duplicated security and simplify operations
+
+### Address Space Governance
+
+Define a formal enterprise IP plan before deployment:
+
+- Reserve ranges for growth and future peering
+- Avoid overlap across subscriptions and regions
+- Allocate subnets by workload tier and expected scale
+
+### Service Endpoints vs Private Endpoints
+
+- Service endpoints keep traffic on Azure backbone but still target public service endpoints
+- Private endpoints provide private IP-based access within the VNet
+- Choose based on data exposure requirements and DNS strategy
+
+## Extended Troubleshooting Matrix (VNets and Subnets)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| VM cannot reach peer resource | Missing route or NSG block | Check effective routes and effective security rules | Add required route or NSG allow rule |
+| Deployment fails due to address conflict | Overlapping CIDR ranges | Compare VNet and on-prem ranges | Re-plan address space and redeploy |
+| Service private access fails | DNS resolution points to public endpoint | Resolve FQDN from workload subnet | Configure private DNS zone/link |
+| Subnet delegation error | Incompatible service configuration | Review subnet delegation and target service requirements | Correct delegation and retry deployment |
+
+## Production Readiness Checklist (VNets and Subnets)
+
+- Enterprise IP addressing standard documented and approved
+- Non-overlapping CIDR blocks enforced across environments
+- Subnet segmentation aligned to workload trust boundaries
+- NSG and route controls validated per subnet
+- Private access patterns and DNS behavior tested
+- Network changes governed through change control
+
 
 ---
 

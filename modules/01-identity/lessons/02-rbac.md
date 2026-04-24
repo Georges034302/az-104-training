@@ -589,7 +589,7 @@ az role assignment create \
 
 ---
 
-## Best Practices (AZ-104 Aligned)
+## Best Practices
 
 ✅ **Use groups** for role assignments (not individual users)  
 ✅ **Apply least privilege** - smallest scope, minimal permissions  
@@ -602,7 +602,7 @@ az role assignment create \
 
 ---
 
-## Common Pitfalls & Exam Traps
+## Common Pitfalls
 
 ❌ **Assigning Owner when Contributor is sufficient**  
 Owner grants role assignment capability that creates security risk.
@@ -630,7 +630,7 @@ Use RG scope to avoid assignment sprawl.
 
 ---
 
-## Key Takeaways for AZ-104
+## Key Takeaways
 
 1. **RBAC = Principal + Role + Scope** (assignment formula)
 2. **Deny overrides allow** (always check deny assignments)
@@ -643,7 +643,7 @@ Use RG scope to avoid assignment sprawl.
 
 ---
 
-## CLI Reference (Commented Examples)
+## CLI Reference
 
 ### Role Assignment Operations
 
@@ -699,5 +699,140 @@ az monitor activity-log list \
   --query "[?contains(category, 'Authorization')]" \
   -o table
 ```
+
+---
+
+## Advanced: Effective Permission Evaluation
+
+RBAC outcomes come from combined assignments and inheritance.
+
+Operational model:
+
+1. Collect assignments for principal (direct + via group)
+2. Expand inherited assignments from parent scopes
+3. Union all allow permissions
+4. Apply role-level exclusions (`NotActions`, `NotDataActions`)
+5. Apply deny assignments (deny wins)
+
+Conceptual formula:
+
+$$
+Effective = \left(\bigcup AllowAssignments\right) - \left(\bigcup Exclusions\right) - \left(\bigcup DenyAssignments\right)
+$$
+
+Key admin takeaway: more assignments generally only increase access unless deny logic is present.
+
+---
+
+## Advanced: Scope Design Patterns
+
+### Pattern A: Landing Zone Baseline
+
+- Reader at management group for central audit teams
+- Contributor at resource group for workload teams
+- Owner restricted to platform admin groups
+
+This pattern keeps operational teams productive while reducing tenant-wide risk.
+
+### Pattern B: Shared Services Model
+
+- Networking/security team gets Contributor on shared platform resource groups
+- Application teams get Reader only in shared platform scopes
+- Application teams get Contributor only in app-specific resource groups
+
+This prevents accidental changes to shared infrastructure.
+
+### Pattern C: Ephemeral Environments
+
+- Temporary Contributor assignment at dedicated dev subscription scope
+- Time-box with governance process
+- Automatic review/removal after sprint window
+
+---
+
+## Advanced: Role Assignment Hygiene at Scale
+
+As environments grow, access sprawl becomes a major risk.
+
+Minimum hygiene controls:
+
+- Prefer group assignments over direct user assignments
+- Use naming conventions for groups and custom roles
+- Require justification ticket for Owner assignments
+- Review inactive service principals and stale assignments regularly
+- Remove orphaned assignments referencing deleted objects
+
+Recommended naming examples:
+
+- `rg-app1-contributor`
+- `sub-finance-reader`
+- `custom-vm-operator`
+
+---
+
+## Advanced: Custom Role Governance Lifecycle
+
+Custom roles should have a lifecycle, not just JSON creation.
+
+Lifecycle stages:
+
+1. Request: identify exact missing actions
+2. Design: least-privilege role definition
+3. Test: validate in non-production scope
+4. Approve: security/platform review
+5. Deploy: assign at minimal scope
+6. Re-certify: periodic review for relevance
+
+Validation checks before production:
+
+- Role does only required operations
+- `AssignableScopes` are intentionally minimal
+- No wildcard permission without explicit need
+- Documentation explains why built-in role was insufficient
+
+---
+
+## Advanced: RBAC and Operational Separation of Duties
+
+Separation of duties examples:
+
+- Platform ops: Contributor on infrastructure resource groups
+- Security ops: User Access Administrator for permission governance
+- Audit team: Reader at subscription or management group
+- Incident responders: temporary elevation workflow
+
+This separation reduces both accidental and malicious misuse.
+
+---
+
+## Extended Troubleshooting Playbook (403/AuthorizationFailed)
+
+When you hit an authorization failure, investigate in this order:
+
+1. Confirm principal identity used by request
+2. Confirm role assignment exists for that principal
+3. Confirm assignment scope includes target resource
+4. Confirm required action or data action is present in role
+5. Check deny assignments
+6. Refresh token and wait propagation
+7. Re-run request and inspect Activity Log correlation ID
+
+Frequent root causes:
+
+- Role assigned to wrong object ID
+- Role assigned at sibling resource group instead of target scope
+- Control-plane role used where data-plane role is required
+- Assignment exists but token predates role grant
+
+---
+
+## Production Readiness Checklist (RBAC)
+
+- No unnecessary Owner assignments at subscription scope
+- Group-based access model implemented for all teams
+- Custom roles documented and reviewed
+- Data-plane roles used intentionally for data access workloads
+- Access review cadence defined (monthly/quarterly)
+- Deny assignment impact understood in governed subscriptions
 
 ---

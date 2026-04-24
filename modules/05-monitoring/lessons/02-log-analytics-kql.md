@@ -189,7 +189,7 @@ If KQL results look wrong or empty:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Querying the wrong workspace.
 - Forgetting a `TimeGenerated` filter in noisy tables.
@@ -206,6 +206,47 @@ If KQL results look wrong or empty:
 - KQL is the main Azure admin tool for **searching, filtering, summarizing, and correlating** logs.
 - Good troubleshooting depends on choosing the correct **workspace, table, and time range**.
 - Empty results often mean **collection or scope issues**, not necessarily “no incident.”
+
+---
+
+## Advanced: Query Engineering for Operations
+
+### Query Reliability
+
+- Use explicit time windows and table filters early
+- Parse and project only required fields for performance
+- Build reusable query patterns for common incidents
+
+### Data Quality and Schema Discipline
+
+- Normalize field naming and ingestion mappings
+- Track schema drift after agent or pipeline changes
+- Validate data completeness for critical services
+
+### Operationalization
+
+- Convert high-value queries into workbooks and alerts
+- Document expected baselines and anomaly thresholds
+- Version-control critical queries used in runbooks
+
+## Extended Troubleshooting Matrix (Log Analytics and KQL)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Query returns no data | Wrong time range or workspace/table mismatch | Validate workspace scope and time filter | Correct query scope and timeframe |
+| Query too slow | Excessive scan and late filtering | Review query plan and filter placement | Apply early filters and project narrow fields |
+| Alert query inconsistent | Ingestion delay not accounted for | Compare event time vs ingestion time | Adjust lookback and aggregation windows |
+| Results differ between teams | Different query versions and assumptions | Compare saved query definitions | Standardize and version shared queries |
+
+## Production Readiness Checklist (Log Analytics and KQL)
+
+- Critical operational queries documented and reviewed
+- Query performance tuned for production use
+- Ingestion delay handling built into alert logic
+- Workbooks and alerts aligned to incident response needs
+- Access governance applied to sensitive log tables
+- Query library version-controlled and maintained
+
 
 ---
 

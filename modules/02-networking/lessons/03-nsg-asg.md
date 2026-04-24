@@ -161,7 +161,7 @@ This design is clearer and safer than a flat, open subnet.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create an NSG
 
@@ -229,7 +229,7 @@ If traffic is blocked unexpectedly:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Mixing up priority order: `100` beats `200`.
 - Allowing traffic on the wrong **direction**.
@@ -245,6 +245,51 @@ If traffic is blocked unexpectedly:
 - They evaluate rules by **priority**, and the **first match wins**.
 - ASGs make policies cleaner and easier to maintain at scale.
 - A strong design uses **subnet segmentation + NSGs + least privilege**.
+
+---
+
+## Advanced: Policy Engineering for NSG and ASG
+
+### Rule Design Principles
+
+Use deterministic rule design:
+
+- Deny-by-default with explicit allow rules
+- Keep rule intent narrow by source, destination, and port
+- Avoid broad Any-to-Any rules except emergency windows
+
+### ASG Operational Model
+
+ASGs reduce IP-based rule sprawl:
+
+- Group workloads by role (web, app, data)
+- Reference ASGs in NSG rules for role-based controls
+- Keep naming aligned with application architecture
+
+### Governance and Drift Control
+
+- Version-control NSG rule sets
+- Require change review for high-impact ports
+- Periodically validate effective rules against design intent
+
+## Extended Troubleshooting Matrix (NSG and ASG)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Traffic blocked unexpectedly | Higher-priority deny rule | Check NSG rule priority order | Reorder priorities or refine rule scope |
+| App tier cannot reach DB tier | Missing ASG-to-ASG allow rule | Validate NIC ASG membership and target rule | Add correct rule and verify membership |
+| Connectivity intermittent | Conflicting subnet and NIC NSGs | Review effective security rules on NIC | Harmonize subnet and NIC policies |
+| RDP/SSH access unavailable | No inbound management path | Validate source IP and allowed ports | Add controlled management rule or Bastion path |
+
+## Production Readiness Checklist (NSG and ASG)
+
+- Standardized NSG baseline per subnet tier implemented
+- ASG naming and membership conventions documented
+- Rule priorities reviewed to prevent unintended shadowing
+- Emergency access process defined and audited
+- Effective rule validation included in release workflow
+- Periodic cleanup for stale rules and unused ASGs
+
 
 ---
 

@@ -175,7 +175,7 @@ You should verify visibility **before** production issues happen.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create an App Service plan
 
@@ -240,7 +240,7 @@ If an App Service deployment is failing or behaving unexpectedly:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Editing configuration in the wrong slot and causing production drift.
 - Forgetting to mark slot-specific settings before swap.
@@ -256,6 +256,47 @@ If an App Service deployment is failing or behaving unexpectedly:
 - The **plan** controls the compute boundary, scale, and many features.
 - **Deployment slots** are one of the safest ways to reduce release risk.
 - Good App Service operations depend on **configuration discipline, secure networking, and monitoring**.
+
+---
+
+## Advanced: Application Platform Operations
+
+### Configuration and Secret Hygiene
+
+- Separate code from configuration across environments
+- Store secrets in managed secret stores and reference securely
+- Enforce configuration drift detection and approval workflows
+
+### Deployment Safety
+
+- Use slots for staged validation before production swap
+- Define warm-up and health validation steps pre-swap
+- Keep clear rollback criteria and fast rollback path
+
+### Network and Security Controls
+
+- Restrict ingress with access restrictions/private endpoints as needed
+- Integrate managed identity for outbound service authentication
+- Monitor TLS, certificate, and auth configuration continuously
+
+## Extended Troubleshooting Matrix (App Service)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| App starts but fails on requests | Missing app settings or secret resolution | Review app configuration and startup logs | Correct settings and secret references |
+| Slot swap causes outage | Slot configuration mismatch | Compare sticky settings and dependencies | Align slot settings and retry controlled swap |
+| Intermittent 5xx responses | Instance saturation or dependency timeout | Inspect app metrics and dependency telemetry | Scale plan and optimize dependency handling |
+| Access restrictions block valid users | Rule precedence or CIDR mismatch | Validate inbound rule order and client IP path | Correct allow rules and test access |
+
+## Production Readiness Checklist (App Service)
+
+- Slot-based deployment strategy implemented and tested
+- Secret and config management standardized
+- Managed identity used for service-to-service authentication
+- Scaling and health monitoring configured for application SLOs
+- Backup and rollback procedures validated
+- Security controls and access restrictions reviewed periodically
+
 
 ---
 

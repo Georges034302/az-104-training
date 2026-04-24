@@ -151,7 +151,7 @@ This is more advanced but important in enterprise routing design.
 
 ---
 
-## Azure CLI Examples
+## CLI Reference
 
 ### Create a route table
 
@@ -216,7 +216,7 @@ If traffic does not follow the expected path:
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Forgetting that **longest prefix match** wins.
 - Associating the route table to the wrong subnet.
@@ -232,6 +232,51 @@ If traffic does not follow the expected path:
 - The two core concepts are **longest prefix match** and **next hop type**.
 - UDRs are central to hub-and-spoke, firewall inspection, and forced tunneling designs.
 - Always validate the result using **effective routes** on the source NIC.
+
+---
+
+## Advanced: Route Control Strategy
+
+### Forced Tunneling and Inspection
+
+UDRs are commonly used to direct traffic through network virtual appliances:
+
+- Route default traffic to firewall/NVA next hop
+- Preserve required service reachability with exceptions where needed
+- Validate return path symmetry to avoid hidden packet drops
+
+### Route Precedence and Predictability
+
+Azure routing behavior depends on source and specificity:
+
+- Longest-prefix match determines selected path
+- UDRs can override system routes for targeted prefixes
+- BGP routes can alter expected pathing in hybrid networks
+
+### Operational Guardrails
+
+- Treat route tables as controlled artifacts
+- Test changes in non-production before rollout
+- Document intended path for critical application flows
+
+## Extended Troubleshooting Matrix (Routing and UDR)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Traffic blackholes after route change | Invalid next hop or missing appliance path | Inspect effective routes and next hop health | Correct next hop and ensure appliance availability |
+| On-prem route not used | BGP propagation disabled or overridden | Review route table propagation setting | Enable propagation or adjust UDR specificity |
+| Internet egress fails | Default route forced to unavailable NVA | Validate NVA forwarding and SNAT path | Restore NVA health or rollback route |
+| Only some subnets affected | Route table not associated uniformly | Check subnet associations | Associate correct route table with all intended subnets |
+
+## Production Readiness Checklist (Routing and UDR)
+
+- Critical application routes documented and versioned
+- Route table associations reviewed for all subnets
+- NVA/firewall high availability validated
+- BGP propagation behavior tested in hybrid design
+- Rollback plan defined for routing changes
+- Monitoring alerts configured for path and reachability failures
+
 
 ---
 

@@ -149,7 +149,7 @@ Resilience is proven by **testing and operational readiness**, not by documentat
 
 ---
 
-## Common Pitfalls and Exam Traps
+## Common Pitfalls
 
 - Assuming single-instance deployments satisfy high availability goals.
 - Confusing backup strategy with full DR capability.
@@ -165,6 +165,47 @@ Resilience is proven by **testing and operational readiness**, not by documentat
 - **SLA, RTO, and RPO** should shape the design from the start.
 - High availability, backup, and DR solve different failure scenarios.
 - A resilience plan is credible only when it has been tested.
+
+---
+
+## Advanced: Resilience Engineering Framework
+
+### Failure Mode Thinking
+
+- Identify likely failure domains: instance, zone, region, dependency, and control plane
+- Map each failure mode to mitigation and recovery action
+- Validate assumptions through tests, not documentation alone
+
+### Design for Degradation
+
+- Build graceful degradation paths for non-critical functions
+- Protect critical transaction flows first
+- Implement backpressure, retries, and timeout controls consistently
+
+### Governance and Continuous Validation
+
+- Resilience targets should be owned and measured
+- Conduct chaos or failure-injection style validation where appropriate
+- Review architecture after major platform or workload changes
+
+## Extended Troubleshooting Matrix (Availability and Resilience)
+
+| Symptom | Likely cause | Validation step | Fix |
+|--------|--------------|----------------|-----|
+| Service available but degraded | Dependency saturation or partial outage | Correlate service and dependency metrics | Scale or isolate failing dependency |
+| Repeated outage during updates | Unsafe deployment or maintenance sequencing | Review release and maintenance timelines | Implement staged rollout and health gates |
+| Recovery slower than target | Runbook gaps or untested process | Compare incident timeline to recovery steps | Improve and rehearse runbooks |
+| Region-level incident causes full outage | No regional failover strategy | Validate topology and traffic routing options | Implement multi-region resilience pattern |
+
+## Production Readiness Checklist (Availability and Resilience)
+
+- Resilience objectives defined with measurable targets
+- Failure modes and mitigations documented per service
+- Multi-layer recovery strategy implemented (HA, backup, DR)
+- Operational runbooks tested in realistic exercises
+- Dependency resilience validated regularly
+- Continuous improvement loop established after incidents
+
 
 ---
 
