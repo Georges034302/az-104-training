@@ -27,6 +27,15 @@ The two most common compute scaling patterns in this module are:
 - How VM Scale Sets are used for elastic VM workloads
 - How App Service plans scale and how autoscale rules are tuned safely
 
+## Acronyms and Terms (Do Not Assume)
+
+- VMSS = Virtual Machine Scale Sets
+- CPU = Central Processing Unit
+- RAM = Random Access Memory
+- SLO = Service Level Objective
+- SLA = Service Level Agreement
+- KEDA = Kubernetes Event-Driven Autoscaling (used in some container platforms)
+
 ---
 
 ## Scaling Mental Model
@@ -84,6 +93,21 @@ Use when:
 - traffic varies over time and benefits from autoscale
 
 > In many production scenarios, **scale out** is preferred because it improves both **capacity** and **availability**.
+
+## Deep Dive: Scaling Across Compute Models
+
+Scaling behavior differs by Azure compute model.
+
+| Model | Scale unit | Typical triggers | Common limit |
+|---|---|---|---|
+| Virtual Machines | VM size (up) or VM count (out) | CPU, memory, queue depth via external logic | Slower boot/provisioning than PaaS |
+| VMSS | Instance count | CPU, memory, schedules, custom metrics | App must support multi-instance behavior |
+| App Service | Plan tier and worker count | CPU, memory, HTTP queue/requests, schedule | Plan-level scaling affects all apps in that plan |
+| Container Apps | Replica count | HTTP concurrency, event-driven scaling | Cold-start and scale rule tuning required |
+
+Professional guidance:
+- Autoscale should be tied to user-impact metrics, not only infrastructure metrics.
+- Scaling should include dependency tiers (database/cache) to avoid moving bottlenecks.
 
 ---
 
@@ -179,6 +203,17 @@ Scaling improves performance, but it can raise cost quickly if it is not bounded
 - avoid using autoscale to mask bad application architecture
 
 Autoscale is evaluation-based, not immediate. There is always a small reaction delay.
+
+## Anti-Flapping Design Pattern
+
+Flapping is repeated scale-out/scale-in oscillation that increases cost and instability.
+
+Prevent flapping with:
+
+1. Asymmetric thresholds (for example out at 70%, in at 30%)
+2. Cooldown periods long enough for metric stabilization
+3. Minimum floor instance count during known busy windows
+4. Schedule-assisted scaling for predictable spikes
 
 ---
 

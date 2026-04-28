@@ -28,6 +28,18 @@ Azure gives administrators two major VM-focused placement options:
 - How load balancers and multiple instances fit the design
 - Common operational mistakes and exam traps
 
+## Acronyms and Terms (Do Not Assume)
+
+- FD = Fault Domain
+- UD = Update Domain
+- SLA = Service Level Agreement
+- HA = High Availability
+- DR = Disaster Recovery
+- RTO = Recovery Time Objective
+- RPO = Recovery Point Objective
+
+Understanding these concepts is essential for compute resilience decisions.
+
 ---
 
 ## Availability Mental Model
@@ -81,6 +93,34 @@ This gives stronger protection against a datacenter-level issue than an availabi
 | Protects against full datacenter failure | Limited | Better |
 | Requires zone-supported region/SKU | No | Yes |
 | Typical use | Traditional multi-VM HA design | Modern production resilience pattern |
+
+## Deep Dive: Set vs Zone vs Region Strategy
+
+Availability design has three layers of protection scope:
+
+1. Host/rack scope: Availability Set (FD/UD logic)
+2. Datacenter scope: Availability Zones
+3. Regional scope: Cross-region DR architecture
+
+A complete production strategy typically needs more than one layer.
+
+| Requirement | Recommended pattern |
+|---|---|
+| Protect from host maintenance/reboot impact | Availability Set or Zones |
+| Protect from datacenter-level incident | Availability Zones |
+| Protect from regional outage | Multi-region DR (paired region pattern) |
+
+## Professional Pattern: Stateless vs Stateful Tiers
+
+Stateless app tiers:
+- Easier to distribute across zones behind a load balancer
+- Preferred for web/API front-end resilience
+
+Stateful tiers:
+- Need replication/quorum-aware design
+- Availability placement alone is not enough without data-layer resilience
+
+This is a common architecture review finding: compute is redundant, but data is not.
 
 ---
 

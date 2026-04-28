@@ -26,6 +26,16 @@ The core advantage is that Microsoft manages the underlying platform while you m
 - How deployment slots and swap operations reduce release risk
 - How App Service networking and diagnostics work in practice
 
+## Acronyms and Terms (Do Not Assume)
+
+- PaaS = Platform as a Service
+- CI = Continuous Integration
+- CD = Continuous Delivery (or Continuous Deployment, depending on org policy)
+- SLA = Service Level Agreement
+- TLS = Transport Layer Security
+- VNet = Virtual Network
+- ACR = Azure Container Registry
+
 ---
 
 ## App Service Mental Model
@@ -78,6 +88,32 @@ Examples of feature differences include:
 ### Practical planning note
 Putting multiple apps into one plan can reduce cost, but those apps also share the same compute resources. That can create noisy-neighbor behavior and shared scaling impact.
 
+## App Service Plan Comparison (Expanded)
+
+App Service Plans define the compute workers, scaling limits, and available feature set for hosted apps.
+
+| Plan family | Typical usage | Key capabilities | Common limits/trade-offs |
+|---|---|---|---|
+| Free/Shared | Learning and low-risk demos | Very low-cost entry | Limited scale/features; not for production-critical workloads |
+| Basic | Small internal apps and dev/test | Dedicated compute | Fewer advanced deployment/networking features than higher tiers |
+| Standard | Production web apps needing slots/autoscale | Deployment slots, autoscale support | Lower ceiling than premium families |
+| Premium (Pv2/Pv3/Pv4 variants) | High-throughput production workloads | Higher scale/perf, advanced networking support | Higher cost; requires right-sizing discipline |
+| Isolated / ASE-based models | Highly regulated network-isolated scenarios | Strong isolation and enterprise boundary control | Highest complexity and cost profile |
+
+Professional planning guidance:
+1. Choose plan by feature requirements first (slots, autoscale, networking), then optimize cost.
+2. Separate noisy and business-critical apps into different plans.
+3. Reassess plan choice quarterly with real telemetry.
+
+## Plan Boundary Rules (Critical Exam/Operations Concept)
+
+If multiple apps share one plan:
+- They share the same worker pool.
+- Scale-out changes affect all apps on that plan.
+- One app's traffic spike can affect others.
+
+This is why enterprise platforms often isolate critical workloads into dedicated plans.
+
 ---
 
 ## Configuration and Secrets
@@ -101,6 +137,102 @@ This matters for:
 - environment identifiers
 
 Bad slot-setting decisions are a common cause of production deployment incidents.
+
+## Deployment Types in App Service (Expanded)
+
+App Service supports multiple deployment models. Choose based on team workflow, artifact type, and release controls.
+
+### 1. Zip Deploy
+
+What it is:
+- Package app artifacts into a zip file and deploy directly to the app.
+
+Best for:
+- Simple web apps
+- Scripted deployments from build pipelines
+- Deterministic artifact promotion
+
+Trade-offs:
+- Less container-level portability than image-based deployments
+- Runtime environment coupling depends on selected app runtime stack
+
+### 2. Local Git / External Git integration
+
+What it is:
+- App Service pulls/deploys from a configured repository source.
+
+Best for:
+- Small teams and simple release pipelines
+
+Trade-offs:
+- Limited enterprise guardrails versus modern CI/CD workflows
+
+### 3. Container-based deployment (Web App for Containers)
+
+What it is:
+- Deploy a container image (for example from ACR) instead of code package.
+
+Best for:
+- Teams standardizing on Docker images
+- Portable runtime and dependency control
+- Multi-environment consistency
+
+Trade-offs:
+- Need image build/scan/tag governance
+- Need registry pull permissions and lifecycle management
+
+### 4. CI/CD pipeline deployment
+
+What it is:
+- Automated build/test/security checks and deployment via GitHub Actions or Azure DevOps pipelines.
+
+Best for:
+- Production delivery with quality gates
+- Repeatable, auditable releases
+
+Professional CI/CD pattern:
+1. Build and test artifact
+2. Security scan and policy checks
+3. Deploy to staging slot
+4. Smoke/health tests
+5. Controlled slot swap to production
+
+## CI/CD and Slot-Based Release Pattern
+
+Use deployment slots to reduce risk in continuous delivery:
+
+1. Deploy new version to staging slot
+2. Run synthetic tests and dependency checks
+3. Validate environment-specific settings
+4. Swap staging -> production
+5. Monitor and rollback quickly if needed
+
+This pattern is the professional default for App Service production operations.
+
+## App Service Containers: Practical Example
+
+Example architecture:
+
+```text
+[Source code] -> [CI build] -> [Container image]
+                                  |
+                                  v
+                               [ACR]
+                                  |
+                                  v
+                      [App Service (container)]
+                                  |
+                              [staging slot]
+                                  |
+                                [swap]
+                                  |
+                              [production]
+```
+
+Benefits:
+- Same image across dev/test/prod
+- Cleaner rollback via image tag/revision strategy
+- Better dependency consistency than ad-hoc runtime deployments
 
 ---
 

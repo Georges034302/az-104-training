@@ -27,6 +27,18 @@ The main lesson is simple:
 - Why operational validation is essential
 - Common AZ-104 planning mistakes to avoid
 
+## Acronyms and Terms (Do Not Assume)
+
+- HA = High Availability
+- DR = Disaster Recovery
+- SLA = Service Level Agreement
+- SLO = Service Level Objective
+- RTO = Recovery Time Objective
+- RPO = Recovery Point Objective
+- BCP = Business Continuity Plan
+
+These concepts define resilience architecture requirements and recovery commitments.
+
 ---
 
 ## Resilience Mental Model
@@ -109,6 +121,37 @@ Redundancy must include dependency awareness, such as:
 - networking paths
 - data services
 - DNS and application dependencies
+
+## Resilience Maturity Model (Practical Framework)
+
+| Level | Characteristics | Typical gaps |
+|---|---|---|
+| Basic | Backups enabled, limited redundancy | No failover testing, weak dependency mapping |
+| Intermediate | HA in key tiers, documented DR approach | Infrequent drills, unclear ownership |
+| Advanced | HA + Backup + DR integrated with tested runbooks | Continuous optimization still needed |
+
+Use this model to evaluate current state and prioritize improvements.
+
+## Dependency-Aware Resilience Checklist
+
+For each critical service, validate resilience for:
+
+1. Compute tier (instance, zone, and region failure behavior)
+2. Data tier (replication, backup, corruption recovery)
+3. Identity tier (authentication dependency continuity)
+4. Network/DNS tier (routing, name resolution, ingress/egress paths)
+5. Operational tier (monitoring, runbooks, on-call ownership)
+
+A service is only as resilient as its weakest dependency chain.
+
+## Business Alignment Guidance
+
+Translate business impact into engineering targets:
+
+1. Define acceptable downtime and data-loss windows with stakeholders.
+2. Map each target to architecture controls (HA, backup, DR).
+3. Validate through drills and incident reviews.
+4. Adjust design after significant workload/platform changes.
 
 ---
 

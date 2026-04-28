@@ -26,6 +26,18 @@ The goal is not just to “collect data,” but to route the right signals to th
 - How alerts and insights depend on correct collection design
 - Common exam traps and operational mistakes to avoid
 
+## Acronyms and Terms (Do Not Assume)
+
+- KPI = Key Performance Indicator
+- SLO = Service Level Objective
+- SLA = Service Level Agreement
+- DCR = Data Collection Rule
+- AMA = Azure Monitor Agent
+- KQL = Kusto Query Language
+- MTTR = Mean Time to Recovery
+
+These terms are used in monitoring architecture reviews and incident response.
+
 ---
 
 ## Azure Monitor Mental Model
@@ -140,6 +152,29 @@ Those alerts are then connected to **Action Groups** for notifications or automa
 Design principle:
 
 > An alert without clear ownership or an action path is only noise.
+
+## Operating Model: From Signal to Actionable Incident
+
+Professional monitoring programs define a full signal lifecycle:
+
+1. **Collect**: metrics, logs, and activity events with clear purpose.
+2. **Detect**: alert rules identify conditions tied to service risk.
+3. **Route**: Action Groups send incidents to the right owner.
+4. **Respond**: runbooks and on-call procedures guide remediation.
+5. **Improve**: post-incident tuning improves alert quality and MTTR.
+
+This closes the loop from telemetry to operations outcomes.
+
+## Monitoring Coverage Strategy
+
+For each critical workload, define minimum coverage in four categories:
+
+1. **Golden signals**: latency, traffic, errors, saturation.
+2. **Control-plane change visibility**: who changed what and when.
+3. **Dependency visibility**: database, network, identity, and external service health.
+4. **Recovery signals**: backup status, replication health, and failover readiness.
+
+Without dependency and recovery signals, teams often miss root cause during incidents.
 
 ---
 

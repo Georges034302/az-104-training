@@ -21,6 +21,7 @@ Blob Storage is one of the most important Azure services for AZ-104. Administrat
 - How Blob Storage is organized inside a storage account
 - The difference between block, append, and page blobs
 - How Hot, Cool, Cold, and Archive tiers are used
+- How intelligent tiering strategies reduce cost using real access patterns
 - How lifecycle rules automate tiering and cleanup
 - How to combine cost optimization with data protection
 
@@ -80,6 +81,76 @@ Blob Storage supports multiple cost/performance tiers.
 - Archived data must be **rehydrated** before normal access.
 - Lower-cost tiers may have **minimum retention periods** and **early deletion charges**.
 
+## Intelligent Tiering Strategy (Do Not Assume Static Access Patterns)
+
+In real environments, data temperature changes over time. "Intelligent tiering" means using lifecycle policies plus access telemetry to move data between tiers based on behavior, not guesswork.
+
+### Core idea
+
+Instead of saying "all logs go Cool after 30 days forever," use rules that account for:
+- last modification time
+- last access time (when enabled)
+- data class (for example `logs/`, `backup/`, `media/`)
+
+### Acronym expansion
+
+- TCO = Total Cost of Ownership
+- SLA = Service Level Agreement
+
+Intelligent tiering aims to reduce TCO while preserving SLA expectations for retrieval time and availability.
+
+### Enable last-access-based lifecycle decisions
+
+Azure Blob lifecycle can use last-access conditions when access tracking is enabled on the account.
+
+Example policy pattern:
+
+```json
+{
+  "rules": [
+    {
+      "enabled": true,
+      "name": "intelligent-tiering-by-last-access",
+      "type": "Lifecycle",
+      "definition": {
+        "filters": {
+          "blobTypes": ["blockBlob"],
+          "prefixMatch": ["telemetry/"]
+        },
+        "actions": {
+          "baseBlob": {
+            "tierToCool": {
+              "daysAfterLastAccessTimeGreaterThan": 30
+            },
+            "tierToCold": {
+              "daysAfterLastAccessTimeGreaterThan": 90
+            },
+            "tierToArchive": {
+              "daysAfterLastAccessTimeGreaterThan": 180
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+### Professional guidance for intelligent tiering
+
+1. Start with conservative thresholds, then optimize.
+2. Separate policy by data class; avoid one giant rule for all data.
+3. Keep compliance-retained data in a separate policy domain.
+4. Do not archive data with frequent restore expectations.
+5. Combine lifecycle with versioning/soft delete before enabling delete actions.
+
+### Common intelligent-tiering mistakes
+
+- Moving data to Archive before confirming restore-time requirements.
+- Ignoring early-deletion charges in Cool/Cold/Archive tiers.
+- Applying one threshold globally to mixed workloads.
+- Treating lifecycle transitions as immediate rather than asynchronous.
+
 ---
 
 ## Lifecycle Management
@@ -97,6 +168,7 @@ Lifecycle management uses **JSON policies** to automatically move or delete blob
 - prefix-based path matching
 - blob type selection
 - days since modification or creation
+- days since last access (when last-access tracking is enabled)
 
 ### Example lifecycle policy
 
@@ -132,6 +204,34 @@ Lifecycle management uses **JSON policies** to automatically move or delete blob
 ```
 
 > Lifecycle policies are **asynchronous**. They do not run exactly at the minute a blob crosses the threshold.
+
+## Lifecycle Policy Engineering Pattern
+
+Use a staged policy model for enterprise workloads:
+
+1. **Stage 1 (observability)**: Track access patterns and validate data classification.
+2. **Stage 2 (tiering only)**: Enable transitions (Hot -> Cool -> Cold/Archive) without delete.
+3. **Stage 3 (guarded cleanup)**: Add delete only after recovery controls and retention sign-off.
+
+This prevents accidental data loss and reduces rollback risk during policy rollout.
+
+## Access Tier Selection by Workload Type
+
+| Workload | Typical tier start | Transition approach |
+|---|---|---|
+| Application media frequently read | Hot | Move to Cool only after measured drop in reads |
+| Operational logs | Hot or Cool | Cool after 7-30 days, Cold/Archive for long retention |
+| Compliance retention data | Cool or Cold | Archive only when retrieval SLAs permit |
+| Disaster recovery artifacts | Cool | Archive cautiously; test rehydration windows |
+
+## Intelligent Tiering and Recovery Objectives
+
+Lifecycle optimization must respect recovery targets:
+
+- RTO = Recovery Time Objective (how fast data must be available)
+- RPO = Recovery Point Objective (maximum acceptable data loss)
+
+Archive-tier data can increase effective RTO because rehydration is not immediate. Always validate lifecycle transitions against recovery commitments.
 
 ---
 

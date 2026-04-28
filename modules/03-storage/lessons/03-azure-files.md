@@ -26,6 +26,18 @@ For AZ-104, you should understand protocols, performance tiers, security choices
 - Hybrid scenarios with Azure File Sync
 - Operational best practices and troubleshooting steps
 
+## Acronyms and Terms (Do Not Assume)
+
+- SMB = Server Message Block (file-sharing protocol used heavily in Windows environments)
+- NFS = Network File System (file-sharing protocol used heavily in Linux/Unix environments)
+- IOPS = Input/Output Operations Per Second (storage performance metric)
+- ACL = Access Control List (file/folder permissions)
+- NTFS = New Technology File System (Windows file system with ACL model)
+- AD DS = Active Directory Domain Services
+- SLA = Service Level Agreement
+
+Understanding these terms is essential for making correct Azure Files architecture decisions.
+
 ---
 
 ## Azure Files Mental Model
@@ -71,6 +83,17 @@ A file share lives inside a storage account and is accessed using SMB or NFS dep
 | **SMB** | Windows file shares, many lift-and-shift apps | Broadest compatibility; identity-based access is available |
 | **NFS 4.1** | Linux and high-performance file scenarios | Supported in specific Azure Files configurations, commonly premium-focused |
 
+### Protocol behavior differences (professional view)
+
+| Area | SMB | NFS 4.1 |
+|---|---|---|
+| Typical platform | Windows-first, mixed enterprise | Linux-first workloads |
+| Auth model | Identity integration options (AD DS / Entra scenarios) | Network and export-style controls dominate design |
+| Permission model | Share permissions + NTFS ACL layering | POSIX-style expectations in Linux environments |
+| Common use | Lift-and-shift apps, shared drives, user profiles | Linux applications, performance-sensitive file access |
+
+Do not assume SMB and NFS can be managed with the same security playbook.
+
 ### Share capabilities
 
 - **Quota** controls capacity at share level
@@ -96,6 +119,18 @@ Design choice should be based on:
 
 Do not choose a tier based only on storage size.
 
+### Tier selection criteria
+
+Use measurable workload characteristics:
+
+- Average and peak IOPS
+- Throughput requirements (MB/s)
+- Latency tolerance
+- Protocol requirements (SMB vs NFS)
+- Recovery and backup objectives
+
+If the workload has strict latency requirements or high transaction intensity, premium is often the safer production choice.
+
 ---
 
 ## Authentication and Access Models
@@ -113,6 +148,10 @@ Identity-based access can integrate with:
 - **Active Directory Domain Services (AD DS)**
 - **Microsoft Entra Domain Services**
 - **Microsoft Entra Kerberos** for supported scenarios
+
+Professional security note:
+- Prefer identity-based authorization over broad shared-key usage.
+- Shared keys should be tightly controlled, rotated, and not embedded in application code.
 
 ### NFS access model
 
@@ -153,6 +192,34 @@ For production use, Azure Files is often combined with:
 
 ### Important operational note
 SMB access commonly depends on outbound **port 445** being allowed. Some corporate or ISP environments block it, which is a classic troubleshooting point.
+
+### Enterprise network pattern
+
+For sensitive workloads, combine:
+
+- Private endpoints for private connectivity
+- DNS validation for private endpoint resolution
+- Firewall rules scoped to approved source networks
+- Least-privilege share permissions and ACLs
+
+This prevents exposing file shares broadly while preserving operational access.
+
+## Permission Layer Model (Critical Troubleshooting Concept)
+
+In SMB scenarios, effective access often depends on two permission layers:
+
+1. Share-level permissions (who can access the share)
+2. NTFS ACL permissions (what they can do to files/folders)
+
+A user can be allowed at share level but denied by NTFS ACL. This is one of the most common real-world causes of "access denied" incidents.
+
+## Exam Traps and Operational Pitfalls
+
+1. Assuming Blob Storage and Azure Files are interchangeable for mounted shares.
+2. Forgetting port 445 requirements in SMB deployments.
+3. Picking standard tier for latency-sensitive workloads without performance validation.
+4. Using shared keys broadly instead of identity-based authorization.
+5. Ignoring dual-layer permission troubleshooting (share + ACL).
 
 ---
 

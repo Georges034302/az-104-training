@@ -8,34 +8,20 @@
 
 Most applications connect by **name**, not by memorizing IP addresses. Azure DNS services help you publish and resolve those names in two main scopes:
 
-- **Public DNS zones** for internet-facing domains
-- **Private DNS zones** for internal name resolution inside Azure VNets
 
 For AZ-104, DNS becomes especially important when you work with:
 
-- private endpoints
-- hybrid networks
-- custom DNS servers
-- multi-VNet architectures
 
 ---
 
 ## What You Will Learn
 
 - The difference between public and private DNS zones
-- How Azure-provided and custom DNS behave in VNets
-- How VNet links and auto-registration work
-- Why private endpoints depend heavily on DNS
-- Common admin scenarios, examples, and troubleshooting steps
 
 ---
 
 ## DNS Mental Model
 
-```text
-[Client VM / App]
-        |
-        v
 [DNS Resolver]
   |             \
   |              +--> [Public Azure DNS zone] -> public records

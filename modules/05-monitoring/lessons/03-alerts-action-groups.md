@@ -26,6 +26,17 @@ Azure answers this through **alert rules** and **Action Groups**.
 - How to reduce alert fatigue and false positives
 - Common exam traps and real-world misconfigurations
 
+## Acronyms and Terms (Do Not Assume)
+
+- SRE = Site Reliability Engineering
+- ITSM = IT Service Management
+- MTTA = Mean Time to Acknowledge
+- MTTR = Mean Time to Recovery
+- KPI = Key Performance Indicator
+- SLA = Service Level Agreement
+
+These concepts are central to alert design and incident response quality.
+
 ---
 
 ## Alerting Mental Model
@@ -151,6 +162,35 @@ Too many alerts create alert fatigue.
 - periodically disable or tune alerts that do not help operations
 
 The goal is **actionable signal**, not maximum volume.
+
+## Alert Severity and Routing Model (Professional Pattern)
+
+Define consistent severity semantics across teams:
+
+- **Sev 0**: Critical outage, immediate business impact, 24x7 escalation.
+- **Sev 1**: High impact degradation requiring urgent response.
+- **Sev 2**: Moderate issue requiring same-day response.
+- **Sev 3/4**: Informational or low-priority operational awareness.
+
+Map each severity to:
+
+1. Primary Action Group
+2. Escalation channel
+3. Required response time
+4. Mandatory runbook
+
+This prevents inconsistent responses and reduces operational confusion.
+
+## Alert Processing and Maintenance Windows
+
+Use alert processing/suppression approaches during planned maintenance to avoid false incident storms.
+
+Guidance:
+1. Apply temporary suppression windows only for approved maintenance periods.
+2. Keep critical health alerts active where risk remains.
+3. Remove suppressions promptly after maintenance completion.
+
+Alert suppression should be controlled and auditable, not permanent noise hiding.
 
 ---
 

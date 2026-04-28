@@ -26,6 +26,19 @@ The most important conceptual rule is:
 - How to choose the right Azure container service for a workload
 - Common admin mistakes and troubleshooting steps
 
+## Acronyms and Terms (Do Not Assume)
+
+- ACR = Azure Container Registry
+- ACI = Azure Container Instances
+- ACA = Azure Container Apps
+- AKS = Azure Kubernetes Service
+- OCI = Open Container Initiative
+- CI/CD = Continuous Integration / Continuous Delivery
+- CPU = Central Processing Unit
+- RAM = Random Access Memory
+- SLA = Service Level Agreement
+- mTLS = mutual Transport Layer Security
+
 ---
 
 ## Container Mental Model
@@ -53,6 +66,22 @@ The most important conceptual rule is:
 | **ACI** | Simple serverless container runtime | Short-lived jobs, burst tasks, single-container or small grouped workloads |
 | **ACA** | Managed container app platform | Modern apps, microservices, HTTP/event-driven scale, revisions |
 
+## Deep Dive: Compute Models for Containers on Azure
+
+Containerized workloads can run on several Azure compute models. Selection should be based on required control, operations model, and scaling complexity.
+
+| Model | Control level | Operations overhead | Best fit |
+|---|---|---|---|
+| ACI | Low-medium | Low | Burst jobs, simple tasks, ad-hoc container runs |
+| ACA | Medium | Low-medium | Microservices, APIs, event-driven apps, revision-based rollouts |
+| AKS | High | Medium-high | Complex orchestration, custom networking/policy, platform teams |
+| App Service (Containers) | Medium | Low | Web/API container hosting with App Service operational model |
+
+Professional guidance:
+- Start with the simplest model that satisfies requirements.
+- Move to AKS only when orchestration complexity truly demands it.
+- For web/API workloads, compare ACA and App Service container hosting based on release and networking needs.
+
 ---
 
 ## Azure Container Registry (ACR)
@@ -71,6 +100,14 @@ ACR is Azure’s private registry for container images.
 - keep a clear tagging strategy such as `v1.0.0`, `2026-04`, or environment-labeled releases
 - avoid relying only on `latest` in production deployment logic
 - prefer **`AcrPull`** / **`AcrPush`** role assignments over broad admin credentials
+
+### Enterprise image governance
+
+1. Enforce immutable release tags (for example `1.4.2`) for production deployments.
+2. Retain digest references for high-assurance releases.
+3. Scan images before deployment.
+4. Implement retention policies to control storage costs.
+5. Limit push rights to CI pipelines and trusted engineering groups.
 
 ### Important note
 The **admin user** for ACR is useful in simple lab scenarios, but production designs should prefer identity-based authentication where possible.
@@ -94,6 +131,19 @@ ACI is a fast, lightweight way to run containers without managing VMs or orchest
 - simpler scaling and ingress story than ACA
 - typically better for straightforward execution rather than long-lived app platform needs
 
+### Practical ACI examples
+
+Example 1: Nightly CSV transformation job
+- Trigger from automation
+- Run container for 10 minutes
+- Output to storage
+- Container stops; no always-on compute needed
+
+Example 2: Incident response toolkit
+- Security team starts temporary diagnostics container in isolated subnet
+- Pulls signed image from ACR
+- Exports report and exits
+
 ---
 
 ## Azure Container Apps (ACA)
@@ -116,6 +166,25 @@ ACA is a managed platform for running containerized applications with modern app
 
 If the scenario emphasizes **managed app platform behavior**, **revisions**, or **built-in autoscale**, ACA is often the better fit.
 
+### ACA operational strengths
+
+- Revision model for controlled rollout and rollback
+- HTTP and event-driven scaling patterns
+- Supports modern microservice decomposition
+- Reduces orchestration burden compared to self-managed clusters
+
+### ACA example architecture
+
+```text
+[API container]  [worker container]
+     |                |
+     +-------> [ACA environment] <-------+
+             |
+           [autoscale]
+             |
+          [ACR images]
+```
+
 ---
 
 ## Choosing Between ACI and ACA
@@ -131,6 +200,19 @@ If the scenario emphasizes **managed app platform behavior**, **revisions**, or 
 - the workload needs managed scaling or revision-driven releases
 - you need app-style ingress behavior
 - the service is more than a one-off container task
+
+## Compare ACA vs App Service (Containers)
+
+Both can run containerized web applications, but they optimize for different operational models.
+
+| Decision area | ACA | App Service (Containers) |
+|---|---|---|
+| Application style | Microservices/event-driven patterns | Traditional web/API hosting model |
+| Release style | Revision-based traffic splitting options | Slot-based swap and plan-based operations |
+| Scaling model | Request/event-driven replicas | Plan worker scale (shared plan boundary) |
+| Team fit | Cloud-native teams | Teams already standardized on App Service |
+
+Use this comparison in architecture reviews and exam scenarios where both services seem plausible.
 
 ---
 
@@ -149,6 +231,14 @@ A typical secure image flow looks like this:
 - assign `AcrPull` to the consuming identity
 - let ACI or ACA pull the image without exposing registry passwords broadly
 
+### Secure pull checklist
+
+1. Use managed identity where supported.
+2. Grant only `AcrPull` to runtime identity.
+3. Disable broad admin-credential usage in production workflows.
+4. Validate network access path to ACR (private endpoint/firewall patterns where required).
+5. Pin deployment to tested tags or digests.
+
 ---
 
 ## Example Scenarios
@@ -164,6 +254,18 @@ Use **ACR + ACA**.
 ### 3. Enterprise image repository for multiple teams
 
 Use **ACR** as the central image store with RBAC-based access control and clear tag/version standards.
+
+### 4. Full CI/CD container release pattern
+
+1. Developer commits code
+2. Pipeline builds and tests image
+3. Security scan runs
+4. Image pushed to ACR with version tag
+5. Deployment updates ACA/App Service container target
+6. Health checks validate rollout
+7. Roll back to prior tag if required
+
+This pattern improves release repeatability and incident response speed.
 
 ---
 

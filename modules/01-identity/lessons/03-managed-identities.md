@@ -3,18 +3,37 @@
 > **Managed Identities** eliminate the need to store credentials in code or configuration.  
 > Azure automatically manages the identity lifecycle and token acquisition, providing a **secure, credential-free** way for Azure resources to access other Azure services.
 
+**The promise:** Your application code never touches credentials. Azure handles it all transparently.
+
+**The reality:** You still need to understand when to use which type, how to assign roles, and how to troubleshoot when authentication fails.
+
 ---
 
 ## Overview
 
 Managed Identities solve the **credential management problem** for Azure-to-Azure authentication:
 
-- **No secrets in code** - Azure manages credentials automatically
-- **Automatic rotation** - No manual certificate/key management
-- **Seamless integration** - Works with Azure AD authentication-enabled services
-- **Zero-trust architecture** - Identity-based access, not network-based
+- **No secrets in code** - Azure manages credentials automatically (hidden from developers)
+- **Automatic rotation** - Credentials rotated without application changes
+- **Seamless integration** - Works with all Entra ID authentication-enabled services
+- **Zero-trust architecture** - Identity-based access (not network-based)
+- **Reduced attack surface** - No credentials to leak in source code, logs, or core dumps
 
-In AZ-104 terms: Managed identities are the **preferred authentication method** for any Azure resource accessing another Azure service.
+**Why not just use app registration + secrets?**
+
+App Registration (Service Principal) with secrets:
+- ❌ Developer must manage secrets (store safely, rotate regularly)
+- ❌ Secrets can leak (hardcoded, logged, exposed in git history)
+- ❌ Secrets expire and break deployments if not rotated
+- ❌ All VMs running same script share same secret (revocation is all-or-nothing)
+
+Managed Identity:
+- ✅ Azure manages credentials (developer never sees them)
+- ✅ Credentials auto-rotated (invisible to app)
+- ✅ Credentials never expire (Azure handles lifecycle)
+- ✅ Each resource has unique identity (fine-grained revocation)
+
+**Recommendation:** Always use Managed Identity when running on Azure. Use Service Principal only for external apps (on-premises, partner systems).
 
 ---
 
@@ -23,47 +42,65 @@ In AZ-104 terms: Managed identities are the **preferred authentication method** 
 - What managed identities are and why they matter
 - **System-assigned** vs **User-assigned** - when to use each
 - How the **IMDS endpoint** (169.254.169.254) provides tokens
+- The lifecycle and behavior of each MI type
 - Enabling managed identities across Azure services (VM, App Service, Functions, etc.)
-- **Token acquisition** workflow and code examples
-- Role assignments for managed identities
+- **Token acquisition** workflow and code examples (bash, Python, PowerShell)
+- Role assignments for managed identities (binding MI to actual permissions)
 - Common integration patterns (Storage, Key Vault, SQL)
-- Troubleshooting and best practices
+- Troubleshooting MI issues (tokens not working, permissions denied)
 - Real admin workflows and exam-grade pitfalls
+- Migration from secrets to MI (common scenarios)
 
 ---
 
 ## Mental Model: Managed Identity Flow
 
 ```text
-Nodes:
-+----------------------------------------------------+
-| Azure Resource VM/App Service/Function             |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| IMDS Endpoint 169.254.169.254                      |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Microsoft Entra ID                                 |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Access Token JWT                                   |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Target Service Storage/Key Vault/SQL               |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Authorized?                                        |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Access Granted                                     |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Access Denied                                      |
-+----------------------------------------------------+
-
++------------------------------------------+
+| Azure Resource                           |
+| VM / App Service / Function              |
++------------------------------------------+
+      | App calls local endpoint
+      v
++------------------------------------------+
+| IMDS (169.254.169.254)                   |
+| Azure's local token service              |
++------------------------------------------+
+      | IMDS gets token from
+      v
++------------------------------------------+
+| Microsoft Entra ID                       |
+| Creates token for this resource          |
++------------------------------------------+
+      | Token returned
+      v
++------------------------------------------+
+| Access Token (JWT)                       |
+| Valid for ~1 hour                        |
++------------------------------------------+
+      | App uses token to call
+      v
++------------------------------------------+
+| Target Service                           |
+| Storage / Key Vault / SQL                |
++------------------------------------------+
+      | Service checks RBAC
+      v
++------------------------------------------+
+| Is token + permission valid?              |
++------------------------------------------+
+     | Yes                            | No
+     v                                v
++---------------------------+    +---------------------------+
+| Authorized Access         |    | 403 Forbidden             |
++---------------------------+    +---------------------------+
 ```
 
-**Key insight:** Application **never handles credentials** - Azure manages token acquisition transparently.
+**Key points:**
+1. **Application never handles credentials** - Azure handles token acquisition transparently
+2. **IMDS endpoint is local** - 169.254.169.254 is only accessible from within the Azure resource
+3. **Token is automatically refreshed** - Handled transparently before expiration
+4. **RBAC still applies** - Managed identity must have role assignment to the target resource
 
 ---
 
@@ -181,66 +218,104 @@ Nodes:
 
 ---
 
-## The IMDS Endpoint (Instance Metadata Service)
+## The IMDS Endpoint (Instance Metadata Service) - Detailed
 
 ### What is IMDS?
 
-**IMDS (Instance Metadata Service)** is a REST API available at `http://169.254.169.254` from Azure resources.
+**IMDS (Instance Metadata Service)** is a REST API endpoint available **only from within Azure resources** at the special IP address `http://169.254.169.254`.
+
+**Think of it as:** "Local identity service running on every Azure resource that can hand you tokens on demand."
 
 **Characteristics:**
-- ✅ Non-routable IP (only accessible from within Azure resource)
-- ✅ Provides metadata about the resource instance
-- ✅ **Token endpoint** for managed identities
-- ✅ No authentication required from within the resource
+- ✅ Non-routable IP (169.254.169.254 is link-local; only accessible from within the resource)
+- ✅ No authentication required (you're already running in the Azure resource)
+- ✅ Provides several types of metadata about the resource instance
+- ✅ **Token endpoint** for managed identities (primary use for MI)
+- ✅ Available without any setup (built into Azure resource, always running)
 
-### IMDS Architecture
+**Why this special IP?**
+- 169.254.0.0/16 is a link-local range (not routable over internet)
+- Means it's ONLY accessible from within the Azure resource
+- Cannot be accessed from external networks or on-premises
+- Cannot be blocked by network security groups (it's internal to Azure fabric)
 
-```text
-Nodes:
-+----------------------------------------------------+
-| Application Code                                   |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| IMDS Endpoint 169.254.169.254:80                   |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Instance Metadata                                  |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Access Token for requested resource                |
-+----------------------------------------------------+
-+----------------------------------------------------+
-| Entra ID Token Issuer                              |
-+----------------------------------------------------+
+### IMDS Request-Response Example
 
-```
-
-### Token Acquisition Example
-
-**HTTP Request to IMDS:**
+**Request:**
 ```bash
+# Get token for Azure Storage
 curl 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://storage.azure.com/' \
-  -H Metadata:true
+  -H "Metadata: true"
 ```
+
+**Required parameters:**
+- `api-version=2018-02-01` (IMDS API version)
+- `resource=https://storage.azure.com/` (what resource do you want a token for?)
+- `Metadata: true` (required header to identify as metadata request)
 
 **Response:**
 ```json
 {
-  "access_token": "eyJ0eXAi...",
-  "client_id": "00000000-0000-0000-0000-000000000000",
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IjloSUhJT3NWdTFXREVTRV...",
   "expires_in": "3599",
-  "expires_on": "1234567890",
+  "expires_on": "1645678123",
   "ext_expires_in": "3599",
-  "not_before": "1234567890",
+  "not_before": "1645674523",
   "resource": "https://storage.azure.com/",
-  "token_type": "Bearer"
+  "token_type": "Bearer",
+  "client_id": "00000000-0000-0000-0000-000000000000"
 }
 ```
 
-**Key parameters:**
-- `resource` - Target service (e.g., `https://storage.azure.com/`, `https://vault.azure.net/`)
-- `Metadata: true` - Required header
-- `api-version` - IMDS API version
+**Key fields:**
+- `access_token`: JWT that can be used with Azure services
+- `expires_in`: Seconds until token expires (usually 3600 = 1 hour)
+- `expires_on`: Unix timestamp when token expires
+- `resource`: Confirms which resource this token is for
+
+### Common Resource Endpoints (Token Requests)
+
+| Service | Resource URL | Use Case |
+|---------|--------------|----------|
+| **Azure Storage** | `https://storage.azure.com/` | Read/write blobs, files, tables |
+| **Key Vault** | `https://vault.azure.net/` | Access secrets, keys, certificates |
+| **Azure SQL** | `https://database.windows.net/` | Query SQL databases |
+| **Azure Resource Manager** | `https://management.azure.com/` | Manage resources (rare for app code) |
+| **Microsoft Graph** | `https://graph.microsoft.com/` | Access Microsoft 365 APIs |
+| **Azure Cosmos DB** | `https://cosmos.azure.com/` | Query Cosmos databases |
+
+### IMDS Architecture (Simplified)
+
+```text
++------------------------------------------+
+| Application Code                         |
+| (running on Azure resource)              |
++------------------------------------------+
+          | GET http://169.254.169.254/metadata/...
+          |
+          v
++------------------------------------------+
+| Azure Fabric                             |
+| (intercepts 169.254.169.254 traffic)     |
++------------------------------------------+
+          | Requests token from
+          v
++------------------------------------------+
+| Microsoft Entra ID                       |
+| (issues tokens)                          |
++------------------------------------------+
+          | Returns token
+          v
++------------------------------------------+
+| Response to application                  |
++------------------------------------------+
+```
+
+**Why intercept at the fabric?**
+- Application code doesn't need to know about Entra ID URLs
+- Application always uses local 169.254.169.254
+- Fabric handles all Entra ID communication
+- Result: Extremely simple for application developers
 
 ---
 

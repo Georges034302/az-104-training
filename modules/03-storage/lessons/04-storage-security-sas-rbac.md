@@ -27,6 +27,17 @@ The two main data access models you must know are:
 - Why user delegation SAS is preferred where supported
 - How network controls complement authorization
 
+## Acronyms and Terms (Do Not Assume)
+
+- RBAC = Role-Based Access Control
+- SAS = Shared Access Signature
+- ACL = Access Control List
+- ADLS Gen2 = Azure Data Lake Storage Gen2
+- IAM = Identity and Access Management
+- JWT = JSON Web Token
+
+These terms appear constantly in storage security architecture and troubleshooting.
+
 ---
 
 ## Security Mental Model
@@ -75,6 +86,13 @@ RBAC is the preferred choice for most internal and long-lived access patterns.
 - easier to govern with least privilege
 - avoids widespread sharing of account keys
 
+### Professional RBAC design pattern
+
+1. Assign roles to security groups, not individuals.
+2. Scope assignments as narrowly as practical (container/resource group instead of subscription where possible).
+3. Separate read, write, and admin personas.
+4. Periodically review assignments for stale access.
+
 ---
 
 ## SAS: Delegated Time-Bound Access
@@ -99,6 +117,17 @@ A **Shared Access Signature (SAS)** is a signed token that delegates limited per
 
 > For Blob Storage, **user delegation SAS** is usually the most secure delegation model because it avoids direct reliance on storage account keys.
 
+### SAS hardening checklist
+
+When issuing SAS tokens:
+
+1. Set shortest feasible expiry time.
+2. Grant minimum permissions required.
+3. Restrict allowed IP ranges where possible.
+4. Enforce HTTPS only.
+5. Avoid account SAS unless genuinely required.
+6. Log issuance and ownership for incident response.
+
 ---
 
 ## When to Use RBAC vs SAS
@@ -114,6 +143,18 @@ A **Shared Access Signature (SAS)** is a signed token that delegates limited per
 
 - Choose **RBAC** for normal ongoing access
 - Choose **SAS** for **temporary delegated** access
+
+## Decision Framework: RBAC vs SAS vs Keys
+
+| Requirement | Preferred model | Notes |
+|---|---|---|
+| Internal workforce access | RBAC | Best governance and auditability |
+| Managed identity workload | RBAC | Avoids secrets and token sprawl |
+| Short-lived external file exchange | SAS | Time-bound delegation without role assignment |
+| Legacy app requiring key auth | Shared key (temporary) | Plan migration to RBAC/SAS where possible |
+
+Professional note:
+- Shared keys are high blast-radius credentials. Treat them like privileged secrets and rotate aggressively.
 
 ---
 
@@ -139,6 +180,16 @@ Authorization should be combined with network restrictions such as:
 - disabling or limiting **shared key access** when the workload supports it
 
 Network controls reduce exposure, but they do **not** replace RBAC or SAS.
+
+### Defense-in-depth operating model
+
+Use all three layers together:
+
+1. Identity layer: RBAC/SAS least privilege
+2. Network layer: firewall rules, private endpoints, selected networks
+3. Data governance layer: immutability, soft delete, monitoring, alerting
+
+A failure in one layer should not result in immediate full data exposure.
 
 ---
 
@@ -209,6 +260,14 @@ If storage access is denied unexpectedly:
 - Treating network restrictions as a substitute for authorization.
 - Using account-level shared keys when RBAC or user delegation SAS would be safer.
 - Troubleshooting ADLS Gen2 access only at the RBAC layer and forgetting ACLs.
+
+## Exam Traps and Real-World Failure Modes
+
+1. Contributor role does not imply blob data read/write permissions.
+2. Long-lived SAS tokens become unmanaged shadow credentials.
+3. Private endpoint configured but DNS unresolved to private IP causes access failures.
+4. RBAC appears correct, but ADLS Gen2 ACL still blocks access.
+5. Management-plane success is mistaken for data-plane authorization success.
 
 ---
 

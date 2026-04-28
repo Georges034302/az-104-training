@@ -27,6 +27,17 @@ But backup is **not the same thing** as high availability or disaster recovery. 
 - Backup governance and security best practices
 - Common AZ-104 mistakes around backup versus DR
 
+## Acronyms and Terms (Do Not Assume)
+
+- RPO = Recovery Point Objective
+- RTO = Recovery Time Objective
+- BCDR = Business Continuity and Disaster Recovery
+- MFA = Multi-Factor Authentication
+- RBAC = Role-Based Access Control
+- WORM = Write Once Read Many (immutability concept)
+
+These terms define backup policy quality and recovery expectations.
+
 ---
 
 ## Backup Mental Model
@@ -147,6 +158,173 @@ Good backup administration includes:
 Design principle:
 
 > A backup design should be driven by **RPO/RTO requirements**, not only by default policy settings.
+
+## Deep Dive: Backup Policy Engineering
+
+A professional backup policy should specify:
+
+1. Workload tier (critical, important, non-critical)
+2. Backup frequency per tier
+3. Retention windows (daily/weekly/monthly/yearly where required)
+4. Restore testing cadence
+5. Ownership for backup failure remediation
+
+Example policy model:
+- Tier 1 critical VMs: daily backup, longer retention, quarterly restore drill
+- Tier 2 business VMs: daily backup, moderate retention, semiannual restore drill
+- Tier 3 dev/test VMs: lower retention and simpler restore requirements
+
+## Vault Security Hardening
+
+Protect backup assets as security-critical infrastructure:
+
+1. Restrict vault permissions with least privilege RBAC.
+2. Require strong identity controls for privileged operations.
+3. Monitor and alert on policy changes, stop-protection events, and deletions.
+4. Use immutable/locked backup patterns where compliance or ransomware risk requires it.
+
+Backup systems are high-value targets during attacks; security posture must reflect that.
+
+## Restore Runbook Minimum Content
+
+Every critical VM should have a tested restore runbook including:
+
+1. Recovery point selection criteria
+2. Restore target choice (new VM, disk restore, file recovery)
+3. Network and DNS validation steps after restore
+4. Application-level health checks
+5. Rollback/cleanup steps if validation fails
+
+This turns backup configuration into operational recovery capability.
+
+## Deep Dive Use Cases: Backup, DR, Migration, and Azure Files
+
+### Use case 1: Backup-first protection for business VMs
+
+Scenario:
+- Line-of-business VM hosts application and local data.
+- Business requires point-in-time recovery for accidental deletion or ransomware.
+
+Design:
+- Protect VM with Recovery Services vault policy.
+- Use longer retention for monthly/quarterly compliance.
+- Run periodic restore drills to alternate resource group.
+
+Why this works:
+- Backup gives recovery to known-good state.
+- It protects from logical/data corruption where HA alone does not help.
+
+### Use case 2: DR with backup as a safety layer
+
+Scenario:
+- Critical workload has high uptime requirements and regional risk.
+
+Design:
+- Use ASR for service continuity/failover.
+- Use Azure Backup for point-in-time restoration.
+
+Operational insight:
+- ASR handles continuity during outage.
+- Backup handles corruption, accidental deletion, and forensic restore.
+- Mature BCDR combines both rather than replacing one with the other.
+
+### Use case 3: Migration safety net
+
+Scenario:
+- Team is migrating VM workload or app stack and needs rollback safety.
+
+Design:
+- Take and validate recent backup before migration cutover.
+- Keep recovery points through migration window.
+- Use restore as rollback option if post-migration validation fails.
+
+Professional note:
+- Backup is not migration tooling itself; it is migration risk control.
+
+### Use case 4: Azure Files backup and recovery
+
+Scenario:
+- Organization uses Azure Files (SMB/NFS shares) for shared application data.
+- Needs restore for deleted files, corruption, and ransomware events.
+
+Design considerations:
+- Configure Azure Files backup in Recovery Services vault.
+- Define share-level retention policy aligned to business requirements.
+- Test item-level and share-level restore procedures.
+- Combine backup with snapshots and access hardening.
+
+When this is especially important:
+- Lift-and-shift file server migrations
+- Branch office shares with Azure File Sync
+- Shared application content with high change rate
+
+### Backup Use-Case Decision Guide
+
+| Objective | Primary control | Secondary control |
+|---|---|---|
+| Recover deleted/corrupted data | Azure Backup | Snapshots, soft-delete features where applicable |
+| Keep service online during regional outage | ASR / HA architecture | Backup for post-incident data recovery |
+| Reduce migration rollback risk | Pre-cutover backup | Staged validation and runbook approvals |
+| Protect Azure Files shares | Azure Files backup policy | Share snapshots and access governance |
+
+## Dedicated End-to-End Scenarios
+
+### Scenario A: Ransomware recovery for business-critical VM
+
+Objective:
+- Restore service quickly with minimal data loss after encryption event.
+
+Environment:
+- Production VM with daily backup policy in Recovery Services vault.
+- Security operations detects malicious encryption activity.
+
+Execution flow:
+1. Isolate compromised VM from network.
+2. Identify clean recovery point before attack timestamp.
+3. Restore to a new VM in quarantine resource group.
+4. Validate OS integrity, app health, and data consistency.
+5. Promote restored VM to production path after approval.
+
+Validation checklist:
+- Recovery point age within RPO target.
+- Service restored within RTO target.
+- Root cause recorded and hardening actions applied.
+
+### Scenario B: Migration rollback safety for line-of-business app
+
+Objective:
+- Execute planned migration with proven fallback option.
+
+Environment:
+- Legacy VM app migrating to new network/app topology.
+
+Execution flow:
+1. Take pre-cutover backup and validate backup job success.
+2. Perform migration cutover and post-cutover health checks.
+3. If validation fails, restore from pre-cutover recovery point.
+4. Re-run migration after remediation.
+
+Why this scenario matters:
+- Backup enables safe experimentation and controlled rollback during migration windows.
+
+### Scenario C: Azure Files recovery after accidental share cleanup
+
+Objective:
+- Recover deleted files and restore business operations for shared content workload.
+
+Environment:
+- Azure Files share used by application and branch-office users.
+- Backup policy enabled for file share via Recovery Services vault.
+
+Execution flow:
+1. Identify impacted folders and deletion window.
+2. Restore required file set or full share from appropriate recovery point.
+3. Validate ACL and access behavior for user groups.
+4. Reconcile restored content with recent valid changes if needed.
+
+Operational lessons:
+- Azure Files backup must be tested at both item-level and full-share recovery level.
+- Permission validation is mandatory after restore to avoid hidden access incidents.
 
 ---
 

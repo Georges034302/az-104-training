@@ -27,6 +27,17 @@ ASR is about **continuity of service**, not long-term point-in-time retention.
 - Failback expectations and operational planning
 - How ASR differs from Azure Backup
 
+## Acronyms and Terms (Do Not Assume)
+
+- ASR = Azure Site Recovery
+- DR = Disaster Recovery
+- RPO = Recovery Point Objective
+- RTO = Recovery Time Objective
+- BCDR = Business Continuity and Disaster Recovery
+- DNS = Domain Name System
+
+These terms are required for designing and operating a DR program.
+
 ---
 
 ## ASR Mental Model
@@ -92,6 +103,167 @@ A mature resilience design commonly needs **both**.
 3. run regular **test failovers** in isolated networks
 4. validate application dependencies, identity, networking, and runbooks
 5. improve the recovery plan based on actual test evidence
+
+## Deep Dive: Recovery Plan Design
+
+Recovery plans should orchestrate more than VM startup.
+
+Include:
+1. Boot sequence by dependency tier (identity, data, app, frontend)
+2. Network mapping and subnet readiness
+3. DNS and traffic redirection steps
+4. Application validation checkpoints
+5. Business-owner sign-off criteria
+
+Without dependency-aware sequencing, failover may succeed technically but fail operationally.
+
+## Test Failover Discipline
+
+Test failover should be treated as a recurring control, not a one-time exercise.
+
+Professional pattern:
+1. Execute in isolated test network.
+2. Validate app functionality, authentication, and data integrity.
+3. Measure achieved RTO and RPO against targets.
+4. Record gaps and assign remediation actions.
+5. Repeat regularly after major architecture changes.
+
+## Failback Planning Reality
+
+Failback is often more complex than failover because:
+- Primary-site dependencies may have changed during outage.
+- Data reconciliation and timing decisions are required.
+- Application maintenance windows may be needed.
+
+Documenting failback prerequisites prevents prolonged split-site operations.
+
+## Deep Dive Use Cases: Migration, DR, and Continuity
+
+### Use case 1: Regional disaster recovery for tiered applications
+
+Scenario:
+- Multi-tier application (web, app, data) runs in primary region.
+- Business requires continuity if region becomes unavailable.
+
+ASR pattern:
+1. Replicate dependent workloads to paired/target region.
+2. Build recovery plan with dependency-aware boot order.
+3. Run regular isolated test failovers.
+4. Execute unplanned failover during actual outage.
+5. Perform controlled failback after primary recovery.
+
+Why this works:
+- Reduces recovery time compared to manual rebuild.
+- Provides orchestrated failover sequence across tiers.
+
+### Use case 2: Planned failover for migration/cutover
+
+Scenario:
+- Organization is moving workloads from one site/region to another.
+
+ASR usage:
+- Planned failover can support controlled cutover with reduced disruption.
+- Useful for datacenter exit or regional relocation projects.
+
+Important distinction:
+- ASR can support migration-style cutovers, but it is a DR platform.
+- For discovery/assessment and broader migration planning, teams typically also use migration tooling and governance processes.
+
+### Use case 3: DR drills and audit evidence
+
+Scenario:
+- Regulated organization must prove recoverability.
+
+ASR pattern:
+- Execute scheduled test failovers.
+- Capture achieved RTO/RPO and validation evidence.
+- Record issues and remediation actions in change process.
+
+Operational value:
+- Converts DR from policy document to measurable capability.
+
+### Use case 4: Azure Files and DR considerations
+
+Scenario:
+- Workloads depend on Azure Files shares.
+
+Design guidance:
+- Protect file data with Azure Backup and storage resilience controls.
+- Validate application dependency on file share availability during DR tests.
+- Ensure DNS/network paths to file endpoints are included in recovery plan.
+
+Professional note:
+- ASR primarily orchestrates compute/workload failover.
+- Data-layer services such as file shares require their own resilience and backup strategy.
+
+## ASR Decision Guide: Migration vs DR vs Backup
+
+| Need | Best-fit control | Why |
+|---|---|---|
+| Keep workload running during major outage | ASR | Orchestrated replication and failover |
+| Recover historical point-in-time data | Azure Backup | Recovery points and restore workflows |
+| Perform controlled site/region cutover | Planned failover (ASR) + migration governance | Operationally coordinated move with rollback planning |
+| Protect file-share data used by apps | Azure Files backup + storage resilience | ASR does not replace file-data protection strategy |
+
+## Dedicated End-to-End Scenarios
+
+### Scenario A: Regional outage DR activation for three-tier application
+
+Objective:
+- Restore service availability during primary-region outage.
+
+Environment:
+- Web, app, and integration VMs replicated with ASR.
+- Recovery plan defines dependency boot order.
+
+Execution flow:
+1. Detect outage and declare DR event.
+2. Trigger unplanned failover using latest suitable recovery point.
+3. Bring up tiers in dependency order (identity/integration -> app -> web).
+4. Validate app transactions, authentication, and external dependencies.
+5. Operate in DR region until primary is stable.
+
+Validation metrics:
+- Achieved RTO versus target.
+- Data recency versus RPO expectation.
+- Incident timeline and communication quality.
+
+### Scenario B: Planned failover for datacenter exit migration
+
+Objective:
+- Perform controlled relocation with minimal business disruption.
+
+Environment:
+- Workloads currently hosted in legacy site/region.
+- Target region prepared and validated.
+
+Execution flow:
+1. Schedule migration window and freeze non-essential changes.
+2. Run planned failover sequence via ASR.
+3. Execute functional tests in target region.
+4. Update DNS/traffic paths and hand over to operations.
+5. Keep rollback and failback decision gates documented.
+
+Why this scenario matters:
+- Shows how ASR can support migration-style cutovers while preserving DR discipline.
+
+### Scenario C: DR test for app depending on Azure Files
+
+Objective:
+- Prove continuity for compute plus file-share dependencies.
+
+Environment:
+- Application VMs protected by ASR.
+- Azure Files used for shared runtime content and user documents.
+
+Execution flow:
+1. Run isolated test failover for app VMs.
+2. Validate DNS/network access to Azure Files endpoints.
+3. Confirm read/write behavior, permissions, and app startup dependency checks.
+4. Document data protection boundary: ASR for compute continuity, backup for file data restore.
+
+Key lesson:
+- DR success requires testing application dependencies, not only VM startup status.
 
 ---
 

@@ -25,6 +25,17 @@ Good KQL use turns raw monitoring data into practical troubleshooting evidence.
 - Time-range and ingestion considerations
 - Common mistakes that lead to misleading query results
 
+## Acronyms and Terms (Do Not Assume)
+
+- KQL = Kusto Query Language
+- LA = Log Analytics
+- UTC = Coordinated Universal Time
+- RBAC = Role-Based Access Control
+- SOC = Security Operations Center
+- NRT = Near Real-Time
+
+These terms appear frequently in monitoring investigations and runbooks.
+
 ---
 
 ## Log Analytics Mental Model
@@ -103,6 +114,49 @@ The KQL pipeline flows **left to right**.
 
 ### Good query habit
 Apply **time and scope filters early** to reduce noise and improve performance.
+
+## KQL Query Quality Framework
+
+Use this framework to keep operational queries correct and reusable:
+
+1. **Scope first**: select the right workspace, table, and time window.
+2. **Filter early**: reduce scan size with `where` before heavy operations.
+3. **Shape output**: use `project` and friendly field names for runbook use.
+4. **Summarize for decisions**: aggregate before drilling into raw events.
+5. **Correlate deliberately**: use `join` only when timing and keys are validated.
+
+## Advanced KQL Patterns for Operations
+
+### Baseline and anomaly-style view
+
+Use `summarize` and `bin()` to establish trend baseline quickly:
+
+```kusto
+Perf
+| where TimeGenerated > ago(24h)
+| where CounterName == "% Processor Time"
+| summarize AvgCPU=avg(CounterValue), P95CPU=percentile(CounterValue,95) by Computer, bin(TimeGenerated, 15m)
+| order by TimeGenerated desc
+```
+
+### Change-correlation view
+
+Correlate symptoms with recent control-plane changes:
+
+```kusto
+let RecentChanges = AzureActivity
+| where TimeGenerated > ago(2h)
+| project ChangeTime=TimeGenerated, Caller, OperationNameValue, ResourceGroup;
+
+Heartbeat
+| where TimeGenerated > ago(2h)
+| summarize LastSeen=max(TimeGenerated) by Computer, ResourceGroup
+| join kind=leftouter RecentChanges on ResourceGroup
+| order by LastSeen asc
+```
+
+Professional note:
+- Correlation helps generate hypotheses, but operators should validate causation with multiple signals.
 
 ---
 

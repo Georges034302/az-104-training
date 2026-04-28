@@ -26,6 +26,20 @@ An Azure VM is never truly “just one resource.” A working design includes th
 - Secure access and day-2 administrative operations
 - Common troubleshooting workflows, examples, and exam traps
 
+## Acronyms and Terms (Do Not Assume)
+
+- IaaS = Infrastructure as a Service
+- PaaS = Platform as a Service
+- SKU = Stock Keeping Unit (Azure size/tier identifier)
+- vCPU = virtual Central Processing Unit
+- RAM = Random Access Memory
+- IOPS = Input/Output Operations Per Second
+- NSG = Network Security Group
+- NIC = Network Interface Card
+- SLA = Service Level Agreement
+
+These terms are used throughout Azure compute operations and decision-making.
+
 ---
 
 ## VM Mental Model
@@ -55,6 +69,33 @@ Use an Azure VM when you need:
 - workloads that do not fit a PaaS hosting model like App Service
 
 Avoid VMs when a managed platform can reduce operational overhead significantly.
+
+## Deep Dive: Azure Compute Model Comparison
+
+Choosing a VM should be a deliberate architectural decision, not a default habit.
+
+| Compute model | You manage | Azure manages | Best fit |
+|---|---|---|---|
+| Virtual Machines (IaaS) | OS, patching, middleware, runtime, app | Datacenter, host, hypervisor | Legacy apps, custom OS control, deep system access |
+| App Service (PaaS) | App code, config, identity, deployments | OS/runtime patching, platform ops | Web apps and APIs with lower ops overhead |
+| Containers on ACI/ACA | Container image and app | Host and platform runtime | Portable app packaging, modern deployment patterns |
+
+Professional guidance:
+- Use VMs when you need operating-system-level control.
+- Use PaaS/container platforms when you want faster delivery and reduced maintenance burden.
+- Many enterprise environments use a mix of all three models.
+
+## VM Lifecycle Responsibilities (What Admins Must Own)
+
+For VM-based workloads, administrators are responsible for:
+
+1. Patch strategy (OS and middleware)
+2. Hardening baseline (accounts, ports, endpoint protection)
+3. Backup and restore testing
+4. Monitoring and alerting
+5. Capacity and cost management
+
+This ownership model is the primary trade-off for VM flexibility.
 
 ---
 

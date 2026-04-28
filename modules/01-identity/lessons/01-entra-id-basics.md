@@ -39,6 +39,12 @@ Azure identity is easier when you hold this model:
 - **Azure RBAC answers:** *WHAT can you do?* at a specific *scope*
 - **ARM enforces:** the decision for **Azure resource management** operations
 
+**Why this matters for AZ-104:**
+- Many access issues stem from confusing these responsibilities
+- A user can be **authenticated** (proven identity) but **not authorized** (denied permissions)
+- Understanding the separation helps you troubleshoot systematically
+- Exam questions often test whether you know which layer solves which problem
+
 ---
 
 
@@ -160,36 +166,74 @@ Admin fix: sign out/in, refresh token, or wait for propagation.
 - Primary domain: `contoso.onmicrosoft.com`
 - Custom domains: `contoso.com` (optional)
 
-#### Tenant and Subscription Relationship (AZ-104 critical)
+#### What is a Tenant? (Detailed Explanation)
 
+A **tenant** is essentially a dedicated copy of the Entra ID service running for your organization. Think of it as:
+
+1. **Identity vault** - Stores all user and app identities for your organization
+2. **Security boundary** - Isolates your organization's identities from others
+3. **Policy container** - Central place where you define permission rules (RBAC, Conditional Access, policies)
+4. **Trust anchor** - The source that Azure services use to verify "are you really who you say you are?"
+
+**Multi-tenancy example:** Your organization might have:
+- Primary tenant: `contoso.onmicrosoft.com` (employees)
+- Guest access from partner tenant: `partner.onmicrosoft.com` (contractors via B2B)
+- These are **completely separate identity directories**, but Entra ID allows cross-tenant collaboration
+
+#### Common Tenant Scenarios (AZ-104 relevant)
+
+**Scenario 1: Single organization, multiple subscriptions**
 ```text
-             +------------------------------------+
-             | Entra ID Tenant                    |
-             | (Identity Directory)               |
-             | contoso.onmicrosoft.com            |
-             |                                    |
-             | Contains:                          |
-             | - Users                            |
-             | - Groups                           |
-             | - Service Principals               |
-             | - Managed Identities               |
-             +------------------------------------+
-                   | trusts for authentication
-       --------------------------------|-----------------------------------
-       |                               |                                  |
-       v                               v                                  v
-+---------------------------+  +---------------------------+  +---------------------------+
-| Subscription A            |  | Subscription B            |  | Subscription C            |
-| (Billing boundary)        |  | (Billing boundary)        |  | (Billing boundary)        |
-| Sub ID: xxxx-xxx1         |  | Sub ID: xxxx-xxx2         |  | Sub ID: xxxx-xxx3         |
-+---------------------------+  +---------------------------+  +---------------------------+
+Entra ID Tenant: contoso.onmicrosoft.com
+├─ Subscription 1 (Production) - trusts this tenant
+├─ Subscription 2 (Development) - trusts this tenant
+└─ Subscription 3 (Test) - trusts this tenant
 ```
+All subscriptions use the **same identities** from the tenant. This is the standard Azure setup for enterprises.
 
-**Critical concepts:**
-- A subscription trusts **one** tenant at a time (for authentication)
-- A tenant can be associated with **many** subscriptions (one-to-many relationship)
-- **Identities are created at tenant level**, not subscription level
-- Changing subscription's trusted tenant (directory transfer) requires admin privileges and can break existing RBAC assignments
+**Scenario 2: Large enterprise with multiple business units**
+```text
+Entra ID Tenant: contoso.onmicrosoft.com
+├─ Group: Finance Department
+│  └─ Subscription: Finance-Sub (RBAC: Group → Reader role)
+├─ Group: Engineering Department
+│  └─ Subscription: Engineering-Sub (RBAC: Group → Contributor role)
+└─ Group: Sales Department
+   └─ Subscription: Sales-Sub (RBAC: Group → Contributor role)
+```
+Single tenant, organized by groups, with role assignments specific to each subscription.
+
+**Scenario 3: Multi-tenant organization (complex)**
+```text
+tenant1.onmicrosoft.com (US operations)
+├─ Subscriptions A, B, C (US cloud)
+
+tenant2.onmicrosoft.com (EU operations - separate for compliance)
+├─ Subscriptions D, E, F (EU cloud)
+```
+Rare scenario for compliance (GDPR, data residency), but important to understand. Each tenant has **completely separate identities**.
+
+#### Tenant vs Subscription - Critical Distinction
+
+Many AZ-104 candidates confuse these. Here's the firm distinction:
+
+| Aspect | Tenant | Subscription |
+|--------|--------|--------------|
+| **What it is** | Identity directory | Billing + resource boundary |
+| **Where identities live** | ✅ In tenant | ❌ Not here (identities are in tenant) |
+| **Multiple allowed** | 1-2 (primary + guest) | Many per tenant |
+| **Trust relationship** | N/A | Trusts 1 tenant for auth |
+| **Manages** | Users, groups, policies | Resources, costs, quotas |
+| **Created by** | Org signs up for Azure | Org creates subscription in existing tenant |
+
+**Real example:**
+- You have **1 tenant** (contoso.onmicrosoft.com) where all your employees' identities live
+- You have **3 subscriptions** (Production-Sub, Dev-Sub, Test-Sub) all trusting that tenant
+- You add a user to Entra ID (happens in tenant)
+- You assign RBAC roles in subscriptions to that user
+- The user signs in with their tenant identity, gets an access token, then uses it to access resources across all 3 subscriptions (if RBAC permits)
+
+
 
 ---
 
@@ -228,10 +272,80 @@ User origin patterns:
 ```
 
 Important attributes:
-- **UPN** (e.g., `john@contoso.com`) – sign-in name
-- **Object ID** – immutable identifier used in RBAC assignments and APIs
+- **UPN** (User Principal Name, e.g., `john@contoso.com`) – sign-in name; should be unique within tenant
+- **Object ID** – immutable identifier (GUID) used in RBAC assignments, APIs, and logs; never changes even if user name changes
 
----
+#### User Types and Provisioning - Comprehensive Guide
+
+**Member Users**
+- Created directly in Entra ID or synced from on-premises AD
+- Have standard organizational access (subject to RBAC)
+- The default identity type for employees/permanent staff
+
+**Guest Users (B2B - Business-to-Business)**
+- External identities invited to your tenant for collaboration
+- Retain their primary identity in their home organization
+- Receive temporary guest credentials in your tenant
+- Typical use cases: partner collaboration, vendor access, long-term contractor onboarding
+- **Restrictions:** Guest access can be limited via Conditional Access; guests may not see all directory info
+- **Important:** Guest users have less visibility by default (cannot browse user list)
+
+**Cloud-only Identity**
+- Created and managed entirely in Entra ID (not synced from anywhere)
+- Faster provisioning (no sync delay, no on-premises dependency)
+- Ideal for cloud-native organizations or cloud-only scenarios
+- Used when no on-premises AD infrastructure exists
+
+**Synced Identity (Hybrid)**
+- Created in on-premises Active Directory, synced to Entra ID via Azure AD Connect
+- On-premises AD remains the authoritative source
+- Sync typically occurs every 30 minutes
+- Three auth options:
+  - **Password hash sync**: Password hashes synced to cloud (easiest, least secure - Microsoft doesn't see password)
+  - **Pass-through authentication**: On-premises domain controller validates password (recommended hybrid)
+  - **Federated (ADFS)**: On-premises federation server handles authentication (most complex, most control)
+- Common in enterprises with established Windows Server AD infrastructure
+
+#### Practical User Scenarios (AZ-104 Operations)
+
+**Scenario A: Adding a new employee (cloud-only)**
+```bash
+# Admin creates user in Entra ID
+az ad user create \
+  --display-name "Alice Johnson" \
+  --user-principal-name alice@contoso.com \
+  --password "TempPassword123!" \
+  --force-change-password-next-login true
+
+# Alice receives temporary password via email, must change on first sign-in
+# Then assign RBAC roles as needed
+az role assignment create \
+  --assignee alice@contoso.com \
+  --role "Contributor" \
+  --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group>
+```
+
+**Scenario B: Adding an external partner (guest B2B)**
+```bash
+# Admin creates guest invitation
+az ad user invitation create \
+  --user-email bob@partner.com \
+  --redirect-url "https://myapps.microsoft.com"
+
+# Bob receives invitation email with redemption link
+# Upon acceptance, Bob becomes a guest user in your tenant
+# Can then be added to security groups and assigned RBAC roles
+az ad group member add \
+  --group "External-Partners" \
+  --member-id <bob-object-id>
+```
+
+**Scenario C: Troubleshooting user not found error**
+- User recently created? → Wait 30 seconds (cache delay)
+- User is guest? → Check if guest redemption completed
+- User disabled? → Check user account status, enable if needed
+- Synced from on-premises? → Verify Azure AD Connect is running and synced recently
+- Wrong tenant? → Verify tenant ID in your sign-in session
 
 #### Groups (access at scale)
 
@@ -280,16 +394,101 @@ Group-based access pattern:
 - Easier auditing (one group assignment vs hundreds of individual assignments)
 
 Types:
-- **Security groups**: used for access control (RBAC, apps)
-- **Microsoft 365 groups**: collaboration (Teams/SharePoint), can be used for some access patterns
+- **Security groups**: used for access control (RBAC, apps); the standard choice for permissions
+- **Microsoft 365 groups**: primarily for collaboration (Teams/SharePoint); can be used for some access patterns but less flexible for fine-grained RBAC
 
 Membership:
-- **Assigned**: manual membership
-- **Dynamic**: rules-based membership (premium features in many cases)
+- **Assigned**: manual membership (admin adds/removes users)
+- **Dynamic**: rules-based membership (automatic based on user attributes)
+
+#### Group Strategy - Best Practices
+
+**Rule 1: Always use groups, never assign roles directly to individual users**
+
+Why?
+- Scales better (add/remove from group vs editing every role assignment)
+- Audit trail is cleaner
+- Prevents accidental permission sprawl
+- Easier to onboard/offboard users
+
+**Rule 2: Use descriptive group names following a naming convention**
+
+Good names:
+- `SG-AppTeam-Contributors` (SG = Security Group, AppTeam = team, Contributors = role level)
+- `RG-CloudOps-Readers` (RG = Resource Group, CloudOps = team, Readers = role level)
+
+Bad names:
+- `Team1`, `Users`, `Group`, `Temp-Access`
+
+**Rule 3: Assign groups to roles, not vice versa**
+
+Pattern:
+```
+User → joins → Group → assigned → Role at Scope
+```
+
+**Assigned vs Dynamic Membership**
+
+**Assigned (manual):**
+```bash
+# Admin manually adds user
+az ad group member add --group "RG-AppTeam-Contributors" --member-id <user-id>
+```
+- Simple, immediate effect
+- Requires manual management (on/offboard tasks)
+- Suitable for small, stable teams
+
+**Dynamic (rules-based):**
+```bash
+# Rule example: All users in the Engineering department automatically join
+# Rule: user.department -eq "Engineering"
+```
+- Automatic (no manual add/remove)
+- Requires premium licensing in many cases
+- Suitable for large organizations with HR system integration
+- Reduces manual tasks on employee transfer/termination
+
+#### Practical Group Scenarios
+
+**Scenario A: Team access to resource group**
+```bash
+# Create security group
+az ad group create --display-name "RG-WebApp-Contributors" --mail-nickname "webapp-contribs"
+
+#Add team members
+az ad group member add --group "RG-WebApp-Contributors" --member-id <alice-id>
+az ad group member add --group "RG-WebApp-Contributors" --member-id <bob-id>
+
+# Assign group to role at resource group scope
+PRINCIPAL_ID=$(az ad group show --group "RG-WebApp-Contributors" --query objectId -o tsv)
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Contributor" \
+  --scope /subscriptions/<sub-id>/resourceGroups/app-prod-rg
+```
+
+**Scenario B: Temporary project access**
+```bash
+# Create temporary project group
+az ad group create --display-name "Project-DataMigration-Team" --mail-nickname "datamig"
+
+# Add people from multiple teams
+az ad group member add --group "Project-DataMigration-Team" --member-id <contractor-id>
+az ad group member add --group "Project-DataMigration-Team" --member-id <engineer-id>
+
+# Assign limited permissions for project resources only
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Contributor" \
+  --scope /subscriptions/<sub-id>/resourceGroups/project-migration-rg
+
+# After project: Remove group (all members lose access)
+az ad group delete --group "Project-DataMigration-Team"
+```
 
 ---
 
-#### Applications and Service Principals (app identities)
+#### Applications and Service Principals (app identities) - Detailed Guide
 
 Think of this as **design-time vs runtime**:
 
@@ -332,13 +531,64 @@ Application identity flow:
 - **Service Principal** = instance (exists in each tenant where app is used)
 - **Example**: Microsoft Graph API has ONE app registration, but a service principal in every tenant that uses it
 
-**Use cases:** automation scripts, CI/CD, external apps accessing Azure.
+**Why this matters:**
+- When you build an app that needs Azure access, you create **one app registration**
+- When that app runs in your tenant, a **service principal** is created automatically
+- If the app needs to run in multiple customer tenants, there's **one app registration** but a **service principal in each customer tenant**
+
+**Use cases for service principals:** 
+- Automation scripts accessing Azure resources
+- CI/CD pipelines deploying infrastructure
+- External applications with API access
+- Scheduled jobs and serverless functions
+
+#### Practical App Service Principal Scenarios
+
+**Scenario A: Creating a service principal for a deployment script**
+```bash
+# Create app registration
+APP_ID=$(az ad app create \
+  --display-name "DeploymentScript" \
+  --query appId -o tsv)
+
+# Create service principal for the app (in current tenant)
+PRINCIPAL_ID=$(az ad sp create --id "$APP_ID" --query objectId -o tsv)
+
+# Assign Contributor role to service principal
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Contributor" \
+  --scope /subscriptions/<subscription-id>
+
+# Create credentials for the service principal
+az ad sp credential reset --id "$PRINCIPAL_ID"
+
+# Now the script can authenticate using the app ID and credentials
+```
+
+**Scenario B: Multi-tenant application**
+```bash
+# Single app registration (one tenant creates this)
+# Mark as multi-tenant so other organizations can use it
+az ad app update --id <app-id> --available-to-other-tenants true
+
+# When Organization A adds the app, a service principal is created in their tenant
+# When Organization B adds the app, a separate service principal is created in their tenant
+# Both organizations see the same app registration ID, but different service principals
+```
+
+**Common Pitfalls:**
+- Storing service principal credentials (secrets) in source code ❌ (use Key Vault instead)
+- Using permanent secrets without rotation ❌ (use certificates + expiration, or managed identities)
+- Assigning Owner role to service principals ❌ (least privilege: assign specific needed roles)
 
 ---
 
-#### Managed Identities (Azure-managed app identities)
+#### Managed Identities (Azure-managed app identities) - Complete Guide
 
-Managed identities are service principals **created and managed by Azure**.
+Managed identities are service principals **created and managed by Azure**. Azure automatically handles credentials - no passwords or secrets needed.
+
+**Key benefit:** You write code that accesses Azure services **without embedding any credentials**. Azure handles authentication transparently.
 
 Two types:
 
@@ -393,7 +643,103 @@ USER-ASSIGNED MI (reusable)
 - **System-assigned**: Simple scenarios, single resource (VM accessing Storage)
 - **User-assigned**: Multiple resources need same identity (3 VMs accessing same Key Vault with one MI)
 
-**Why MIs are preferred:** no secrets, automatic rotation, reduced leakage risk.
+**Why MIs are preferred:** no secrets, automatic rotation, reduced credential leakage risk.
+
+#### System-Assigned vs User-Assigned - Decision Matrix
+
+| Criterion | System-Assigned | User-Assigned |
+|-----------|-----------------|---------------|
+| **Lifecycle** | Tied to resource | Independent |
+| **Number of resources** | One | Many |
+| **Reusability** | Single resource | Multiple resources |
+| **Sharing credentials** | Cannot share | Can share |
+| **Deletes with resource?** | Yes | No (persists) |
+| **Disaster recovery** | MI recreated when resource recreated | MI survives, can use same identity |
+| **Complexity** | Lower | Higher |
+| **Common use** | VM → Storage Account | VM1 + VM2 + App Service → Key Vault |
+
+#### Practical Managed Identity Scenarios
+
+**Scenario A: VM needs read-only access to Key Vault (System-assigned)**
+```bash
+# 1. Enable system-assigned MI on VM
+az vm identity assign --name myVM --resource-group myRG
+
+# 2. Get the principal ID (needed for RBAC assignment)
+PRINCIPAL_ID=$(az vm identity show --name myVM --resource-group myRG --query principalId -o tsv)
+echo $PRINCIPAL_ID  # Output: 12345678-1234-1234-1234-123456789012
+
+# 3. Assign "Key Vault Secrets User" role to the MI
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<sub-id>/resourceGroups/myRG/providers/Microsoft.KeyVault/vaults/myVault
+
+# 4. From within the VM, code can now read secrets without credentials:
+# curl http://169.254.169.254/metadata/identity/oauth2/token?...&resource=https://vault.azure.net/
+```
+
+**Scenario B: Multiple services need access to same storage account (User-assigned)**
+```bash
+# 1. Create user-assigned MI as standalone resource
+IDENTITY_ID=$(az identity create \
+  --name shared-storage-mi \
+  --resource-group shared-rg \
+  --query id -o tsv)
+
+PRINCIPAL_ID=$(az identity show \
+  --name shared-storage-mi \
+  --resource-group shared-rg \
+  --query principalId -o tsv)
+
+# 2. Assign role to the MI
+az role assignment create \
+  --assignee "$PRINCIPAL_ID" \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<sub-id>/resourceGroups/data-rg/providers/Microsoft.Storage/storageAccounts/sharedvault
+
+# 3. Attach same MI to multiple resources
+# VM-1 gets the MI
+az vm identity assign \
+  --name vm1 \
+  --resource-group prod-rg \
+  --identities "$IDENTITY_ID"
+
+# VM-2 gets the same MI
+az vm identity assign \
+  --name vm2 \
+  --resource-group prod-rg \
+  --identities "$IDENTITY_ID"
+
+# App Service also gets the same MI
+az webapp identity assign \
+  --name myApp \
+  --resource-group prod-rg \
+  --identities "$IDENTITY_ID"
+
+# Result: All three resources can access storage with the same identity (and same credentials)
+# If you revoke the MI's storage access, all three lose access together
+```
+
+**Scenario C: Disaster recovery scenario with user-assigned MI**
+```bash
+# Original setup
+# MI: finance-processor-mi in East US
+# Function App: process-invoices-app in East US
+# Storage: invoice-data-storage in East US
+
+# Disaster occurs in East US, need to failover to West US
+# User-assigned MI is replicated to West US (or created separately)
+# New Function App created in West US, attached to MI
+# Storage is replicated/setup in West US
+# Function App in West US can immediately use the same MI identity
+# (No need to recreate credentials from scratch)
+```
+
+**Common Pitfalls with Managed Identities:**
+- Forgetting to assign RBAC roles to the MI (MI exists but has no permissions) ❌
+- Using system-assigned MI when you need failover (MI deleted with resource) ❌
+- Trying to authenticate outside of Azure (MI tokens only work from Azure resources) ❌
 
 ---
 
@@ -401,51 +747,115 @@ USER-ASSIGNED MI (reusable)
 
 ### Authentication (AuthN) — WHO are you?
 
+## Authentication vs Authorization (Do not mix them)
+
+These are **two separate processes** that often confuse new Azure admins.
+
+### Authentication (AuthN) — WHO are you?
+
 Handled by **Entra ID**.
 
 Examples:
-- Password + MFA
-- Passwordless sign-in
-- Conditional Access evaluation
+- Password + MFA (Multi-Factor Authentication)
+- Passwordless sign-in (Windows Hello, FIDO2)
+- Conditional Access evaluation (device compliance, location checks, sign-in risk)
 
 Output:
-- **Token** (proof of identity)
+- **Token** (JWT format: proof of identity with claims about who you are)
+
+**Authentication means proving your identity; Entra ID is the authority that decides if you are who you claim.**
 
 ### Authorization (AuthZ) — WHAT can you do?
 
 Handled by **Azure RBAC** (for Azure resources).
 
 Output:
-- **Allow / Deny** at a specific scope
+- **Allow / Deny** decision at a specific scope
 
-Authentication and Authorization flow:
+**Authorization means deciding what actions you're allowed to perform; Azure RBAC is the authority that makes access control decisions.**
 
-```text
-+------------------------------------------+      Token issued      +---------------------------+
-| Authentication (Entra ID)                | ---------------------> | Token (JWT)               |
-| Verifies credentials, MFA, CA policies   |                        +---------------------------+
-+------------------------------------------+                                   |
-                                                                               v
-                               +----------------------------------------------------------------+
-                               | Authorization (RBAC)                                           |
-                               | Checks role assignment, scope, resource                        |
-                               +----------------------------------------------------------------+
-                                        |
-                                        v
-                               +---------------------------+
-                               | Has permission?           |
-                               +---------------------------+
-                                 | Allow                  | Deny
-                                 v                        v
-                        +---------------------------+   +-------------------------------+
-                        | Access granted            |   | Access blocked                |
-                        | (200 OK)                  |   | (403 Forbidden)               |
-                        +---------------------------+   +-------------------------------+
+#### Critical Distinction Example
+
+**Scenario: User cannot access a storage account**
+
+**Q: Is this an authentication problem or authorization problem?**
+
+First check:
+1. **Can the user sign in?** 
+   - If NO → **Authentication problem** (contact Entra ID admin, check password/MFA)
+   - If YES → Continue to step 2
+
+2. **Does the user have RBAC role with permissions?**
+   - If NO → **Authorization problem** (add Storage Blob Data Reader role)
+   - If YES → Continue to step 3
+
+3. **Is the RBAC assignment propagated?**
+   - New assignments take 5-10 minutes to propagate
+   - Have user sign out/in to refresh token
+
+**Real-world error mapping:**
+- **401 Unauthorized**: Authentication failed (invalid/missing/expired token)
+- **403 Forbidden**: Authentication succeeded, but authorization failed (no RBAC permissions)
+
+#### Token Propagation and Caching (Common AZ-104 Pitfall)
+
+Tokens are **time-bound** (often ~1 hour expiration). When you make changes to group membership or RBAC, users might still have old tokens:
+
+**Problem scenario:**
+```
+10:00 AM - User added to group "App-Admins"
+10:00 AM - Admin: "You should have access now!"
+10:05 AM - User: "I still can't access the app"
+         - User still has old token (doesn't know about group membership yet)
 ```
 
-**Error code mapping:**
-- **401 Unauthorized**: Authentication failed (invalid/missing token)
-- **403 Forbidden**: Authentication succeeded, but authorization failed (no RBAC permissions)
+**Solutions:**
+- Sign out/sign in (forces new token acquisition)
+- Wait for token expiration (usually ~1 hour)
+- Clear browser cache
+- Open in private/incognito window (forces fresh token)
+
+**Why does this matter?**
+- Users ask "why do I still not have access after being added to group?"
+- Admins think something is wrong, but it's just token caching
+- Knowing this saves troubleshooting time
+
+#### Authentication Flow - Step by Step
+
+```text
+Step 1: User/App provides credentials to Entra ID
+        |
+        v
+Step 2: Entra ID verifies credentials
+        - Password check
+        - MFA challenge (if enabled)
+        - Conditional Access evaluation
+        |
+        v
+Step 3: Credentials valid? → Issue token (JWT)
+        - Token contains: user ID, tenant ID, group memberships, expiration time
+        - Token is digitally signed (cannot be forged)
+        |
+        v
+Step 4: User/App sends token with request to Azure
+        |
+        v
+Step 5: Azure Resource Manager receives request
+        - Validates token signature
+        - Extracts identity info from token
+        |
+        v
+Step 6: ARM checks RBAC at specified scope
+        - Does principal have matching role assignment?
+        - Does role include this action?
+        - Are there deny assignments?
+        |
+        v
+Step 7: RBAC decision: Allow or Deny
+        |
+        v
+Step 8: Resource provider executes (if allowed) or returns 403 Forbidden
+```
 
 ---
 
@@ -461,12 +871,14 @@ These control **directory management**, such as:
 - manage app registrations
 
 Examples:
-- Global Administrator
-- User Administrator
-- Application Administrator
-- Security Administrator
+- Global Administrator (highest privilege in tenant; can manage everything)
+- User Administrator (create/manage users and groups, reset passwords)
+- Application Administrator (manage app registrations, permissions)
+- Security Administrator (manage authentication, protection policies, security reports)
 
 **Scope:** the Entra ID tenant/directory.
+
+**Important limit:** Entra ID roles do NOT grant permissions to create, modify, or delete Azure resources.
 
 ### Azure RBAC roles
 
@@ -477,81 +889,204 @@ These control **Azure resources**, such as:
 - deploy resources
 
 Examples:
-- Owner
-- Contributor
-- Reader
-- User Access Administrator
+- Owner (full control + can assign roles)
+- Contributor (full control - cannot assign roles)
+- Reader (read-only)
+- User Access Administrator (manage permissions only - no resource access)
 
 **Scope:** management group / subscription / resource group / resource.
 
-#### Exam trap
+#### Exam trap - Global Administrator vs Subscription Owner
 
-Global Administrator **does not automatically** equal Subscription Owner.
+**Global Administrator** in Entra ID does NOT automatically have Subscription Owner privileges in Azure.
 
-To manage Azure resources, you must have **Azure RBAC** permissions.
+**Example:**
+```
+Alice = Global Administrator in contoso.onmicrosoft.com
+Alice is NOT a Subscription Owner in any Azure subscription by default
+Alice signs into Azure Portal and tries to create a VM → 403 Forbidden
+Why? She has Entra ID permissions (tenant management) but no RBAC roles (resource management)
+
+Solution: Either:
+1. Have a subscription owner add Alice as Subscription Owner/Contributor, OR
+2. Alice needs the appropriate Azure RBAC role assignment
+```
+
+**Real-world consequence:**
+- Org has "Global Admins" managing Entra ID (users, groups, policies)
+- Different team has "Cloud Ops" managing Azure subscriptions (resources, billing)
+- These are separate roles with separate responsibilities
+- Must not be confused
 
 ---
 
 ## Conditional Access (Policy-driven security for sign-in)
 
-Conditional Access evaluates signals and enforces controls.
+**What is Conditional Access?**
 
-Signals might include:
-- user/group membership
-- device compliance
-- location/IP range
-- sign-in risk
-- application being accessed
+Conditional Access is a security framework that evaluates **context** during sign-in and dynamically applies controls. It's the answer to "don't just check the password; check the whole situation."
 
-Controls might include:
-- require MFA
-- require compliant device
-- block access
-- limit session duration
+**Basic formula:** IF (conditions are met) THEN (apply control)
 
-Conditional Access evaluation:
+**It operates at the authentication layer** - before RBAC. It decides WHETHER someone can get a token, not what they can do with it.
+
+### Signals Evaluated
+
+Conditional Access evaluates these **signals** (contextual information about the sign-in attempt):
+
+1. **User/Group membership**
+   - Is this user in the "Admins" group?
+   - Is this user in the "Executives" group?
+
+2. **Device compliance** (if using Intune)
+   - Is the device enrolled in Intune?
+   - Is the device compliant (updated, not jailbroken)?
+   - Is the device joined to domain?
+
+3. **Location / IP range**
+   - Is the user signing in from the corporate network?
+   - Is the IP within the trusted IP range?
+   - Is the user in the expected geographic location?
+   - Sudden sign-in from different country = risk signal
+
+4. **Sign-in risk** (identity protection)
+   - Is there suspicious behavior detected?
+   - Are credentials being used from a new device?
+   - Anonymous IP, leaked credentials, atypical travel?
+
+5. **Application/Resource**
+   - Applying rules to specific apps (SharePoint, Teams, Azure Portal)
+   - Different policies for different apps
+
+### Controls Applied
+
+When signals match policy conditions, Conditional Access applies **controls**:
+
+1. **Require MFA**
+   - User must authenticate with second factor (phone approval, authenticator app)
+
+2. **Require compliant/domain-joined device**
+   - Device must be managed by Intune and pass security checks
+   - Or device must be domain-joined (on-premises AD)
+
+3. **Require specific Authenticator app**
+   - Force use of Microsoft Authenticator app (more secure than SMS)
+
+4. **Block access**
+   - Deny sign-in entirely (even if password is correct)
+
+5. **Session controls** (limited time tokens)
+   - Token valid for only 1 hour (vs default 24 hours)
+   - Re-authentication required frequently
+
+### Conditional Access Evaluation Flow
 
 ```text
 +------------------------------------------+
 | Sign-in attempt                          |
-| (user authenticates)                     |
+| User enters credentials + factors        |
 +------------------------------------------+
           |
           v
 +------------------------------------------+
-| Evaluate signals                         |
-| - User/Group membership                  |
-| - Device compliance (Intune)             |
-| - Location / IP range                    |
-| - Sign-in risk                           |
+| Evaluate ALL Conditional Access policies |
 +------------------------------------------+
           |
           v
 +------------------------------------------+
-| Apply Conditional Access controls        |
-| - Require MFA                            |
-| - Require compliant device               |
-| - Or block access                        |
+| For each policy: conditions match?       |
 +------------------------------------------+
-          |
-          v
-+--------------------------------------------------+
-| Passed all requirements?                         |
-+--------------------------------------------------+
-     | Yes                                      | No
-     v                                          v
-+------------------------------------------+   +------------------------------------------+
-| Token issued (access granted)            |   | Access denied (error shown)              |
-+------------------------------------------+   +------------------------------------------+
+     | No match                    | Match
+     v                             v
++---------------------------+      +------------------------------------------+
+| Policy doesn't apply      |      | Apply control (MFA, block, device check) |
++---------------------------+      +------------------------------------------+
+          |                                  |
+          |                                  v
+          |                        +------------------------------------------+
+          |                        | Control passed?                          |
+          |                        +------------------------------------------+
+          |                             | Yes               | No
+          |                             v                   v
+          |                    +---------------------------+ +---------------------------+
+          |                    | Continue evaluation       | | Access Denied             |
+          |                    +---------------------------+ +---------------------------+
+          |                             |
+          +-----------------------------+
+                   |
+                   v
++------------------------------------------+
+| All policies evaluated                   |
+| Any policy blocked? → Access Denied      |
+| All approved? → Issue token              |
++------------------------------------------+
 ```
 
-**Example CA policy:**
-- **IF** user is in "Admins" group
-- **AND** signing in from outside corporate network
-- **THEN** require MFA + compliant device
-- **ELSE** block access
+### Practical Conditional Access Policies
 
-**Admin mindset:** CA changes *how* authentication is allowed, not what resource permissions exist.
+**Example Policy 1: Require MFA for admins outside network**
+```
+Condition:
+  User: Members of "Global Admins" group
+  Location: Outside corporate IP range
+Control:
+  Require MFA
+Result:
+  Admins signing in remotely must use MFA
+  Admins on-site can sign in with password only
+```
+
+**Example Policy 2: Block external sign-in from unsupported apps**
+```
+Condition:
+  User: Anyone
+  App: Anything except Azure Portal, Microsoft Teams
+  Device: Not managed/compliant
+Control:
+  Block access
+Result:
+  Prevents users from accessing Azure via browser clients
+  Only managed apps/devices allowed for unmanaged endpoints
+```
+
+**Example Policy 3: Block risky sign-ins**
+```
+Condition:
+  Sign-in risk: High (detected suspicious behavior)
+Control:
+  Block access
+Result:
+  Suspicious logins (credential stuffing, leaked credential) are blocked
+  User receives alert to change password
+```
+
+**Example Policy 4: Force reauthentication for sensitive services**
+```
+Condition:
+  User: Sensitive role (Security Admin, Global Admin)
+  OR Resource: Conditional Access policies, Azure Portal
+Control:
+  Session control: Re-auth every 1 hour
+Result:
+  Even if attacker steals token, it's only valid 1 hour
+  Limits damage from token compromise
+```
+
+### Common Conditional Access Mistakes
+
+❌ **Mistake 1: Blocking yourself**
+- Admin creates CA policy that blocks the admin from signing in
+- Admin gets locked out, must contact support
+- **Fix:** Always test CA policies on test users first; exclude emergency admin accounts
+
+❌ **Mistake 2: Too strict (users cannot work)**
+- Requiring MFA for ALL apps, ALL times → user frustration
+- **Better:** Require MFA for admin apps and outside network; allow password for internal apps on-prem
+
+❌ **Mistake 3: Confusing CA with RBAC**
+- CA controls WHETHER someone can authenticate
+- RBAC controls WHAT they can do
+- Both are needed; neither replaces the other
 
 ---
 
