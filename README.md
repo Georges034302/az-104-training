@@ -346,8 +346,6 @@ These materials align with the official AZ-104 exam domains:
 
 ---
 
-## 🧑‍🏫 Author: **Georges Bou Ghantous**
-
-AZ-104 certification training materials with 27 lessons and 44 hands-on lab guides (22 CLI+ARM and 22 Portal) covering all five Azure Administrator exam domains.
+<p style="color:#555; font-size:0.85em;"><em><strong>Author:</strong> Georges Bou Ghantous — AZ-104 certification training materials with 27 lessons and 44 hands-on lab guides (22 CLI+ARM and 22 Portal) covering all five Azure Administrator exam domains.</em></p>
 
 ---
