@@ -7,21 +7,12 @@
 ## Overview
 
 Most applications connect by **name**, not by memorizing IP addresses. Azure DNS services help you publish and resolve those names in two main scopes:
+- Public DNS Zones
+- Private DNS Zones
 
+## DNS Mental Model:
 
-For AZ-104, DNS becomes especially important when you work with:
-
-
----
-
-## What You Will Learn
-
-- The difference between public and private DNS zones
-
----
-
-## DNS Mental Model
-
+```
 [DNS Resolver]
   |             \
   |              +--> [Public Azure DNS zone] -> public records
