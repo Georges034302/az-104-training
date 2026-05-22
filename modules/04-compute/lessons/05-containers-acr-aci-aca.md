@@ -53,7 +53,7 @@ The most important conceptual rule is:
 [Azure Container Registry]
       |                |
       v                v
-[Azure Container Instances]   [Azure Container Apps]
+[Azure ACI]         [Azure ACA]
 ```
 
 ---
