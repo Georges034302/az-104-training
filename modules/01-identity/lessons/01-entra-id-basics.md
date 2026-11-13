@@ -745,10 +745,6 @@ az webapp identity assign \
 
 ## Authentication vs Authorization (Do not mix them)
 
-### Authentication (AuthN) — WHO are you?
-
-## Authentication vs Authorization (Do not mix them)
-
 These are **two separate processes** that often confuse new Azure admins.
 
 ### Authentication (AuthN) — WHO are you?
